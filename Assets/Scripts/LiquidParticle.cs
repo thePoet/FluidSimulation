@@ -1,11 +1,8 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
-using UnityEngine.Serialization;
 
-namespace Elemental
+
+namespace FluidSimulation
 {
     [RequireComponent(typeof(Rigidbody2D))]
     public class LiquidParticle : MonoBehaviour
@@ -38,7 +35,7 @@ namespace Elemental
         private void Awake()
         {
             _rigidbody2D = GetComponent<Rigidbody2D>();
-            LiquidSimulation.AddParticle(this);
+            Simulation.AddParticle(this);
         }
 
    

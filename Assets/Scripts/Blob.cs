@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Zenject;
 
-namespace Elemental
+namespace FluidSimulation
 {
     public enum StateOfMatter
     {

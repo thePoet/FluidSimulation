@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Elemental
+namespace FluidSimulation
 {
     public class BlobPhysicsCustom : MonoBehaviour, Blob.IPhysics
     {

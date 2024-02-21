@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Zenject;
 
-namespace Elemental
+namespace FluidSimulation
 {
     public class BlobInstaller : MonoInstaller
     {

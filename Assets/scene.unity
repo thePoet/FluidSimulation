@@ -638,15 +638,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3375c9b1056d44704a34f7789ead9081, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  blobs:
-  - {fileID: 7503827813441050166, guid: 13743fb4546db40118f6fdc995e8675e, type: 3}
-  - {fileID: 7503827813441050166, guid: 7e5f54809659b43259947517375667f9, type: 3}
   blobsPerFrame: 1
   brushRadius: 25
-  sizeMin: 0.1
-  sizeMax: 2
   maxSpeed: 1
-  something: {fileID: 6458512588980554973, guid: d1e1075ba890b44649bb3f6bf34f11cc, type: 3}
+  liquidParticlePrefab: {fileID: 6458512588980554973, guid: d1e1075ba890b44649bb3f6bf34f11cc, type: 3}
 --- !u!4 &405270752
 Transform:
   m_ObjectHideFlags: 0
@@ -1154,6 +1149,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c517f130aa5724b51b1a6fb50f4553fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  densityTexture: {fileID: 0}
   bounds:
     serializedVersion: 2
     x: 0

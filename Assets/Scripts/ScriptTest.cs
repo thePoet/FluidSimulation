@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Elemental
+namespace FluidSimulation
 {
     [CreateAssetMenu(fileName = "Data", menuName = "ScriptableObjects/TestScript", order = 1)]
     public class ScriptTest : ScriptableObject

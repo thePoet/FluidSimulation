@@ -1,9 +1,6 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using RikusGameDevToolbox.GeneralUse;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Serialization;
 using Timer = RikusGameDevToolbox.GeneralUse.Timer;
@@ -12,11 +9,11 @@ using Timer = RikusGameDevToolbox.GeneralUse.Timer;
 // https://mmacklin.com/pbf_sig_preprint.pdf
 
 // useful reference: https://github.com/yuki-koyama/position-based-fluids/blob/main/src/main.cpp
-namespace Elemental
+namespace FluidSimulation
 {
     
     
-    public class LiquidSimulation : MonoBehaviour
+    public class Simulation : MonoBehaviour
     {
  
         private static List<LiquidParticle> _particles;
@@ -41,7 +38,7 @@ namespace Elemental
         private Timer timer;
         private Timer timerAll;
         
-        static LiquidSimulation()
+        static Simulation()
         {
             _particles = new List<LiquidParticle>();
         }

@@ -1,7 +1,7 @@
 
 using UnityEngine;
 
-namespace Elemental
+namespace FluidSimulation
 {
     /*
     public interface ISmoothingKernel
