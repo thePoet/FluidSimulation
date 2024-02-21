@@ -1,10 +1,5 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using RikusGameDevToolbox.GeneralUse;
 using UnityEngine;
-using UnityEngine.Serialization;
-using Zenject;
 using Random = UnityEngine.Random;
 
 namespace FluidSimulation
@@ -32,25 +27,12 @@ namespace FluidSimulation
                 }
             } 
             
-            if (Input.GetKey(KeyCode.N)) Debug.Log("Number of blobs: " + Blob.blobs.Count);
+
 
         }
 
        
 
-        private static void LogMaxPressure()
-        {
-            if (Blob.blobs.Count > 10)
-            {
-                float max = 0f;
-                foreach (var blob in Blob.blobs)
-                {
-                    if (blob.Pressure() > max) max = blob.Pressure();
-                }
-
-                Debug.Log(max);
-            }
-        }
 
 
         
