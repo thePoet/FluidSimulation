@@ -18,15 +18,15 @@ namespace FluidSimulation
  
         private static List<LiquidParticle> _particles;
   
-        [FormerlySerializedAs("myTexture")] public Texture2D densityTexture;
-        public Rect bounds;
+      
         public int numSolverIterations;
         public float interactionDistance;
         public float restDensity;
         public float particleMass;
         public float relaxationParameter;
         public float gravity;
-        
+
+        public GameObject liquidParticlePrefab;
         
         public float timeAll;
         public float timeNeighbours;
@@ -37,6 +37,14 @@ namespace FluidSimulation
         private MovingAverage timeAvgAll;
         private Timer timer;
         private Timer timerAll;
+
+        private Texture2D densityTexture;
+        private Container container;
+        private bool isRunning;
+        
+      
+        
+        
         
         static Simulation()
         {
@@ -70,17 +78,22 @@ namespace FluidSimulation
             {
                 for (int j = 0; j < 100; j++)
                 {
-                    densityTexture.SetPixel(i, j, Color.red);
+                    densityTexture.SetPixel(i, j, new Color(0f, 0f, 1f, 0.5f));
                 }
             }
             densityTexture.Apply();
+
+            container = GameObject.FindObjectOfType<Container>();
+
+            isRunning = true;
+
         }
 
        
         
         private void Update()
         {
-            Simulate(0.015f);
+            if (isRunning || Input.GetKeyDown(KeyCode.Period)) Simulate(0.015f);
             
             
             if (Input.GetKeyDown(KeyCode.N)) Debug.Log("Number of particles: " + _particles.Count);
@@ -90,16 +103,67 @@ namespace FluidSimulation
                 Vector2 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
                 Debug.Log("Density: " + DensityAt(mousePosition));
             }
+            
+            if (Input.GetKeyDown(KeyCode.Space)) isRunning = !isRunning;
+            
+            if (Input.GetKeyDown(KeyCode.T)) PerformanceTest();
         }
         
       
 
         void OnDrawGizmos()
         {
-            // Draw a texture rectangle on the XY plane of the scene
-            Gizmos.DrawGUITexture(bounds, densityTexture);
+
+          DrawDensityMap();
+          //DrawVelocityVectors();
+
+          void DrawDensityMap()
+          {
+              for (int i = 0; i < 100; i++)
+              {
+                  for (int j = 0; j < 100; j++)
+                  {
+                      Vector2 position = container.Bounds.min + container.Bounds.size * new Vector2(i / 100f, j / 100f);
+                      Color color = ColorForDensity(DensityAt(position));
+                      densityTexture.SetPixel(i, 99-j, color);
+                  }
+              }
+              densityTexture.Apply();
+              Gizmos.DrawGUITexture(container.Bounds, densityTexture);
+          }
+
+        
+          void DrawVelocityVectors()
+          {
+              foreach (var particle in _particles)
+              {
+                  Gizmos.DrawLine(particle.Position, particle.Position + particle.velocity * 0.3f);
+              }
+          }
+
+
+          Color ColorForDensity(float density)
+          {
+              float margin = 0.01f;
+              
+              Color restDensityColor = new Color(0f, 0f, 1f, 0.5f);
+              Color highDensityColor = new Color(1f, 0f, 0f, 0.5f);
+              Color lowDensityColor = new Color(0f, 1f, 0f, 0.5f);
+              
+                if (density < restDensity * (1f - margin)) return lowDensityColor;
+                if (density > restDensity * (1f + margin)) return highDensityColor;
+
+                return restDensityColor;
+          }
         }
         #endregion
+        
+        #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
+          
+        public void SpawnParticleAt(Vector2 position) => Instantiate(liquidParticlePrefab, position, Quaternion.identity);
+
+        #endregion
+
         #region ------------------------------------------ PRIVATE METHODS ----------------------------------------------
 
         void Simulate(float timeStep)
@@ -118,7 +182,8 @@ namespace FluidSimulation
             {
                 _particles.ForEach(p => p.ScalingFactor = ScalingFactor(p, p.neighbours));
                 _particles.ForEach(p => p.Position += DeltaPosition(p));
-                ConfineParticlesInBox(_particles, bounds);
+                
+                if (container!= null) ConfineParticlesInBox(_particles, container.Bounds);
             }
             
             _particles.ForEach(p => p.velocity = (p.Position - p.startPosition) / timeStep);
@@ -233,18 +298,35 @@ namespace FluidSimulation
                     Mathf.Clamp(particle.Position.y, boxBounds.yMin, boxBounds.yMax));
             }
         }
-        
-        void UpdateDensityTexture()
+
+
+        void PerformanceTest()
         {
-            for (int i = 0; i < 100; i++)
+            if (_particles.Count != 0) return;
+            
+            Random.InitState(123);
+            
+            for (int i = 0; i < 500; i++)
             {
-                for (int j = 0; j < 100; j++)
-                {
-                    densityTexture.SetPixel(i, j, Color.red);
-                }
+                Vector2 position = new Vector2
+                (
+                    x: Random.Range( container.Bounds.xMin, container.Bounds.xMax),
+                    y: Random.Range( container.Bounds.yMin, container.Bounds.yMax)
+                );
+          
+                SpawnParticleAt(position);
             }
-            densityTexture.Apply();
+            
+            Timer timer = new Timer();
+            for (int i = 0; i < 60; i++)
+            {
+                Simulate(0.016666f);
+            }
+            
+            Debug.Log("Performance test time: " + timer.Time*1000f + " ms");
+            
         }
+
         
         #endregion
     }
