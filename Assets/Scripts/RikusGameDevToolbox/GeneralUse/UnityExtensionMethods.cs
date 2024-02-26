@@ -52,6 +52,11 @@ namespace RikusGameDevToolbox.GeneralUse
         {
             return new Vector2(v.x, value);
         }
+        
+        public static Vector2 Clamp(this Vector2 v, Rect bounds)
+        {
+            return new Vector2(Mathf.Clamp(v.x, bounds.xMin, bounds.xMax), Mathf.Clamp(v.y, bounds.yMin, bounds.yMax));
+        }
 
         public static Vector3 SetX(this Vector3 v, float value)
         {
@@ -96,7 +101,11 @@ namespace RikusGameDevToolbox.GeneralUse
         {
             return new Vector3Int(Mathf.RoundToInt(v.x), Mathf.RoundToInt(v.y), Mathf.RoundToInt(v.z));
         }
-
+        
+        public static Rect Expand(this Rect r, float amount)
+        {
+            return new Rect(r.x - amount, r.y - amount, r.width + 2*amount, r.height + 2*amount);
+        }
 
 
 

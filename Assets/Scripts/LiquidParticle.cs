@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace FluidSimulation
 {
-    [RequireComponent(typeof(Rigidbody2D))]
+
     public class LiquidParticle : MonoBehaviour
     {
         public Vector2 Position
@@ -19,22 +19,18 @@ namespace FluidSimulation
         public List<LiquidParticle> neighbours;
         public Vector2 velocity;
         
-        private Rigidbody2D _rigidbody2D;
+    
         
  
         #region ------------------------------------------- UNITY METHODS -----------------------------------------------
 
         private void Awake()
         {
-            _rigidbody2D = GetComponent<Rigidbody2D>();
-            Simulation.AddParticle(this);
+        
         }
 
    
-        private void ApplyForceToParticle(Vector2 force)
-        {
-            _rigidbody2D.AddForce(force);
-        }
+      
 
         #endregion
         

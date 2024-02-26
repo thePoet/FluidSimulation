@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using RikusGameDevToolbox.GeneralUse;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Serialization;
 using Timer = RikusGameDevToolbox.GeneralUse.Timer;
@@ -42,6 +44,7 @@ namespace FluidSimulation
         private Container container;
         private bool isRunning;
         
+        private SpatialPartitioningGrid2D<LiquidParticle> _spatialPartitioningGrid;
       
         
         
@@ -49,12 +52,10 @@ namespace FluidSimulation
         static Simulation()
         {
             _particles = new List<LiquidParticle>();
+            
         }
         
-        public static void AddParticle(LiquidParticle particle)
-        {
-            _particles.Add(particle);
-        }
+      
         
         public static List<LiquidParticle> GetLiquidParticlesInCircle(Vector2 center, float radius)
         {
@@ -87,6 +88,10 @@ namespace FluidSimulation
 
             isRunning = true;
 
+            float padding = container.Bounds.width * 2f;
+
+            Rect gridBounds = container.Bounds.Expand(padding);
+            _spatialPartitioningGrid = new SpatialPartitioningGrid2D<LiquidParticle>( gridBounds, interactionDistance);
         }
 
        
@@ -159,8 +164,14 @@ namespace FluidSimulation
         #endregion
         
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
-          
-        public void SpawnParticleAt(Vector2 position) => Instantiate(liquidParticlePrefab, position, Quaternion.identity);
+
+        public void SpawnParticleAt(Vector2 position)
+        {
+            GameObject gobj = Instantiate(liquidParticlePrefab, position, Quaternion.identity);
+            LiquidParticle particle = gobj.GetComponent<LiquidParticle>();
+            _spatialPartitioningGrid.AddEntity(particle, position);
+            _particles.Add(particle);
+        }
 
         #endregion
 
@@ -170,24 +181,32 @@ namespace FluidSimulation
         {
             
             timerAll.Reset();
-            
-            _particles.ForEach(p => p.startPosition = p.Position);
 
-            _particles.ForEach(p => ApplyExternalForcesTo(p, timeStep));
-            _particles.ForEach(p => p.Position += p.velocity * timeStep);
+            foreach (var particle in _particles)
+            {
+                particle.startPosition = particle.Position;
+                ApplyExternalForcesTo(particle, timeStep);
+                particle.Position += particle.velocity * timeStep;
+                _spatialPartitioningGrid.UpdateEntity(particle, particle.startPosition, particle.Position);
+            }
+            
 
             _particles.ForEach(p => p.neighbours = NeighboursOf(p));
            
             for (int i = 0; i < numSolverIterations; i++)
             {
                 _particles.ForEach(p => p.ScalingFactor = ScalingFactor(p, p.neighbours));
-                _particles.ForEach(p => p.Position += DeltaPosition(p));
-                
+                foreach (var particle in _particles)
+                {
+                    Vector2 oldPosition = particle.Position;
+                    particle.Position += DeltaPosition(particle);
+                    _spatialPartitioningGrid.UpdateEntity(particle, oldPosition, particle.Position);
+                }
                 if (container!= null) ConfineParticlesInBox(_particles, container.Bounds);
             }
             
             _particles.ForEach(p => p.velocity = (p.Position - p.startPosition) / timeStep);
-            //_particles.ForEach(p => p.Position = p.newPosition);
+        
             
             timeAvgAll.Add(timerAll.Time);
             timeAll = timeAvgAll.Average() * 1000f;
@@ -283,8 +302,9 @@ namespace FluidSimulation
        }
         
         
-        private List<LiquidParticle> NeighboursOf(LiquidParticle p) => GetLiquidParticlesInCircle(p.Position, interactionDistance);
+//        private List<LiquidParticle> NeighboursOf(LiquidParticle p) => GetLiquidParticlesInCircle(p.Position, interactionDistance);
         
+        private List<LiquidParticle> NeighboursOf(LiquidParticle p) => _spatialPartitioningGrid.GetEntitiesInsideCircle(p.Position, interactionDistance);
 
      
 
