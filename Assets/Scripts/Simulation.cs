@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using RikusGameDevToolbox.GeneralUse;
+using Unity.VisualScripting.Dependencies.NCalc;
 using UnityEngine;
 using UnityEngine.Serialization;
 using Timer = RikusGameDevToolbox.GeneralUse.Timer;
@@ -25,7 +26,8 @@ namespace FluidSimulation
         public float particleMass;
         public float relaxationParameter;
         public float gravity;
-
+        public float tensileInstabilityCorrection = 0.1f;
+        
         public GameObject liquidParticlePrefab;
         
         public float timeAll;
@@ -144,7 +146,7 @@ namespace FluidSimulation
 
           Color ColorForDensity(float density)
           {
-              float margin = 0.01f;
+              float margin = 0.1f;
               
               Color restDensityColor = new Color(0f, 0f, 1f, 0.5f);
               Color highDensityColor = new Color(1f, 0f, 0f, 0.5f);
@@ -222,7 +224,12 @@ namespace FluidSimulation
             foreach (var otherParticle in particle.neighbours)
             {
                 Vector2 gradient = _smoothing.SpikyGradient(particle.Position - otherParticle.Position);
-                sum += (particle.ScalingFactor + otherParticle.ScalingFactor) * gradient;
+                
+                // Tensile Instability correction (Eq. 13 in Müller et al. 2003)
+                float term = _smoothing.Spiky((particle.Position - otherParticle.Position).magnitude)/_smoothing.Spiky(0.2f*interactionDistance);
+                float correction = -tensileInstabilityCorrection * term * term * term * term;
+                
+                sum += (particle.ScalingFactor + otherParticle.ScalingFactor + correction) * gradient;
             }
             
             return 1f/restDensity * sum;
@@ -237,6 +244,9 @@ namespace FluidSimulation
         private float ScalingFactor(LiquidParticle particle, List<LiquidParticle> neighbours)
         {
             float densityConstraint =  DensityAt(particle.Position, neighbours) / restDensity - 1f;
+            
+          //  if (densityConstraint < 0f) return 0f;
+            
             float sum = 0f;
             foreach (var otherParticle in neighbours)
             {
@@ -294,8 +304,10 @@ namespace FluidSimulation
             foreach (var particle in particles)
             {
                 if (boxBounds.Contains(particle.Position)) continue;
-                particle.Position = new Vector2(Mathf.Clamp(particle.Position.x, boxBounds.xMin, boxBounds.xMax),
+                Vector2 clampedPosition = new Vector2(Mathf.Clamp(particle.Position.x, boxBounds.xMin, boxBounds.xMax),
                     Mathf.Clamp(particle.Position.y, boxBounds.yMin, boxBounds.yMax));
+                particle.Position = clampedPosition + Random.insideUnitCircle * 0.1f;
+
             }
         }
 

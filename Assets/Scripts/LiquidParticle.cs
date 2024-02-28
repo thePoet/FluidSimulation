@@ -18,7 +18,10 @@ namespace FluidSimulation
         public float ScalingFactor;
         public List<LiquidParticle> neighbours;
         public Vector2 velocity;
-        
+
+        public Vector2 debug1 = Vector2.zero;
+        public Vector2 debug2 = Vector2.zero;
+
         private Rigidbody2D _rigidbody2D;
         
  
