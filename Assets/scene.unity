@@ -1071,11 +1071,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c517f130aa5724b51b1a6fb50f4553fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  interactionRadius: 20
-  stiffness: 80
-  nearStiffness: 80
-  gravity: 50
+  interactionRadius: 15
+  stiffness: 750
+  nearStiffness: 1500
+  gravity: 300
   restDensity: 5
+  alpha: 0
+  beta: 0.1
   liquidParticlePrefab: {fileID: 6458512588980554973, guid: d1e1075ba890b44649bb3f6bf34f11cc, type: 3}
 --- !u!4 &1692431638
 Transform:

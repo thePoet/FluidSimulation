@@ -18,15 +18,15 @@ namespace FluidSimulation
             {
                 for (int i=0; i<blobsPerFrame; i++)
                 {
-                    simulation.SpawnParticleAt(MousePosition + RandomOffset);
+                    simulation.SpawnParticleAt(MousePosition + RandomOffset, Vector2.zero);
                 }
             }
 
             if (RightMouseButton)
             {
-                simulation.SpawnParticleAt(MousePosition);
+                simulation.SpawnParticleAt(MousePosition, Vector2.zero);
             }
-       }
+        }
 
         bool LeftMouseButton => Input.GetMouseButtonDown(0);
         bool RightMouseButton => Input.GetMouseButtonDown(1);
