@@ -14,49 +14,52 @@ using Timer = RikusGameDevToolbox.GeneralUse.Timer;
 // useful reference: https://github.com/yuki-koyama/position-based-fluids/blob/main/src/main.cpp
 namespace FluidSimulation
 {
-    
-    
+
+
     public class Simulation : MonoBehaviour
     {
- 
+        private struct BoxEdge
+        {
+            public BoxEdge(Vector2 start, Vector2 end, Vector2 normal)
+            {
+                this.start = start;
+                this.end = end;
+                this.normal = normal;
+            }
+            public Vector2 start;
+            public Vector2 end;
+            public Vector2 normal;
+        }
+
         private static List<LiquidParticle> _particles;
-  
-      
-      
+
+
         public float interactionRadius;
         public float stiffness;
         public float nearStiffness;
         public float gravity;
         public float restDensity;
-     
+
         public GameObject liquidParticlePrefab;
-        
-      
-    
+
+
         private MovingAverage timeAvgCalc;
-       
         private MovingAverage timeAvgAll;
-
         private Timer timerAll;
-
         private Texture2D densityTexture;
         private Container container;
         private bool isRunning;
-        
-      
-        
-        
-        
+
         static Simulation()
         {
             _particles = new List<LiquidParticle>();
         }
-        
+
         public static void AddParticle(LiquidParticle particle)
         {
             _particles.Add(particle);
         }
-        
+
         public static List<LiquidParticle> GetLiquidParticlesInCircle(Vector2 center, float radius)
         {
             var colliders = Physics2D.OverlapCircleAll(center, radius);
@@ -65,12 +68,13 @@ namespace FluidSimulation
         }
 
         #region ------------------------------------------- UNITY METHODS -----------------------------------------------
+
         private void Awake()
         {
-         
+
             timeAvgAll = new MovingAverage(50);
             timerAll = new Timer();
- 
+
 
             densityTexture = new Texture2D(100, 100);
             for (int i = 0; i < 100; i++)
@@ -80,6 +84,7 @@ namespace FluidSimulation
                     densityTexture.SetPixel(i, j, new Color(0f, 0f, 1f, 0.5f));
                 }
             }
+
             densityTexture.Apply();
 
             container = GameObject.FindObjectOfType<Container>();
@@ -88,13 +93,13 @@ namespace FluidSimulation
 
         }
 
-       
-        
+
+
         private void Update()
         {
             if (isRunning || Input.GetKeyDown(KeyCode.Period)) Simulate(0.015f);
-            
-            
+
+
             if (Input.GetKeyDown(KeyCode.N)) Debug.Log("Number of particles: " + _particles.Count);
             /*
             if (Input.GetKeyDown(KeyCode.D))
@@ -103,64 +108,71 @@ namespace FluidSimulation
                 Vector2 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
                 Debug.Log("Density: " + DensityAt(mousePosition));
             }*/
-            
+
             if (Input.GetKeyDown(KeyCode.Space)) isRunning = !isRunning;
-            
+
             if (Input.GetKeyDown(KeyCode.T)) PerformanceTest();
         }
-        
-      /*
+
+
 
         void OnDrawGizmos()
         {
 
-          DrawDensityMap();
-          //DrawVelocityVectors();
+            DrawDensityMap();
+            //DrawVelocityVectors();
 
-          void DrawDensityMap()
-          {
-              for (int i = 0; i < 100; i++)
-              {
-                  for (int j = 0; j < 100; j++)
-                  {
-                      Vector2 position = container.Bounds.min + container.Bounds.size * new Vector2(i / 100f, j / 100f);
-                      Color color = ColorForDensity(DensityAt(position));
-                      densityTexture.SetPixel(i, 99-j, color);
-                  }
-              }
-              densityTexture.Apply();
-              Gizmos.DrawGUITexture(container.Bounds, densityTexture);
-          }
+            void DrawDensityMap()
+            {
+                for (int i = 0; i < 100; i++)
+                {
+                    for (int j = 0; j < 100; j++)
+                    {
+                        Vector2 position = container.Bounds.min +
+                                           container.Bounds.size * new Vector2(i / 100f, j / 100f);
+                        //     Color color = ColorForDensity(DensityAt(position));
+                        //    densityTexture.SetPixel(i, 99-j, color);
+                    }
+                }
 
-        
-          void DrawVelocityVectors()
-          {
-              foreach (var particle in _particles)
-              {
-                  Gizmos.DrawLine(particle.Position, particle.Position + particle.velocity * 0.3f);
-              }
-          }
+                densityTexture.Apply();
+                Gizmos.DrawGUITexture(container.Bounds, densityTexture);
+            }
 
 
-          Color ColorForDensity(float density)
-          {
-              float margin = 0.1f;
-              
-              Color restDensityColor = new Color(0f, 0f, 1f, 0.5f);
-              Color highDensityColor = new Color(1f, 0f, 0f, 0.5f);
-              Color lowDensityColor = new Color(0f, 1f, 0f, 0.5f);
-              
+            void DrawVelocityVectors()
+            {
+                foreach (var particle in _particles)
+                {
+                    Gizmos.DrawLine(particle.Position, particle.Position + particle.velocity * 0.3f);
+                }
+            }
+
+
+            Color ColorForDensity(float density)
+            {
+                float margin = 0.1f;
+
+                Color restDensityColor = new Color(0f, 0f, 1f, 0.5f);
+                Color highDensityColor = new Color(1f, 0f, 0f, 0.5f);
+                Color lowDensityColor = new Color(0f, 1f, 0f, 0.5f);
+
                 if (density < restDensity * (1f - margin)) return lowDensityColor;
                 if (density > restDensity * (1f + margin)) return highDensityColor;
 
                 return restDensityColor;
-          }
-        }*/
+            }
+        }
+
         #endregion
-        
+
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
-          
-        public void SpawnParticleAt(Vector2 position) => Instantiate(liquidParticlePrefab, position, Quaternion.identity);
+
+        public void SpawnParticleAt(Vector2 position, Vector2 velocity = default)
+        {
+            GameObject particle = Instantiate(liquidParticlePrefab, position, Quaternion.identity);
+            particle.GetComponent<LiquidParticle>().velocity = velocity;
+        }
 
         #endregion
 
@@ -168,16 +180,13 @@ namespace FluidSimulation
 
         void Simulate(float timeStep)
         {
-            
-           
-            
             foreach (var particle in _particles)
             {
-               particle.velocity += Vector2.down * timeStep * gravity;
+                particle.velocity += Vector2.down * timeStep * gravity;
             }
-            
+
             //viscosity here
-            
+
             foreach (var particle in _particles)
             {
                 particle.previousPosition = particle.Position;
@@ -185,22 +194,99 @@ namespace FluidSimulation
             }
 
             foreach (var particle in _particles) particle.neighbours = NeighboursOf(particle);
-            
-        
-            
-            
+
+
+
+
             // displacements here
 
             foreach (var particle in _particles) DoubleDensityRelaxation(particle, timeStep);
-            
-            ConfineParticlesInBox(_particles, container.Bounds);
-            
+
+            foreach (var particle in _particles) particle.Position += CollisionImpulse(particle, timeStep);
+
+            //ConfineParticlesInBox(_particles, container.Bounds);
+
             foreach (var particle in _particles)
             {
                 particle.velocity = (particle.Position - particle.previousPosition) / timeStep;
             }
+
+
+        }
+
+        private Vector2 CollisionImpulse(LiquidParticle particle, float timeStep)
+        {
+            Rect box = container.Bounds;
+
+            if (box.Contains(particle.Position)) return Vector2.zero;
+
+            if (!box.Contains(particle.previousPosition))
+            {
+                Debug.LogWarning("Particle's previous position was outside the container. This should not happen.");
+            }
+
+            (Vector2 collisionPosition, Vector2 collisionNormal) = CollisionToBoxFromInside(box, particle.previousPosition, particle.Position);
+
+            Vector2 velocity = particle.Position - particle.previousPosition;
             
-       
+            // components of velocity in the direction of the normal of the box edge and tangential to it
+            Vector2 velocityNormal = Vector2.Dot(velocity, collisionNormal) * collisionNormal;
+            Vector2 velocityTangent = velocity - velocityNormal;
+            
+            float tangentialFriction = 0.5f;
+           
+            
+            Vector2 impulse = -velocityNormal - tangentialFriction * velocityTangent;
+            
+            Vector2 endPosition = particle.Position + impulse;
+            if (!box.Contains(endPosition))
+            {
+               endPosition = ClampToBox(collisionPosition, box);
+               impulse = endPosition - particle.Position;
+            }
+
+
+
+            return impulse;
+
+            Vector2 ClampToBox(Vector2 position, Rect box)
+            {
+                return new Vector2(Mathf.Clamp(position.x, box.xMin, box.xMax),
+                    Mathf.Clamp(position.y, box.yMin, box.yMax));
+            }
+            
+
+            (Vector2 position, Vector2 normal) CollisionToBoxFromInside(Rect box, Vector2 startPosition, Vector2 attemptedPosition)
+            {
+                BoxEdge[] boxEdges = 
+                {
+                    new BoxEdge(new Vector2(box.xMin, box.yMin), new Vector2(box.xMin, box.yMax), Vector2.right),
+                    new BoxEdge(new Vector2(box.xMin, box.yMax), new Vector2(box.xMax, box.yMax), Vector2.down),
+                    new BoxEdge(new Vector2(box.xMax, box.yMax), new Vector2(box.xMax, box.yMin), Vector2.left),
+                    new BoxEdge(new Vector2(box.xMax, box.yMin), new Vector2(box.xMin, box.yMin), Vector2.up)
+                };
+                
+                Vector2 collisionPosition = Vector2.positiveInfinity;
+                Vector2 collisionNormal = Vector2.zero;
+
+                foreach (BoxEdge edge in boxEdges)
+                {
+                    if (LineUtil.IntersectLineSegments2D(startPosition, attemptedPosition, edge.start, edge.end, out Vector2 intersection))
+                    {
+                        if ((startPosition - intersection).magnitude < (startPosition - collisionPosition).magnitude)
+                        {
+                            collisionPosition = intersection;
+                            collisionNormal = edge.normal;
+                        }
+                    }
+                }
+
+                return (collisionPosition, collisionNormal);
+            }
+            
+
+            
+           
         }
 
         private void DoubleDensityRelaxation(LiquidParticle particle, float timeStep)
