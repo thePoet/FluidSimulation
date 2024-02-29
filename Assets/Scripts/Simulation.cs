@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using RikusGameDevToolbox.GeneralUse;
 using Unity.VisualScripting.Dependencies.NCalc;
 using UnityEngine;
 using UnityEngine.Serialization;
+using Random = UnityEngine.Random;
 using Timer = RikusGameDevToolbox.GeneralUse.Timer;
 
 // Based on paper by Miles Macklin and Matthias Müller
@@ -20,24 +22,21 @@ namespace FluidSimulation
         private static List<LiquidParticle> _particles;
   
       
-        public int numSolverIterations;
-        public float interactionDistance;
-        public float restDensity;
-        public float particleMass;
-        public float relaxationParameter;
+      
+        public float interactionRadius;
+        public float stiffness;
+        public float nearStiffness;
         public float gravity;
-        public float tensileInstabilityCorrection = 0.1f;
-        
+        public float restDensity;
+     
         public GameObject liquidParticlePrefab;
         
-        public float timeAll;
-        public float timeNeighbours;
-        
-        private SmoothingKernel2D _smoothing;
+      
+    
         private MovingAverage timeAvgCalc;
-        private MovingAverage timeAvgNeighbours;
+       
         private MovingAverage timeAvgAll;
-        private Timer timer;
+
         private Timer timerAll;
 
         private Texture2D densityTexture;
@@ -68,12 +67,10 @@ namespace FluidSimulation
         #region ------------------------------------------- UNITY METHODS -----------------------------------------------
         private void Awake()
         {
-            _smoothing = new SmoothingKernel2D(interactionDistance);
-            _smoothing.Test();
-            timeAvgNeighbours = new MovingAverage(50);
+         
             timeAvgAll = new MovingAverage(50);
             timerAll = new Timer();
-            timer = new Timer();
+ 
 
             densityTexture = new Texture2D(100, 100);
             for (int i = 0; i < 100; i++)
@@ -99,19 +96,20 @@ namespace FluidSimulation
             
             
             if (Input.GetKeyDown(KeyCode.N)) Debug.Log("Number of particles: " + _particles.Count);
+            /*
             if (Input.GetKeyDown(KeyCode.D))
             {
                 // get mouse position
                 Vector2 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
                 Debug.Log("Density: " + DensityAt(mousePosition));
-            }
+            }*/
             
             if (Input.GetKeyDown(KeyCode.Space)) isRunning = !isRunning;
             
             if (Input.GetKeyDown(KeyCode.T)) PerformanceTest();
         }
         
-      
+      /*
 
         void OnDrawGizmos()
         {
@@ -157,7 +155,7 @@ namespace FluidSimulation
 
                 return restDensityColor;
           }
-        }
+        }*/
         #endregion
         
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
@@ -171,46 +169,78 @@ namespace FluidSimulation
         void Simulate(float timeStep)
         {
             
-            timerAll.Reset();
-            
-            _particles.ForEach(p => p.startPosition = p.Position);
-
-            _particles.ForEach(p => ApplyExternalForcesTo(p, timeStep));
-            _particles.ForEach(p => p.Position += p.velocity * timeStep);
-
-            _particles.ForEach(p => p.neighbours = NeighboursOf(p));
            
-            for (int i = 0; i < numSolverIterations; i++)
-            {
-                _particles.ForEach(p => p.ScalingFactor = ScalingFactor(p, p.neighbours));
-                _particles.ForEach(p => p.Position += DeltaPosition(p));
-                
-                if (container!= null) ConfineParticlesInBox(_particles, container.Bounds);
-            }
             
-            _particles.ForEach(p => p.velocity = (p.Position - p.startPosition) / timeStep);
-            //_particles.ForEach(p => p.Position = p.newPosition);
-            
-            timeAvgAll.Add(timerAll.Time);
-            timeAll = timeAvgAll.Average() * 1000f;
-            
-            /*
-            int sumNumNeighbours = 0;
-            float sumDensity = 0f;
             foreach (var particle in _particles)
             {
-                sumNumNeighbours += particle.neighbours.Count;
-                sumDensity += DensityAt(particle.Position);
+               particle.velocity += Vector2.down * timeStep * gravity;
+            }
+            
+            //viscosity here
+            
+            foreach (var particle in _particles)
+            {
+                particle.previousPosition = particle.Position;
+                particle.Position += particle.velocity * timeStep;
             }
 
-            if (_particles.Count > 0)
+            foreach (var particle in _particles) particle.neighbours = NeighboursOf(particle);
+            
+        
+            
+            
+            // displacements here
+
+            foreach (var particle in _particles) DoubleDensityRelaxation(particle, timeStep);
+            
+            ConfineParticlesInBox(_particles, container.Bounds);
+            
+            foreach (var particle in _particles)
             {
-                Debug.Log("avg neighbours: " + sumNumNeighbours / _particles.Count);
-                Debug.Log("avg density: " + sumDensity / _particles.Count);
-            }*/
+                particle.velocity = (particle.Position - particle.previousPosition) / timeStep;
+            }
+            
+       
         }
 
+        private void DoubleDensityRelaxation(LiquidParticle particle, float timeStep)
+        {
+            float density = 0f;
+            float nearDensity = 0f;
+            
+            foreach (var otherParticle in particle.neighbours)
+            {
+                float distance = (particle.Position - otherParticle.Position).magnitude;
+                float q = distance / interactionRadius;
+                if (q < 1f)
+                {
+                    density += Pow2(1f - q);
+                    nearDensity += Pow3(1f - q);
+                }
 
+            }
+    
+            float pressure = stiffness * (density - restDensity);
+            float nearPressure = nearStiffness * nearDensity;
+            
+            Vector2 displacement = Vector2.zero;
+
+            foreach (var otherParticle in particle.neighbours)
+            {
+                float distance = (particle.Position - otherParticle.Position).magnitude;
+                float q = distance / interactionRadius;
+                if (q < 1f)
+                {
+                    Vector2 d = Pow2(timeStep) * (pressure * (1f - q) + nearPressure * Pow2(1f - q)) * (otherParticle.Position - particle.Position).normalized;
+                    otherParticle.Position += 0.5f * d;
+                    displacement -= 0.5f * d;
+                }
+            }
+            particle.Position += displacement;
+
+        }
+
+        /*
         private void ApplyExternalForcesTo(LiquidParticle particle, float timeStep)
         {
             particle.velocity += Vector2.down * timeStep * gravity;
@@ -226,7 +256,7 @@ namespace FluidSimulation
                 Vector2 gradient = _smoothing.SpikyGradient(particle.Position - otherParticle.Position);
                 
                 // Tensile Instability correction (Eq. 13 in Müller et al. 2003)
-                float term = _smoothing.Spiky((particle.Position - otherParticle.Position).magnitude)/_smoothing.Spiky(0.2f*interactionDistance);
+                float term = _smoothing.Spiky((particle.Position - otherParticle.Position).magnitude)/_smoothing.Spiky(0.2f*interactionRadius);
                 float correction = -tensileInstabilityCorrection * term * term * term * term;
                 
                 sum += (particle.ScalingFactor + otherParticle.ScalingFactor + correction) * gradient;
@@ -259,7 +289,7 @@ namespace FluidSimulation
         
         private float DensityAt(Vector2 position, List<LiquidParticle> nearbyParticles = null)
         {
-            if (nearbyParticles == null) nearbyParticles = GetLiquidParticlesInCircle(position, interactionDistance);
+            if (nearbyParticles == null) nearbyParticles = GetLiquidParticlesInCircle(position, interactionRadius);
             
             float density = 0f;
             foreach (var particle in nearbyParticles)
@@ -293,11 +323,12 @@ namespace FluidSimulation
        }
         
         
-        private List<LiquidParticle> NeighboursOf(LiquidParticle p) => GetLiquidParticlesInCircle(p.Position, interactionDistance);
+        private List<LiquidParticle> NeighboursOf(LiquidParticle p) => GetLiquidParticlesInCircle(p.Position, interactionRadius);
         
 
      
 
+         */
 
         void ConfineParticlesInBox(List<LiquidParticle> particles, Rect boxBounds)
         {
@@ -306,7 +337,7 @@ namespace FluidSimulation
                 if (boxBounds.Contains(particle.Position)) continue;
                 Vector2 clampedPosition = new Vector2(Mathf.Clamp(particle.Position.x, boxBounds.xMin, boxBounds.xMax),
                     Mathf.Clamp(particle.Position.y, boxBounds.yMin, boxBounds.yMax));
-                particle.Position = clampedPosition + Random.insideUnitCircle * 0.1f;
+                particle.Position = clampedPosition;// + Random.insideUnitCircle * 0.1f;
 
             }
         }
@@ -339,7 +370,14 @@ namespace FluidSimulation
             
         }
 
+
+        private List<LiquidParticle> NeighboursOf(LiquidParticle p) => GetLiquidParticlesInCircle(p.Position, interactionRadius);
         
+        float DensityKernel(float distance) => Pow2(1f - distance / interactionRadius);
+        float NearDensityKernel(float distance) => Pow3(1f - distance / interactionRadius);
+        float Pow2 (float x) => x * x;
+        float Pow3 (float x) => x * x * x;
+
         #endregion
     }
 }

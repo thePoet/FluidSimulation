@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 
 namespace FluidSimulation
@@ -13,7 +14,7 @@ namespace FluidSimulation
             set => transform.position = new Vector3(value.x, value.y, 0f);
         }
 
-        public Vector2 startPosition;
+        public Vector2 previousPosition;
         
         public float ScalingFactor;
         public List<LiquidParticle> neighbours;
