@@ -14,23 +14,29 @@ namespace FluidSimulation
             set => transform.position = new Vector3(value.x, value.y, 0f);
         }
 
-        public Vector2 previousPosition;
+        public Color Color
+        {
+            get => _spriteRenderer.color;
+            set => _spriteRenderer.color = value;
+        }
         
-        public float ScalingFactor;
+        
+        public Vector2 previousPosition;
         public List<LiquidParticle> neighbours;
         public Vector2 velocity;
+        public float gravityMultiplier = 1f;
 
-        public Vector2 debug1 = Vector2.zero;
-        public Vector2 debug2 = Vector2.zero;
-
-        private Rigidbody2D _rigidbody2D;
         
+        
+        private Rigidbody2D _rigidbody2D;
+        private SpriteRenderer _spriteRenderer;
  
         #region ------------------------------------------- UNITY METHODS -----------------------------------------------
 
         private void Awake()
         {
             _rigidbody2D = GetComponent<Rigidbody2D>();
+            _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
             Simulation.AddParticle(this);
         }
 

@@ -18,20 +18,26 @@ namespace FluidSimulation
             {
                 for (int i=0; i<blobsPerFrame; i++)
                 {
-                    simulation.SpawnParticleAt(MousePosition + RandomOffset, Vector2.zero);
+                    simulation.SpawnParticleAt(MousePosition + RandomOffset, Velocity);
                 }
             }
 
             if (RightMouseButton)
             {
-                simulation.SpawnParticleAt(MousePosition, Vector2.zero);
+                for (int i=0; i<blobsPerFrame; i++)
+                {
+                    simulation.SpawnParticle2At(MousePosition + RandomOffset, Vector2.zero);
+                }
             }
         }
 
-        bool LeftMouseButton => Input.GetMouseButtonDown(0);
-        bool RightMouseButton => Input.GetMouseButtonDown(1);
+        bool LeftMouseButton => Input.GetMouseButton(0);
+        bool RightMouseButton => Input.GetMouseButton(1);
        
         Vector2 RandomOffset => Random.insideUnitCircle * brushRadius;
+        
+        Vector2 Velocity => Vector2.down * maxSpeed;
+        
         Vector2 MousePosition => Camera.main.ScreenToWorldPoint(Input.mousePosition);
 
         
