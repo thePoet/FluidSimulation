@@ -46,7 +46,8 @@ namespace FluidSimulation
         
         
         [Header("Viscosity")]
-        public float alpha = 0.3f;
+        public bool viscosityEnabled = true;
+        public float sigma = 0.0f;
         public float beta = 0.3f;
 
         [Header(" ")]
@@ -188,6 +189,7 @@ namespace FluidSimulation
             particle.GetComponent<LiquidParticle>().velocity = velocity;
             particle.GetComponent<LiquidParticle>().Color =Color.blue;
             particle.GetComponent<LiquidParticle>().gravityMultiplier = -0.5f;
+            particle.GetComponent<LiquidParticle>().movementMultiplier = 0f;
             
         }
 
@@ -202,15 +204,18 @@ namespace FluidSimulation
                 particle.velocity += Vector2.down * timeStep * gravity * particle.gravityMultiplier;
             }
 
-            foreach (var (particleA, particleB) in AllNeighbouringParticlePairs())
+            if (viscosityEnabled)
             {
-                ApplyViscosity(particleA, particleB, timeStep);
+                foreach (var (particleA, particleB) in AllNeighbouringParticlePairs())
+                {
+                    ApplyViscosity(particleA, particleB, timeStep);
+                }
             }
 
             foreach (var particle in _particles)
             {
                 particle.previousPosition = particle.Position;
-                particle.Position += particle.velocity * timeStep;
+                particle.Position += particle.velocity * timeStep * particle.movementMultiplier;
             }
 
             Timer timer = new Timer();
@@ -219,7 +224,7 @@ namespace FluidSimulation
             
             foreach (var particle in _particles) DoubleDensityRelaxation(particle, timeStep);
 
-            foreach (var particle in _particles) particle.Position += CollisionImpulse(particle, timeStep);
+            foreach (var particle in _particles) particle.Position += CollisionImpulse(particle, timeStep) * particle.movementMultiplier;
 
           
 
@@ -244,7 +249,7 @@ namespace FluidSimulation
                 
                 if (u <= 0f) return;
                 
-                Vector2 impulse = timeStep * (1f - q) * (alpha * u + beta * Pow2(u)) * r;
+                Vector2 impulse = timeStep * (1f - q) * (sigma * u + beta * Pow2(u)) * r;
                 particleA.velocity -= impulse * 0.5f;
                 particleB.velocity += impulse * 0.5f;
             }
@@ -363,11 +368,11 @@ namespace FluidSimulation
                 if (q < 1f)
                 {
                     Vector2 d = Pow2(timeStep) * (pressure * (1f - q) + nearPressure * Pow2(1f - q)) * (otherParticle.Position - particle.Position).normalized;
-                    otherParticle.Position += 0.5f * d;
+                    otherParticle.Position += 0.5f * d * otherParticle.movementMultiplier;
                     displacement -= 0.5f * d;
                 }
             }
-            particle.Position += displacement;
+            particle.Position += displacement * particle.movementMultiplier;
 
         }
         

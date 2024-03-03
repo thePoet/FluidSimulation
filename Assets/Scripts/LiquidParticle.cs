@@ -25,7 +25,7 @@ namespace FluidSimulation
         public List<LiquidParticle> neighbours;
         public Vector2 velocity;
         public float gravityMultiplier = 1f;
-
+        public float movementMultiplier = 1f;
         
         
         private Rigidbody2D _rigidbody2D;
