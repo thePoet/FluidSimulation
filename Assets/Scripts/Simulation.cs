@@ -1,23 +1,17 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using RikusGameDevToolbox.GeneralUse;
 using TMPro;
-using Unity.VisualScripting;
-using Unity.VisualScripting.Dependencies.NCalc;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 using Timer = RikusGameDevToolbox.GeneralUse.Timer;
 
-// Based on paper by Miles Macklin and Matthias Müller
-// https://mmacklin.com/pbf_sig_preprint.pdf
+// Based on paper by Simon Clavet, Philippe Beaudoin, and Pierre Poulin
+// https://www.academia.edu/452554/Particle-Based_Viscoelastic_Fluid_Simulation
 
-// useful reference: https://github.com/yuki-koyama/position-based-fluids/blob/main/src/main.cpp
+
 namespace FluidSimulation
 {
-
-
     public class Simulation : MonoBehaviour
     {
         private struct BoxEdge
@@ -32,9 +26,6 @@ namespace FluidSimulation
             public Vector2 end;
             public Vector2 normal;
         }
-
-        private static List<LiquidParticle> _particles;
-
 
         public float interactionRadius;
         public float gravity;
@@ -57,10 +48,15 @@ namespace FluidSimulation
        
 
 
+        private static List<LiquidParticle> _particles;
         private MovingAverage timeAvgCalc;
         private Texture2D densityTexture;
         private Container container;
         private bool isRunning;
+        
+        private bool perfTestRunning;
+        private Timer perfTestTimer;
+        private int perfTestCounter;
 
         static Simulation()
         {
@@ -98,6 +94,9 @@ namespace FluidSimulation
 
             isRunning = true;
 
+            perfTestRunning = false;
+            perfTestTimer = new Timer();
+
         }
 
 
@@ -106,12 +105,24 @@ namespace FluidSimulation
         {
             if (isRunning || Input.GetKeyDown(KeyCode.Period)) Simulate(0.015f);
 
+            if (perfTestRunning) perfTestCounter++;
+            if (perfTestRunning && perfTestCounter > 60)
+            {
+                perfTestRunning = false;
+                Debug.Log("Perf test took: " + perfTestTimer.Time * 1000f + " ms");
+            }
 
             if (Input.GetKeyDown(KeyCode.N)) Debug.Log("Number of particles: " + _particles.Count);
 
             if (Input.GetKeyDown(KeyCode.Space)) isRunning = !isRunning;
 
-            if (Input.GetKeyDown(KeyCode.T)) PerformanceTest();
+            if (Input.GetKeyDown(KeyCode.T))
+            {
+                CreatePerfTestParticles();
+                perfTestTimer.Reset();
+                perfTestCounter = 0;
+                perfTestRunning = true;
+            }
 
             if (Input.GetKeyDown(KeyCode.C))
             {
@@ -120,7 +131,9 @@ namespace FluidSimulation
                     Destroy(particle.gameObject);
                 }
                 _particles.Clear();
+                LiquidParticle.partitioning.RemoveAllEntities();
             }
+
         }
 
 
@@ -187,7 +200,7 @@ namespace FluidSimulation
         {
             GameObject particle = Instantiate(liquidParticlePrefab, position, Quaternion.identity);
             particle.GetComponent<LiquidParticle>().velocity = velocity;
-            particle.GetComponent<LiquidParticle>().Color =Color.blue;
+            particle.GetComponent<LiquidParticle>().Color = Color.blue;
             particle.GetComponent<LiquidParticle>().gravityMultiplier = -0.5f;
             particle.GetComponent<LiquidParticle>().movementMultiplier = 0f;
             
@@ -219,7 +232,8 @@ namespace FluidSimulation
             }
 
             Timer timer = new Timer();
-            foreach (var particle in _particles) particle.neighbours = NeighboursOf(particle);
+           // foreach (var particle in _particles) particle.neighbours = NeighboursOf(particle);
+            foreach (var particle in _particles) particle.UpdateNeighbours();
             float time = timer.Time;
             
             foreach (var particle in _particles) DoubleDensityRelaxation(particle, timeStep);
@@ -236,6 +250,8 @@ namespace FluidSimulation
             text1.text = "Particles: " + _particles.Count;
             text2.text = "Neigh. search: " + time * 1000f + " ms";
             text2.text += "\nAvg. neigh.: " + AvgNumNeighbours();
+            text2.text += "\nMax. neigh.: " + MaxNumNeighbours();
+            
         }
 
         private void ApplyViscosity(LiquidParticle particleA, LiquidParticle particleB, float timeStep)
@@ -379,12 +395,12 @@ namespace FluidSimulation
 
      
 
-        void PerformanceTest()
+  
+
+        void CreatePerfTestParticles()
         {
-            if (_particles.Count != 0) return;
-            
             Random.InitState(123);
-            
+         
             for (int i = 0; i < 500; i++)
             {
                 Vector2 position = new Vector2
@@ -395,15 +411,6 @@ namespace FluidSimulation
           
                 SpawnParticleAt(position, Vector2.zero);
             }
-            
-            Timer timer = new Timer();
-            for (int i = 0; i < 60; i++)
-            {
-                Simulate(0.016666f);
-            }
-            
-            Debug.Log("Performance test time: " + timer.Time*1000f + " ms");
-            
         }
 
 
@@ -435,6 +442,17 @@ namespace FluidSimulation
             }
 
             return sum / _particles.Count;
+        }
+        
+        int MaxNumNeighbours()
+        {
+            int max = 0;
+            foreach (var particle in _particles)
+            {
+                if (particle.neighbours.Count> max) max = particle.neighbours.Count;
+            }
+
+            return max;
         }
         #endregion
     }

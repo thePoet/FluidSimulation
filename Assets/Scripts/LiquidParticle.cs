@@ -3,15 +3,34 @@ using UnityEngine;
 using UnityEngine.Serialization;
 
 
+
+
 namespace FluidSimulation
 {
-    [RequireComponent(typeof(Rigidbody2D))]
-    public class LiquidParticle : MonoBehaviour
+    public interface IPosition
     {
+        Vector2 Position { get;  }
+    }
+    
+   
+    public class LiquidParticle : MonoBehaviour, IPosition
+    {
+        static public SpatialPartitioning<LiquidParticle> partitioning;
+
+        static LiquidParticle()
+        {
+            partitioning = new SpatialPartitioning<LiquidParticle>(15f);
+        }
+        
+            
         public Vector2 Position
         {
             get => transform.position;
-            set => transform.position = new Vector3(value.x, value.y, 0f);
+            set
+            {
+                partitioning.MoveEntity(this, transform.position, value);
+                transform.position = new Vector3(value.x, value.y, 0f);
+            }
         }
 
         public Color Color
@@ -20,6 +39,10 @@ namespace FluidSimulation
             set => _spriteRenderer.color = value;
         }
         
+        public void UpdateNeighbours()
+        {
+            neighbours = partitioning.GetEntiesInNeighbourhoodOf(Position);
+        }
         
         public Vector2 previousPosition;
         public List<LiquidParticle> neighbours;
@@ -28,23 +51,23 @@ namespace FluidSimulation
         public float movementMultiplier = 1f;
         
         
-        private Rigidbody2D _rigidbody2D;
+   
         private SpriteRenderer _spriteRenderer;
+
+        
+        
  
         #region ------------------------------------------- UNITY METHODS -----------------------------------------------
 
         private void Awake()
         {
-            _rigidbody2D = GetComponent<Rigidbody2D>();
+        
             _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+            partitioning.AddEntity(this, Position);
             Simulation.AddParticle(this);
         }
 
    
-        private void ApplyForceToParticle(Vector2 force)
-        {
-            _rigidbody2D.AddForce(force);
-        }
 
         #endregion
         
