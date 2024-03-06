@@ -104,8 +104,8 @@ namespace FluidSimulation
             if (Input.GetKeyDown(KeyCode.N))
             {
                 Debug.Log("Number of particles: " + _particleData.NumberOfParticles);
-                Debug.Log(_particleData._partitioning.DebugInfo());
-                Debug.Log(_particleData.NeighbourhoodWatch());
+             //   Debug.Log(_particleData._partitioning.DebugInfo());
+               // Debug.Log(_particleData.NeighbourhoodWatch());
             }
 
             if (Input.GetKeyDown(KeyCode.Space)) isRunning = !isRunning;
@@ -183,15 +183,11 @@ namespace FluidSimulation
             }
 
             Timer timer = new Timer();
-            /*
+            
             if (viscosityEnabled)
             {
-                foreach (var (indexA, indexB) in _particleData.NeighbourParticlePairs())
-                {
-                    ApplyViscosity(_particleData.All()[indexA], _particleData.All()[indexB], timeStep);
-                }
+                    ApplyViscosity(timeStep);
             }
-            */
             float timeViscosity = timer.Time;
             timer.Reset();
 
@@ -237,21 +233,26 @@ namespace FluidSimulation
             
         }
 
-        private void ApplyViscosity(FluidParticle particleA, FluidParticle particleB, float timeStep)
+        private void ApplyViscosity( float timeStep)
         {
-            float q = (particleA.Position - particleB.Position).magnitude / interactionRadius;
-            if (q < 1f)
+            var particles = _particleData.All();
+            foreach ( (int a, int b) in _particleData.NeighbourParticlePairs())
             {
-                Vector2 r = (particleA.Position - particleB.Position).normalized;
+                float q = (particles[a].Position - particles[b].Position).magnitude / interactionRadius;
+                if (q>=1f) continue;
+                Vector2 r = (particles[a].Position - particles[b].Position).normalized;
                 // Inward radial velocity
-                float u = Vector2.Dot(particleA.Velocity - particleB.Velocity,  r);
+                float u = Vector2.Dot(particles[a].Velocity - particles[b].Velocity,  r);
                 
-                if (u <= 0f) return;
+                if (u <= 0f) continue;
                 
                 Vector2 impulse = timeStep * (1f - q) * (sigma * u + beta * Pow2(u)) * r;
-                particleA.Velocity -= impulse * 0.5f;
-                particleB.Velocity += impulse * 0.5f;
+                particles[a].Velocity -= impulse * 0.5f;
+                particles[b].Velocity += impulse * 0.5f;
+
             }
+            
+          
         }
 
 
