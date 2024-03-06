@@ -500,7 +500,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 106.408516
+  orthographic size: 118.72428
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -1125,7 +1125,7 @@ MonoBehaviour:
   viscosityEnabled: 1
   sigma: 0
   beta: 0.1
-  liquidParticlePrefab: {fileID: 6458512588980554973, guid: b7e61ffdfb34740c2a82620bfa7ac28c, type: 3}
+  liquidParticlePrefab: {fileID: 6458512588980554973, guid: d1e1075ba890b44649bb3f6bf34f11cc, type: 3}
   text1: {fileID: 2101029934}
 --- !u!4 &1692431638
 Transform:

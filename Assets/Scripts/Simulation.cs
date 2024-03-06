@@ -65,7 +65,7 @@ namespace FluidSimulation
        
         private Visualization _visualization;    
         
-        private Particles _particles;
+        private ParticleData _particleData;
         
 
         #region ------------------------------------------- UNITY METHODS -----------------------------------------------
@@ -78,7 +78,7 @@ namespace FluidSimulation
             perfTestTimer = new Timer();
             perfTestTimerUpdate = new Timer();
 
-            _particles = new Particles(10000, interactionRadius);
+            _particleData = new ParticleData(10000, 100, interactionRadius);
             _visualization = FindObjectOfType<Visualization>();
             if (_visualization == null) Debug.LogError("No visualization found in the scene.");
         }
@@ -101,7 +101,12 @@ namespace FluidSimulation
 
             }
 
-            if (Input.GetKeyDown(KeyCode.N)) Debug.Log("Number of particles: " + _particles.NumberOfParticles);
+            if (Input.GetKeyDown(KeyCode.N))
+            {
+                Debug.Log("Number of particles: " + _particleData.NumberOfParticles);
+                Debug.Log(_particleData._partitioning.DebugInfo());
+                Debug.Log(_particleData.NeighbourhoodWatch());
+            }
 
             if (Input.GetKeyDown(KeyCode.Space)) isRunning = !isRunning;
 
@@ -146,7 +151,7 @@ namespace FluidSimulation
                 Type = particleType
             };
 
-            if (_particles == null)
+            if (_particleData == null)
             {
                 Debug.LogError("NO PARTICLES");
                 return;
@@ -159,7 +164,7 @@ namespace FluidSimulation
             }
 
             
-            int id = _particles.Add(particle);
+            int id = _particleData.Add(particle);
           
             _visualization.AddParticle(id, particleType);
         }
@@ -170,49 +175,58 @@ namespace FluidSimulation
 
         void Simulate(float timeStep)
         {
+            var particles = _particleData.All();
             
-            foreach (var particle in _particles.All())
+            for (int i=0; i<particles.Length; i++)
             {
-                particle.Velocity += Vector2.down * timeStep * gravity;
+                particles[i].Velocity += Vector2.down * timeStep * gravity;
             }
 
             Timer timer = new Timer();
+            /*
             if (viscosityEnabled)
             {
-                foreach (var (indexA, indexB) in _particles.NeighbourParticlePairs())
+                foreach (var (indexA, indexB) in _particleData.NeighbourParticlePairs())
                 {
-                    ApplyViscosity(_particles.All()[indexA], _particles.All()[indexB], timeStep);
+                    ApplyViscosity(_particleData.All()[indexA], _particleData.All()[indexB], timeStep);
                 }
             }
+            */
             float timeViscosity = timer.Time;
             timer.Reset();
 
-            foreach (var particle in _particles.All())
+            for (int i=0; i<particles.Length; i++)
             {
-                particle.PreviousPosition = particle.Position;
-                particle.Position += particle.Velocity * timeStep;
+                particles[i].PreviousPosition = particles[i].Position;
+                particles[i].Position += particles[i].Velocity * timeStep;
             }
 
             float timeMove = timer.Time;
             timer.Reset();
 
-            _particles.UpdateNeighbours();
+            _particleData.UpdateNeighbours();
             
             float timeNeigh = timer.Time;
             timer.Reset();
-            DoubleDensityRelaxation(_particles.All(), timeStep);
+            DoubleDensityRelaxation(timeStep);
             float timeDensity = timer.Time;
 
-            foreach (var particle in _particles.All())
-                particle.Position += CollisionImpulse(particle, timeStep);
+            for (int i=0; i<particles.Length; i++)
+                particles[i].Position += CollisionImpulse(particles[i], timeStep);
 
           
 
-            foreach (var particle in _particles.All())
-                particle.Velocity = (particle.Position - particle.PreviousPosition) / timeStep;
+            for (int i=0; i<particles.Length; i++)
+                particles[i].Velocity = (particles[i].Position - particles[i].PreviousPosition) / timeStep;
            
 
-        //    text1.text = "Particles: " + _particles.Count;
+            for (int i=0; i<particles.Length; i++)
+            {
+                _visualization.MoveParticle(particles[i].Id, particles[i].Position);
+            }
+               
+            
+        //    text1.text = "ParticleData: " + _particleData.Count;
             text1.text = "\nViscosity: " + timeViscosity * 1000f + " ms";
             text1.text += "\nMoving: " + timeMove * 1000f + " ms";
             text1.text += "\nNeigh. search: " + timeNeigh * 1000f + " ms";
@@ -320,21 +334,22 @@ namespace FluidSimulation
            
         }
 
-        private void DoubleDensityRelaxation(Span<FluidParticle> allParticles, float timeStep)
+        private void DoubleDensityRelaxation(float timeStep)
         {
+            var particles = _particleData.All();
+            
             float density = 0f;
             float nearDensity = 0f;
 
-            for (int particleIndex = 0; particleIndex < allParticles.Length; particleIndex++)
+            for (int i=0; i<particles.Length; i++)
             {
-                var particle = allParticles[particleIndex];
-
-                foreach (int otherParticleIndex in _particles.NeighboursOf(particleIndex))
+                var neighbours = _particleData.NeighbourIndices(i);
+                
+                foreach (int j in neighbours)
                 {
-                    if (otherParticleIndex == particleIndex) continue;
-                    var otherParticle = allParticles[otherParticleIndex];
-                    
-                    float distance = (particle.Position - otherParticle.Position).magnitude;
+                    if (i == j) continue;
+                   
+                    float distance = (particles[i].Position - particles[j].Position).magnitude;
                     float q = distance / interactionRadius;
                     if (q < 1f)
                     {
@@ -349,22 +364,22 @@ namespace FluidSimulation
 
                 Vector2 displacement = Vector2.zero;
 
-                foreach (int otherParticleIndex in _particles.NeighboursOf(particleIndex))
+                foreach (int j in neighbours)
                 {
-                    if (otherParticleIndex == particleIndex) continue;
-                    var otherParticle = allParticles[otherParticleIndex];
-                    float distance = (particle.Position - otherParticle.Position).magnitude;
+                    if (i == j) continue;
+               
+                    float distance = (particles[i].Position - particles[j].Position).magnitude;
                     float q = distance / interactionRadius;
                     if (q < 1f)
                     {
                         Vector2 d = Pow2(timeStep) * (pressure * (1f - q) + nearPressure * Pow2(1f - q)) *
-                                    (otherParticle.Position - particle.Position).normalized;
-                        otherParticle.Position += 0.5f * d;
+                                    (particles[j].Position - particles[i].Position).normalized;
+                        particles[j].Position += 0.5f * d;
                         displacement -= 0.5f * d;
                     }
                 }
 
-                particle.Position += displacement;
+                particles[i].Position += displacement;
             }
 
         }
@@ -402,20 +417,20 @@ namespace FluidSimulation
         
         float AvgNumNeighbours()
         {
-            if (_particles.All().Length == 0) return 0f;
+            if (_particleData.All().Length == 0) return 0f;
             float sum = 0f;
-            foreach (var particle in _particles)
+            foreach (var particle in _particleData)
             {
                 sum += particle.neighbours.Count();
             }
 
-            return sum / _particles.All().Length;
+            return sum / _particleData.All().Length;
         }
         
         int MaxNumNeighbours()
         {
             int max = 0;
-            foreach (var particle in _particles)
+            foreach (var particle in _particleData)
             {
                 if (particle.neighbours.Count()> max) max = particle.neighbours.Count();
             }

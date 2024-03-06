@@ -13,14 +13,16 @@ namespace FluidSimulation
    
         private readonly float _neighbourhoodRadius;
         private readonly float _cellSize;
-        private readonly Dictionary<int, List<(int, Vector2)>> _entities;
+        private readonly Dictionary<int, List<(int, Vector2)>> _cells;
+        private readonly Dictionary<int, int> _entityToCell;
         private readonly Vector2[] _neighbourCellOffsets;
      
         public SpatialPartitioning(float neighbourhoodRadius)
         {
             _neighbourhoodRadius = neighbourhoodRadius;
             _cellSize = _neighbourhoodRadius;
-            _entities = new Dictionary<int, List<(int, Vector2)>>();
+            _cells = new Dictionary<int, List<(int, Vector2)>>();
+            _entityToCell = new Dictionary<int, int>();
             
             _neighbourCellOffsets = new[]
             {
@@ -38,25 +40,30 @@ namespace FluidSimulation
 
         public void AddEntity(int id, Vector2 position)
         {
-            GetCell(position).Add((id,position));
+            int cellIndex = CellIndex(position);
+            _entityToCell.Add(id, cellIndex);
+            
+            GetCell(cellIndex).Add((id,position));
         }
     
 
         // TODO: remove position
         public void RemoveEntity(int id, Vector2 position)
         {
-            GetCell(position).RemoveAll( x => x.Item1 == id);
+            throw new NotImplementedException();
+            //   GetCell(position).RemoveAll( x => x.Item1 == id);
         }
    
-        public void MoveEntity(int id, Vector2 oldPosition, Vector2 newPosition)
+        public void UpdateEntity(int id, Vector2 newPosition)
         {
-            int oldCellIndex = CellIndex(oldPosition);
+            int oldCellIndex = _entityToCell[id];
             int newCellIndex = CellIndex(newPosition);
             
             if (newCellIndex == oldCellIndex) return;
 
-            RemoveEntity(id, oldPosition);
-            AddEntity(id, newPosition);
+            _cells[oldCellIndex].RemoveAll(x=>x.Item1 == id);
+            GetCell(newCellIndex).Add((id, newPosition));
+            _entityToCell[id] = newCellIndex;
         }
 
 
@@ -66,7 +73,7 @@ namespace FluidSimulation
 
             foreach (var offset in _neighbourCellOffsets)
             {
-                foreach ((int id, Vector2 position) in GetCell(center + offset))
+                foreach ((int id, Vector2 position) in GetCell(CellIndex(center + offset)))
                 {
                     if ((position-center).magnitude <= _neighbourhoodRadius) result.Add(id);
                 }
@@ -78,29 +85,30 @@ namespace FluidSimulation
 
         public void RemoveAllEntities()
         {
-           _entities.Clear();
+           _cells.Clear();
         }
         
         public string DebugInfo()
         {
             string result = "";
-            foreach (var cell in _entities)
+            foreach (var cell in _cells)
             {
                 result += "Cell " + cell.Key + " has " + cell.Value.Count + " entities\n";
             }
-            result += "Total cells: " + _entities.Count;
+            result += "Total cells: " + _cells.Count;
             return result;
         }
 
-        List<(int, Vector2)> GetCell(Vector2 position)
+        List<(int, Vector2)> GetCell(int index)
         {
             List<(int,Vector2)> result;
-            if (_entities.TryGetValue(CellIndex(position), out result))
+            
+            if (_cells.TryGetValue(index, out result))
             {
                 return result;
             }
             result = new List<(int, Vector2)>();
-            _entities.Add(CellIndex(position), result);
+            _cells.Add(index, result);
             return result;
         }
         
