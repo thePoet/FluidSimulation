@@ -8,19 +8,19 @@ namespace FluidSimulation
 
  
 
-    public class SpatialPartitioning<T> where T : IPosition
+    public class SpatialPartitioning
     {
    
         private readonly float _neighbourhoodRadius;
         private readonly float _cellSize;
-        private readonly Dictionary<int, List<T>> _cells;
+        private readonly Dictionary<int, List<(int, Vector2)>> _entities;
         private readonly Vector2[] _neighbourCellOffsets;
      
         public SpatialPartitioning(float neighbourhoodRadius)
         {
             _neighbourhoodRadius = neighbourhoodRadius;
             _cellSize = _neighbourhoodRadius;
-            _cells = new Dictionary<int, List<T>>();
+            _entities = new Dictionary<int, List<(int, Vector2)>>();
             
             _neighbourCellOffsets = new[]
             {
@@ -36,72 +36,71 @@ namespace FluidSimulation
             };
         }
 
-        public void AddEntity(T entity, Vector2 position)
+        public void AddEntity(int id, Vector2 position)
         {
-            GetCell(position).Add(entity);
+            GetCell(position).Add((id,position));
         }
+    
 
-        public void RemoveEntity(T entity, Vector2 position)
+        // TODO: remove position
+        public void RemoveEntity(int id, Vector2 position)
         {
-            GetCell(position).Remove(entity);
+            GetCell(position).RemoveAll( x => x.Item1 == id);
         }
-
-        public void MoveEntity(T entity, Vector2 oldPosition, Vector2 newPosition)
+   
+        public void MoveEntity(int id, Vector2 oldPosition, Vector2 newPosition)
         {
             int oldCellIndex = CellIndex(oldPosition);
             int newCellIndex = CellIndex(newPosition);
             
             if (newCellIndex == oldCellIndex) return;
 
-            GetCell(oldPosition).Remove(entity);
-            GetCell(newPosition).Add(entity);
+            RemoveEntity(id, oldPosition);
+            AddEntity(id, newPosition);
         }
 
 
-        public List<T> GetEntiesInNeighbourhoodOf(Vector2 center)
+        public Span<int> GetEntitiesInNeighbourhoodOf(Vector2 center)
         {
-            List<T> result = new List<T>();
+            List<int> result = new List<int>();
 
             foreach (var offset in _neighbourCellOffsets)
             {
-                foreach (var entity in GetCell(center + offset))
+                foreach ((int id, Vector2 position) in GetCell(center + offset))
                 {
-                    if ((entity.Position-center).magnitude <= _neighbourhoodRadius) result.Add(entity);
+                    if ((position-center).magnitude <= _neighbourhoodRadius) result.Add(id);
                 }
             }
  
-            return result;
+            return result.ToArray();
         }
 
 
         public void RemoveAllEntities()
         {
-            foreach (var cell in _cells)
-            {
-                cell.Value.Clear();
-            }
+           _entities.Clear();
         }
         
         public string DebugInfo()
         {
             string result = "";
-            foreach (var cell in _cells)
+            foreach (var cell in _entities)
             {
                 result += "Cell " + cell.Key + " has " + cell.Value.Count + " entities\n";
             }
-            result += "Total cells: " + _cells.Count;
+            result += "Total cells: " + _entities.Count;
             return result;
         }
 
-        List<T> GetCell(Vector2 position)
+        List<(int, Vector2)> GetCell(Vector2 position)
         {
-            List <T> result;
-            if (_cells.TryGetValue(CellIndex(position), out result))
+            List<(int,Vector2)> result;
+            if (_entities.TryGetValue(CellIndex(position), out result))
             {
                 return result;
             }
-            result = new List<T>();
-            _cells.Add(CellIndex(position), result);
+            result = new List<(int, Vector2)>();
+            _entities.Add(CellIndex(position), result);
             return result;
         }
         
