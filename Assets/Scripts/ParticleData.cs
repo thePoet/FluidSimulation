@@ -69,7 +69,7 @@ namespace FluidSimulation
             throw new NotImplementedException();
         }
 
-    
+        
 
     
         public Span<FluidParticle> All()
@@ -106,14 +106,33 @@ namespace FluidSimulation
             return pairs.Slice(0, p);
         }
         
+        public List<int> ParticlesInSameCellWith(int pIndex)
+        {
+            List<int> result = new List<int>();
+            
+            Vector2 position = _particles[pIndex].Position;
+            int cellIndex = _partitioning.CellIndex(position);
+            foreach ((int id, Vector2 pos) in _partitioning.GetCell(cellIndex))
+            {
+                result.Add(id);
+            }
+
+            return result;
+        }
+        
+        // TODO: Make faster
         public void UpdateNeighbours()
         {
             for (int i = 0; i < _numParticles; i++)
                 _partitioning.UpdateEntity(i, _particles[i].Position);
             for (int i = 0; i < _numParticles; i++)
             {
-                var neighbours = _partitioning.GetEntitiesInNeighbourhoodOf(_particles[i].Position).ToArray();
-                neighbours.CopyTo(_neighbours[i],0);
+                var neighbours = _partitioning.GetEntitiesInNeighbourhoodOf(_particles[i].Position);
+                for (int j = 0; j < neighbours.Length; j++)
+                {
+                    _neighbours[i][j] = neighbours[j];
+                }
+              
                 _neighbourCount[i] = neighbours.Length;
             }
             

@@ -13,7 +13,7 @@ namespace FluidSimulation
    
         private readonly float _neighbourhoodRadius;
         private readonly float _cellSize;
-        private readonly Dictionary<int, List<(int, Vector2)>> _cells;
+        public readonly Dictionary<int, List<(int, Vector2)>> _cells;
         private readonly Dictionary<int, int> _entityToCell;
         private readonly Vector2[] _neighbourCellOffsets;
      
@@ -59,7 +59,7 @@ namespace FluidSimulation
             int oldCellIndex = _entityToCell[id];
             int newCellIndex = CellIndex(newPosition);
             
-            if (newCellIndex == oldCellIndex) return;
+           // if (newCellIndex == oldCellIndex) return;
 
             _cells[oldCellIndex].RemoveAll(x=>x.Item1 == id);
             GetCell(newCellIndex).Add((id, newPosition));
@@ -75,7 +75,8 @@ namespace FluidSimulation
             {
                 foreach ((int id, Vector2 position) in GetCell(CellIndex(center + offset)))
                 {
-                    if ((position-center).magnitude <= _neighbourhoodRadius) result.Add(id);
+                    if ((position-center).magnitude <= _neighbourhoodRadius) 
+                        result.Add(id);
                 }
             }
  
@@ -88,18 +89,24 @@ namespace FluidSimulation
            _cells.Clear();
         }
         
+        
+        
         public string DebugInfo()
         {
             string result = "";
+            int numParticles = 0;
             foreach (var cell in _cells)
             {
                 result += "Cell " + cell.Key + " has " + cell.Value.Count + " entities\n";
+                numParticles+= cell.Value.Count;
             }
             result += "Total cells: " + _cells.Count;
+            result += "Total particles: " + numParticles;
+            result += "Cell size: " + _cellSize;
             return result;
         }
 
-        List<(int, Vector2)> GetCell(int index)
+        public List<(int, Vector2)> GetCell(int index)
         {
             List<(int,Vector2)> result;
             
@@ -112,8 +119,9 @@ namespace FluidSimulation
             return result;
         }
         
+        
      
-        int CellIndex(Vector2 position)
+        public int CellIndex(Vector2 position)
         {
             int x = Mathf.CeilToInt(position.x / _cellSize);
             int y = Mathf.CeilToInt(position.y / _cellSize);

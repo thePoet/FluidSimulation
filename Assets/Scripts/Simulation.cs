@@ -47,7 +47,6 @@ namespace FluidSimulation
         public float beta = 0.3f;
 
         [Header(" ")]
-        public GameObject liquidParticlePrefab;
         public TextMeshPro text1;
        
 
@@ -104,7 +103,7 @@ namespace FluidSimulation
             if (Input.GetKeyDown(KeyCode.N))
             {
                 Debug.Log("Number of particles: " + _particleData.NumberOfParticles);
-             //   Debug.Log(_particleData._partitioning.DebugInfo());
+               Debug.Log(_particleData._partitioning.DebugInfo());
                // Debug.Log(_particleData.NeighbourhoodWatch());
             }
 
@@ -125,7 +124,11 @@ namespace FluidSimulation
             {
                 Application.Quit();
             }
-                
+
+            if (Input.GetKeyDown(KeyCode.K))
+            {
+
+            }
                 
             
 
@@ -173,8 +176,37 @@ namespace FluidSimulation
 
         #region ------------------------------------------ PRIVATE METHODS ----------------------------------------------
 
+        void RandomNeigh()
+        {
+            if (_particleData.NumberOfParticles == 0) return;
+            int index = Random.Range(0, _particleData.NumberOfParticles);
+            ColorParticle(index, Color.red);
+            
+            foreach(int i in _particleData.NeighbourIndices(index))
+            {
+                if (i!=index) ColorParticle(i, Color.green);
+            }
+                
+                
+       
+        }
+
+        void ColorParticle(int index, Color color)
+        {
+            _visualization.ColorParticle(_particleData.All()[index].Id, color);
+        }
+        void ResetColors()
+        {
+            for (int i=0; i<_particleData.NumberOfParticles; i++)
+            {
+                _visualization.ColorParticle(_particleData.All()[i].Id, Color.blue);
+            }
+        }
+        
         void Simulate(float timeStep)
         {
+            
+            
             var particles = _particleData.All();
             
             for (int i=0; i<particles.Length; i++)
@@ -221,7 +253,12 @@ namespace FluidSimulation
                 _visualization.MoveParticle(particles[i].Id, particles[i].Position);
             }
                
-            
+            //ResetColors();
+           //_particleData.UpdateNeighbours();
+         //  ColorCloseCells();
+            //RandomNeigh();
+//           ColorSpatialGrid();
+
         //    text1.text = "ParticleData: " + _particleData.Count;
             text1.text = "\nViscosity: " + timeViscosity * 1000f + " ms";
             text1.text += "\nMoving: " + timeMove * 1000f + " ms";
@@ -231,6 +268,37 @@ namespace FluidSimulation
           //  text1.text += "\nAvg. neigh.: " + AvgNumNeighbours();
             //text1.text += "\nMax. neigh.: " + MaxNumNeighbours();
             
+        }
+
+        private void ColorCloseCells()
+        {
+            if (_particleData.NumberOfParticles == 0) return;
+            int index = Random.Range(0, _particleData.NumberOfParticles);
+            ColorParticle(index, Color.red);
+            var cell = _particleData.ParticlesInSameCellWith(index);
+            foreach (var i in cell)
+            {
+                ColorParticle(i, Color.white );
+            }
+        }
+
+        private void ColorSpatialGrid()
+        {
+            var particles = _particleData.All();
+            foreach (var particle in particles)
+            {
+                _visualization.ColorParticle(particle.Id, Color.blue);
+            }
+            
+            foreach (var cell in _particleData._partitioning._cells)
+            {
+                Color rndColor = _visualization.RandomColor;
+                foreach ((int index, Vector2 pos) in cell.Value)
+                {
+                    int id = _particleData.All()[index].Id;
+                    _visualization.ColorParticle(id, rndColor);
+                }
+            }
         }
 
         private void ApplyViscosity( float timeStep)
