@@ -134,6 +134,12 @@ namespace FluidSimulation
           
             }
 
+            if (Input.GetKeyDown(KeyCode.C))
+            {
+                _visualization.Clear();
+                _particleData.Clear();
+            }
+            
             if (Input.GetKeyDown(KeyCode.Q))
             {
                 Application.Quit();

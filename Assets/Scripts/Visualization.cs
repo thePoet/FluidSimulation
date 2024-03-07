@@ -52,6 +52,15 @@ namespace FluidSimulation
             _particles.Remove(id);
         }
 
+        public void Clear()
+        {
+            foreach (var item in _particles)
+            {
+                Destroy(item.Value);
+            }
+            _particles.Clear();
+        }
+
         public void MoveParticle(int id, Vector2 position)
         {
             if (!_particles.ContainsKey(id))

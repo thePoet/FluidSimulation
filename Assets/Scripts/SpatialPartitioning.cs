@@ -102,12 +102,12 @@ namespace FluidSimulation
         }
 
 
-        public void RemoveAllEntities()
+      
+        public void Clear()
         {
-           _cells.Clear();
+            _cells.Clear();
+            _entityToCell.Clear();
         }
-        
-        
         
         public string DebugInfo()
         {
@@ -149,10 +149,9 @@ namespace FluidSimulation
         {
             return x * 100000 + y;
         }
-        
-  
 
 
+     
     }
 
 }

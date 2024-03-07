@@ -60,7 +60,7 @@ namespace FluidSimulation
             _particles[index] = particle;
             _neighbourCount[index] = 0;
             
-            _partitioning.AddEntity(particle.Id, particle.Position);
+            _partitioning.AddEntity(index, particle.Position);
             return particle.Id;
         }
 
@@ -118,14 +118,6 @@ namespace FluidSimulation
             {
                 int numNeighbours = _partitioning.WriteEntiesInNeighourhoodTo(_neighbours[i], _particles[i].Position);
                 _neighbourCount[i] = numNeighbours;
-                /*
-                var neighbours = _partitioning.GetEntitiesInNeighbourhoodOf(_particles[i].Position);
-                for (int j = 0; j < neighbours.Length; j++)
-                {
-                    _neighbours[i][j] = neighbours[j];
-                }
-              
-                _neighbourCount[i] = neighbours.Length;*/
             }
             
         }
@@ -141,6 +133,13 @@ namespace FluidSimulation
 
         }
         
+        public void Clear()
+        {
+            _numParticles = 0;
+            _partitioning.Clear();
+        }
+        
+        
         public int NumberOfParticles => _numParticles;
         
         
@@ -149,6 +148,7 @@ namespace FluidSimulation
         #region ------------------------------------------ PRIVATE METHODS ----------------------------------------------
         
         #endregion
-     
+
+        
     }
 }
