@@ -119,6 +119,20 @@ namespace FluidSimulation
                 perfTestRunning = true;
                 perfTestUpdateTime = 0f;
             }
+            
+            if (Input.GetKeyDown(KeyCode.U))
+            {
+                CreatePerfTestParticles();
+                perfTestTimer.Reset();
+
+                for (int i = 0; i < 60; i++)
+                {
+                    Simulate(0.015f);
+                }
+                
+                Debug.LogFormat("PERF TEST WITHOUT DRAWING TOOK " + perfTestTimer.Time * 1000f + " ms");
+          
+            }
 
             if (Input.GetKeyDown(KeyCode.Q))
             {
@@ -270,17 +284,7 @@ namespace FluidSimulation
             
         }
 
-        private void ColorCloseCells()
-        {
-            if (_particleData.NumberOfParticles == 0) return;
-            int index = Random.Range(0, _particleData.NumberOfParticles);
-            ColorParticle(index, Color.red);
-            var cell = _particleData.ParticlesInSameCellWith(index);
-            foreach (var i in cell)
-            {
-                ColorParticle(i, Color.white );
-            }
-        }
+   
 
         private void ColorSpatialGrid()
         {

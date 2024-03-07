@@ -82,6 +82,24 @@ namespace FluidSimulation
  
             return result.ToArray();
         }
+        
+        public int WriteEntiesInNeighourhoodTo(Span<int> result, Vector2 center)
+        {
+            int p = 0;
+            foreach (var offset in _neighbourCellOffsets)
+            {
+                foreach ((int id, Vector2 position) in GetCell(CellIndex(center + offset)))
+                {
+                    if ((position-center).magnitude <= _neighbourhoodRadius) 
+                    {
+                        result[p] = id;
+                        p++;
+                    }
+                }
+            }
+
+            return p;
+        }
 
 
         public void RemoveAllEntities()
@@ -106,7 +124,7 @@ namespace FluidSimulation
             return result;
         }
 
-        public List<(int, Vector2)> GetCell(int index)
+        private List<(int, Vector2)> GetCell(int index)
         {
             List<(int,Vector2)> result;
             
@@ -118,10 +136,9 @@ namespace FluidSimulation
             _cells.Add(index, result);
             return result;
         }
-        
-        
-     
-        public int CellIndex(Vector2 position)
+
+
+        private int CellIndex(Vector2 position)
         {
             int x = Mathf.CeilToInt(position.x / _cellSize);
             int y = Mathf.CeilToInt(position.y / _cellSize);
