@@ -407,11 +407,13 @@ namespace FluidSimulation
         {
             var particles = _particleData.All();
             
-            float density = 0f;
-            float nearDensity = 0f;
+            
 
             for (int i=0; i<particles.Length; i++)
             {
+                float density = 0f;
+                float nearDensity = 0f;
+                
                 var neighbours = _particleData.NeighbourIndices(i);
                 
                 foreach (int j in neighbours)

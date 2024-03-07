@@ -1119,12 +1119,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   interactionRadius: 15
   gravity: 600
-  restDensity: 20
-  stiffness: 200
-  nearStiffness: 300
+  restDensity: 5
+  stiffness: 750
+  nearStiffness: 1500
   viscosityEnabled: 1
   sigma: 0
-  beta: 0.1
+  beta: 0.05
   text1: {fileID: 2101029934}
 --- !u!4 &1692431638
 Transform:
