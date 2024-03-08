@@ -24,10 +24,7 @@ namespace FluidSimulation
 
             if (RightMouseButton)
             {
-                for (int i=0; i<blobsPerFrame; i++)
-                {
-                    //simulation.SpawnParticle2At(MousePosition + RandomOffset, Vector2.zero);
-                }
+                simulation.SpawnParticle(MousePosition + RandomOffset*0.25f, Velocity, ParticleType.Solid);
             }
         }
 

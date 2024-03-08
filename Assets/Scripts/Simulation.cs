@@ -80,6 +80,9 @@ namespace FluidSimulation
             _particleData = new ParticleData(10000, 100, interactionRadius);
             _visualization = FindObjectOfType<Visualization>();
             if (_visualization == null) Debug.LogError("No visualization found in the scene.");
+            
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = 60;
         }
 
 
@@ -231,6 +234,7 @@ namespace FluidSimulation
             
             for (int i=0; i<particles.Length; i++)
             {
+                if (particles[i].Type == ParticleType.Solid) continue;
                 particles[i].Velocity += Vector2.down * timeStep * gravity;
             }
 
@@ -245,6 +249,7 @@ namespace FluidSimulation
 
             for (int i=0; i<particles.Length; i++)
             {
+                if (particles[i].Type == ParticleType.Solid) continue;
                 particles[i].PreviousPosition = particles[i].Position;
                 particles[i].Position += particles[i].Velocity * timeStep;
             }
@@ -316,6 +321,8 @@ namespace FluidSimulation
             var particles = _particleData.All();
             foreach ( (int a, int b) in _particleData.NeighbourParticlePairs())
             {
+                if (particles[a].Type == ParticleType.Solid || particles[b].Type == ParticleType.Solid) continue;
+                
                 float q = (particles[a].Position - particles[b].Position).magnitude / interactionRadius;
                 if (q>=1f) continue;
                 Vector2 r = (particles[a].Position - particles[b].Position).normalized;
@@ -455,12 +462,14 @@ namespace FluidSimulation
                     {
                         Vector2 d = Pow2(timeStep) * (pressure * (1f - q) + nearPressure * Pow2(1f - q)) *
                                     (particles[j].Position - particles[i].Position).normalized;
-                        particles[j].Position += 0.5f * d;
+                        if (particles[j].Type == ParticleType.Liquid)
+                            particles[j].Position += 0.5f * d;
                         displacement -= 0.5f * d;
                     }
                 }
 
-                particles[i].Position += displacement;
+                if (particles[i].Type == ParticleType.Liquid)
+                    particles[i].Position += displacement;
             }
 
         }
