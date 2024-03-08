@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace FluidSimulation
 {
-    public class Visualization : MonoBehaviour
+    public class ParticleVisualization : MonoBehaviour
     {
         public GameObject liquidParticlePrefab;
         public GameObject solidParticlePrefab;

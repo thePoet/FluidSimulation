@@ -1,10 +1,4 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using Unity.VisualScripting;
-using UnityEngine;
-using UnityEngine.Experimental.Rendering;
 
 namespace FluidSimulation
 {
@@ -15,13 +9,14 @@ namespace FluidSimulation
         private int _numParticles = 0;
         
         private readonly float _neighbourRadius;
-        private  FluidParticle[] _particles;
-        private int[][] _neighbours;
-        private int[] _neighbourCount;
-        private (int, int)[] _particlePairs;
+        private readonly FluidParticle[] _particles;
+        private readonly int[][] _neighbours;
+        private readonly int[] _neighbourCount;
+        private readonly (int, int)[] _particlePairs;
         private int _nextId = 0;
-        public SpatialPartitioning _partitioning;
-
+        private readonly SpatialPartitioning _partitioning;
+        
+        #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
         public ParticleData(int maxNumParticles, int maxNumNeighbours, float neighbourRadius)
         {
             _maxNumParticles = maxNumParticles;
@@ -46,7 +41,7 @@ namespace FluidSimulation
             _partitioning = new SpatialPartitioning(neighbourRadius);
         }
 
-        #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
+        
 
         // Returns id number of the added particle
         public int Add(FluidParticle particle)
@@ -104,14 +99,11 @@ namespace FluidSimulation
 
             return pairs.Slice(0, p);
         }
-        
-        
        
         public void UpdateNeighbours()
         {
             for (int i = 0; i < _numParticles; i++)
                 _partitioning.UpdateEntity(i, _particles[i].Position);
-            
             
             for (int i = 0; i < _numParticles; i++)
             {
@@ -120,18 +112,7 @@ namespace FluidSimulation
             }
             
         }
-
-        public string NeighbourhoodWatch()
-        {
-            string result = "";
-
-            for (int i = 0; i < _numParticles; i++)
-                result += _neighbourCount[i] + " ";
-            return result;
-
-
-        }
-        
+       
         public void Clear()
         {
             _numParticles = 0;
@@ -144,9 +125,7 @@ namespace FluidSimulation
         
         #endregion
 
-        #region ------------------------------------------ PRIVATE METHODS ----------------------------------------------
-        
-        #endregion
+  
 
         
     }

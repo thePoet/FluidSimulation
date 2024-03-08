@@ -11,4 +11,9 @@ namespace FluidSimulation
         public ParticleType Type;
     }
     
+    public enum ParticleType
+    {
+        Liquid, Solid
+    }
+    
 }
