@@ -51,6 +51,8 @@ namespace FluidSimulation
         // Returns id number of the added particle
         public int Add(FluidParticle particle)
         {
+            particle.PreviousPosition = particle.Position;
+            
             particle.Id = _nextId;
             _nextId++;
             
@@ -69,9 +71,6 @@ namespace FluidSimulation
             throw new NotImplementedException();
         }
 
-        
-
-    
         public Span<FluidParticle> All()
         {
             var span = (Span<FluidParticle>)_particles;

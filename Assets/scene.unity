@@ -563,7 +563,7 @@ MonoBehaviour:
   blobsPerFrame: 5
   brushRadius: 10
   maxSpeed: 1
-  simulation: {fileID: 1692431637}
+  _simulationManager: {fileID: 0}
 --- !u!4 &405270752
 Transform:
   m_ObjectHideFlags: 0
@@ -737,52 +737,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 819582442}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90}
---- !u!1 &817714665
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 817714667}
-  - component: {fileID: 817714666}
-  m_Layer: 0
-  m_Name: Visulaization
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &817714666
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 817714665}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0ec5960e7955c43d88caeee61c589e32, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  liquidParticlePrefab: {fileID: 6458512588980554973, guid: d1e1075ba890b44649bb3f6bf34f11cc, type: 3}
-  solidParticlePrefab: {fileID: 6458512588980554973, guid: d1e1075ba890b44649bb3f6bf34f11cc, type: 3}
---- !u!4 &817714667
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 817714665}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 259.869, y: 85.31684, z: -259.79898}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &819582441
 GameObject:
   m_ObjectHideFlags: 0
@@ -976,50 +930,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 819582442}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90}
---- !u!1 &1628496148
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1628496150}
-  - component: {fileID: 1628496149}
-  m_Layer: 0
-  m_Name: LiquidSettings
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1628496149
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1628496148}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 339964850e9174d099b7c625f3ca9383, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!4 &1628496150
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1628496148}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 190.87294, y: 62.650726, z: -2.5467458}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1640547553
 GameObject:
   m_ObjectHideFlags: 0
@@ -1097,7 +1007,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1692431638}
-  - component: {fileID: 1692431637}
+  - component: {fileID: 1692431639}
+  - component: {fileID: 1692431640}
   m_Layer: 0
   m_Name: LiquidSimulation
   m_TagString: Untagged
@@ -1105,27 +1016,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1692431637
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1692431636}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c517f130aa5724b51b1a6fb50f4553fe, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  interactionRadius: 15
-  gravity: 600
-  restDensity: 5
-  stiffness: 750
-  nearStiffness: 1500
-  viscosityEnabled: 1
-  sigma: 0
-  beta: 0.05
-  text1: {fileID: 2101029934}
 --- !u!4 &1692431638
 Transform:
   m_ObjectHideFlags: 0
@@ -1141,6 +1031,32 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1692431639
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1692431636}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e0318b743faf4ffb9c28c6167a90b9d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1692431640
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1692431636}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ec5960e7955c43d88caeee61c589e32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  liquidParticlePrefab: {fileID: 6458512588980554973, guid: d1e1075ba890b44649bb3f6bf34f11cc, type: 3}
+  solidParticlePrefab: {fileID: 6458512588980554973, guid: d1e1075ba890b44649bb3f6bf34f11cc, type: 3}
 --- !u!1 &1889715698
 GameObject:
   m_ObjectHideFlags: 0
@@ -1477,8 +1393,6 @@ SceneRoots:
   - {fileID: 1640547556}
   - {fileID: 405270752}
   - {fileID: 819582442}
-  - {fileID: 1628496150}
   - {fileID: 1692431638}
   - {fileID: 1889715700}
   - {fileID: 2101029936}
-  - {fileID: 817714667}
