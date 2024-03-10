@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using UnityEngine;
 using RikusGameDevToolbox.GeneralUse;
 
@@ -10,17 +11,19 @@ namespace FluidSimulation
 
     public class SpatialPartitioning
     {
-   
         private readonly float _neighbourhoodRadius;
         private readonly float _cellSize;
-        public readonly Dictionary<int, List<(int, Vector2)>> _cells;
+        private readonly int _maxNumNeighbours;
+        private readonly Dictionary<int, List<(int, Vector2)>> _cells;
         private readonly Dictionary<int, int> _entityToCell;
         private readonly Vector2[] _neighbourCellOffsets;
      
-        public SpatialPartitioning(float neighbourhoodRadius)
+        public SpatialPartitioning(float neighbourhoodRadius, int maxNumNeighbours)
         {
             _neighbourhoodRadius = neighbourhoodRadius;
             _cellSize = _neighbourhoodRadius;
+            _maxNumNeighbours = maxNumNeighbours;
+  
             _cells = new Dictionary<int, List<(int, Vector2)>>();
             _entityToCell = new Dictionary<int, int>();
             
@@ -94,6 +97,7 @@ namespace FluidSimulation
                     {
                         result[p] = id;
                         p++;
+                        if (p == _maxNumNeighbours) break;
                     }
                 }
             }

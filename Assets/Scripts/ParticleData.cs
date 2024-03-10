@@ -2,7 +2,7 @@ using System;
 
 namespace FluidSimulation
 {
-    public class ParticleData 
+    public class ParticleData : IParticleData
     {
         private readonly int _maxNumParticles;
         private readonly int _maxNumNeighbours;
@@ -38,7 +38,7 @@ namespace FluidSimulation
             _particlePairs = new (int, int)[maxNumParticlePairs];
             
             
-            _partitioning = new SpatialPartitioning(neighbourRadius);
+            _partitioning = new SpatialPartitioning(neighbourRadius, maxNumNeighbours);
         }
 
         

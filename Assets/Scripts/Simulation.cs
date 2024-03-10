@@ -7,7 +7,7 @@ namespace FluidSimulation
 {
     public class Simulation : MonoBehaviour
     {
-        private ParticleData _particleData;
+        private IParticleData _particleData;
         private ParticleDynamics _particleDynamics;
         private ParticleVisualization _particleVisualization;
         private Container _container;

@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace FluidSimulation
 {
-    public struct FluidParticle : ISpatiallyPartible
+    public struct FluidParticle : IPositionAndId
     {
         public int Id { get; set; }
         public Vector2 Position { get; set; }

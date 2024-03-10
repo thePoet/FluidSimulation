@@ -43,7 +43,7 @@ namespace FluidSimulation
             _bounds = bounds;
         }
         
-        public void Step(ParticleData particleData, float timeStep)
+        public void Step(IParticleData particleData, float timeStep)
         {
             var particles = particleData.All();
             
@@ -55,7 +55,8 @@ namespace FluidSimulation
             
             if (IsViscosityEnabled())
             {
-                ApplyViscosity(particles, particleData.NeighbourParticlePairs(), timeStep);
+                //ApplyViscosity(particles, particleData.NeighbourParticlePairs(), timeStep);
+                ApplyViscosityV2(particleData, timeStep);
             }
             
             for (int i=0; i<particles.Length; i++)
@@ -88,7 +89,7 @@ namespace FluidSimulation
         /// Maintains the density of the fluid by moving particles with Double Density Relaxation method.
         /// See section 4. in the Beaudoin et al. paper.
         /// </summary>
-        private void MaintainDensity(ParticleData particleData,  float timeStep)
+        private void MaintainDensity(IParticleData particleData,  float timeStep)
         {
 
             var particles = particleData.All();
@@ -162,6 +163,42 @@ namespace FluidSimulation
                 particles[a].Velocity -= impulse * 0.5f;
                 particles[b].Velocity += impulse * 0.5f;
             }
+        }
+        
+        
+        private void ApplyViscosityV2(IParticleData particleData,  float timeStep)
+        {
+            var particles = particleData.All();
+            
+            var interactionRadius = _settings.InteractionRadius;
+            var sigma = _settings.ViscositySigma;
+            var beta = _settings.ViscosityBeta;
+            
+            for (int i=0; i<particles.Length; i++)
+            {
+                foreach (int j in particleData.NeighbourIndices(i))
+                {
+                    if (i<=j) continue;
+                    
+                    if (particles[i].Type == ParticleType.Solid || particles[j].Type == ParticleType.Solid) continue;
+                
+                    float q = (particles[i].Position - particles[j].Position).magnitude / interactionRadius;
+                    if (q>=1f) continue;
+                    Vector2 r = (particles[i].Position - particles[j].Position).normalized;
+                    // Inward radial velocity
+                    float u = Vector2.Dot(particles[i].Velocity - particles[j].Velocity,  r);
+                
+                    if (u <= 0f) continue;
+                
+                    Vector2 impulse = timeStep * (1f - q) * (sigma * u + beta * Pow2(u)) * r;
+                    particles[i].Velocity -= impulse * 0.5f;
+                    particles[j].Velocity += impulse * 0.5f;
+                }
+   
+            }
+            
+            
+          
         }
 
 

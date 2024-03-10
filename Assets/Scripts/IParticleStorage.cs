@@ -3,18 +3,19 @@ using UnityEngine;
 
 namespace FluidSimulation
 {
-    public interface IParticleStorage
+    public interface IParticleData
     {
         int Add(FluidParticle particle);
-        void Remove(int particleId);
-      
+        void Remove(int particleIndex);
         Span<FluidParticle> All();
-        Span<int> NeighboursOf(int particleId);
+        Span<int> NeighbourIndices(int particleIndex);
         Span<(int, int)> NeighbourParticlePairs();
-       
+        void UpdateNeighbours();
+        int NumberOfParticles { get; }
+        void Clear();
     } 
     
-    public interface ISpatiallyPartible
+    public interface IPositionAndId
     {
         Vector2 Position { get;  }
         int Id { get; }
