@@ -71,7 +71,7 @@ namespace FluidSimulation
         {
             int maxNumParticles = 10000;
             int maxNumNeighbours = 100;
-            var particleData = new ParticleData(maxNumParticles, maxNumNeighbours, DefaultSettings.InteractionRadius);
+            var particleData = new ParticleData(maxNumParticles, maxNumNeighbours, DefaultSettings.InteractionRadius, _container.Bounds);
             return particleData;
         }
 

@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using RikusGameDevToolbox.GeneralUse;
 
 // Based on paper by Simon Clavet, Philippe Beaudoin, and Pierre Poulin
 // https://www.academia.edu/452554/Particle-Based_Viscoelastic_Fluid_Simulation
@@ -55,8 +56,7 @@ namespace FluidSimulation
             
             if (IsViscosityEnabled())
             {
-                //ApplyViscosity(particles, particleData.NeighbourParticlePairs(), timeStep);
-                ApplyViscosityV2(particleData, timeStep);
+                ApplyViscosity(particleData, timeStep);
             }
             
             for (int i=0; i<particles.Length; i++)
@@ -91,9 +91,7 @@ namespace FluidSimulation
         /// </summary>
         private void MaintainDensity(IParticleData particleData,  float timeStep)
         {
-
-            var particles = particleData.All();
-            
+             var particles = particleData.All();
             
             for (int i=0; i<particles.Length; i++)
             {
@@ -104,8 +102,6 @@ namespace FluidSimulation
                 
                 foreach (int j in neighbours)
                 {
-                    if (i == j) continue;
-                   
                     float distance = (particles[i].Position - particles[j].Position).magnitude;
                     float q = distance / _settings.InteractionRadius;
                     if (q < 1f)
@@ -121,8 +117,6 @@ namespace FluidSimulation
 
                 foreach (int j in neighbours)
                 {
-                    if (i == j) continue;
-               
                     float distance = (particles[i].Position - particles[j].Position).magnitude;
                     float q = distance / _settings.InteractionRadius;
                     if (q < 1f)
@@ -141,32 +135,10 @@ namespace FluidSimulation
 
         }
 
-        private void ApplyViscosity(Span<FluidParticle> particles, Span<(int,int)> particlePairs, float timeStep)
-        {
-            var interactionRadius = _settings.InteractionRadius;
-            var sigma = _settings.ViscositySigma;
-            var beta = _settings.ViscosityBeta;
-            
-            foreach ( (int a, int b) in particlePairs)
-            {
-                if (particles[a].Type == ParticleType.Solid || particles[b].Type == ParticleType.Solid) continue;
-                
-                float q = (particles[a].Position - particles[b].Position).magnitude / interactionRadius;
-                if (q>=1f) continue;
-                Vector2 r = (particles[a].Position - particles[b].Position).normalized;
-                // Inward radial velocity
-                float u = Vector2.Dot(particles[a].Velocity - particles[b].Velocity,  r);
-                
-                if (u <= 0f) continue;
-                
-                Vector2 impulse = timeStep * (1f - q) * (sigma * u + beta * Pow2(u)) * r;
-                particles[a].Velocity -= impulse * 0.5f;
-                particles[b].Velocity += impulse * 0.5f;
-            }
-        }
+
         
         
-        private void ApplyViscosityV2(IParticleData particleData,  float timeStep)
+        private void ApplyViscosity(IParticleData particleData,  float timeStep)
         {
             var particles = particleData.All();
             
@@ -271,7 +243,8 @@ namespace FluidSimulation
                 return (collPosition, collNormal);
             }
         }
-       
+
+    
         float Pow2 (float x) => x * x;
         float Pow3 (float x) => x * x * x;
 
