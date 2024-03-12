@@ -5,9 +5,6 @@ using UnityEngine;
 
 namespace FluidSimulation
 {
-
- 
-
     public class NeighbourSearch
     {
         private readonly float _neighbourhoodRadius;
@@ -16,53 +13,69 @@ namespace FluidSimulation
         private readonly Dictionary<(int,int), List<(int, Vector2)>> _cells;
         private readonly Vector2[] _neighbourCellOffsets;
      
-        public NeighbourSearch(float neighbourhoodRadius, int maxNumNeighbours)
+        private readonly Neighbours[] _neighbours;
+
+        private struct Neighbours
+        {
+            public int[] Indices;
+            public int NumNeighbours;
+            public Span<int> IndicesSpan => new (Indices, 0, NumNeighbours);
+        }
+
+        #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
+        public NeighbourSearch(float neighbourhoodRadius, int maxNumParticles, int maxNumNeighbours)
         {
             _neighbourhoodRadius = neighbourhoodRadius;
             _cellSize = _neighbourhoodRadius;
             _maxNumNeighbours = maxNumNeighbours;
             _cells = new Dictionary<(int,int), List<(int, Vector2)>>();
-        }
-
-    
-        
-        public void UpdateNeighbours(Span<FluidParticle> particles, int[][] neighbours, int[] neighbourCount)
-        {
-            ClearSpatialPartitioning();
-            DoSpatialPartitioning(particles);
-            FindNeighboursForParticles(particles);
-
-            void ClearSpatialPartitioning()
-            {
-                foreach (var cell in _cells)
-                {
-                    cell.Value.Clear();
-                }
-            }
-
-            void DoSpatialPartitioning(Span<FluidParticle> particles)
-            {
-                for (int i = 0; i < particles.Length; i++)
-                {
-                    var cellIndex = CellIndex(particles[i].Position);
-                    GetCell(cellIndex.x, cellIndex.y).Add((i, particles[i].Position));
-                }
-            }
-            void FindNeighboursForParticles(Span<FluidParticle> particles)
-            {
-                
-                for (int i = 0; i < particles.Length; i++)
-                {
-                    int numNeighbours = FindNeighboursFor(i, particles[i].Position, neighbours[i]);
-                    neighbourCount[i] = numNeighbours;
-                }
-            }
             
+            _neighbours = new Neighbours[maxNumParticles];
+            for (int i = 0; i < maxNumParticles; i++)
+            {
+                _neighbours[i] = new Neighbours
+                {
+                    Indices = new int[maxNumNeighbours],
+                    NumNeighbours = 0
+                };
+            }
+        }
+        
+        public Span<int> NeighboursOf(int particleIndex) => _neighbours[particleIndex].IndicesSpan;
+        
+        public void UpdateNeighbours(Span<FluidParticle> particles)
+        {
+            SpatialPartitioning(particles);
+            PerformNeighbourSearch(particles);
+        }
+        #endregion
+        #region ------------------------------------------ PRIVATE METHODS ----------------------------------------------
+
+        private void SpatialPartitioning(Span<FluidParticle> particles)
+        {
+            foreach (var cell in _cells)
+            {
+                cell.Value.Clear();
+            }
+
+            for (int i = 0; i < particles.Length; i++)
+            {
+                var cellIndex = CellIndex(particles[i].Position);
+                GetCell(cellIndex.x, cellIndex.y).Add((i, particles[i].Position));
+            }
+        }
+
+        private void PerformNeighbourSearch(Span<FluidParticle> particles)
+        {
+            for (int i = 0; i < particles.Length; i++)
+            {
+                int numNeighbours = FindNeighboursFor(i, particles[i].Position, _neighbours[i].Indices);
+                _neighbours[i].NumNeighbours = numNeighbours;
+            }
         }
 
 
-        
-        public int FindNeighboursFor(int particleIndex, Vector2 particlePosition, Span<int> result)
+        private int FindNeighboursFor(int particleIndex, Vector2 particlePosition, Span<int> result)
         {
             int p = 0;
             var cell = CellIndex(particlePosition);
@@ -90,12 +103,7 @@ namespace FluidSimulation
             
         }
 
-      
-        public void Clear()
-        {
-           
-        }
-       
+     
 
         private List<(int, Vector2)> GetCell(int x, int y)
         {
@@ -117,30 +125,7 @@ namespace FluidSimulation
             int y = Mathf.CeilToInt(position.y / _cellSize);
             return (x, y);
         }
-       
-
-        // uutta roinaa
-        int NumSpatialPartitioningCells(Rect bounds, float cellSize)
-        {
-            int x = Mathf.CeilToInt(bounds.width / cellSize);
-            int y = Mathf.CeilToInt(bounds.height / cellSize);
-            return x * y;
-        }
-
-        int SpatialPartitioningCellIndex(Vector2 position, Rect bounds, float cellSize)
-        {
-            if (!bounds.Contains(position))
-            {
-                position.x = Mathf.Clamp(position.x, bounds.xMin, bounds.xMax);
-                position.y = Mathf.Clamp(position.y, bounds.yMin, bounds.yMax);
-            }
-            Vector2 relPosition = position - bounds.min;
-            return (int)(relPosition.x / cellSize)
-                        + (int)(relPosition.y / cellSize) 
-                        * Mathf.CeilToInt(bounds.width / cellSize);
-            
-        }
-        
+        #endregion
      
      
     }

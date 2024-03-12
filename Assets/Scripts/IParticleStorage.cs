@@ -9,7 +9,6 @@ namespace FluidSimulation
         void Remove(int particleIndex);
         Span<FluidParticle> All();
         Span<int> NeighbourIndices(int particleIndex);
-        Span<(int, int)> NeighbourParticlePairs();
         void UpdateNeighbours();
         int NumberOfParticles { get; }
         void Clear();
