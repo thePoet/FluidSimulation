@@ -1,5 +1,7 @@
+using System;
 using RikusGameDevToolbox.GeneralUse;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 namespace FluidSimulation
@@ -10,24 +12,29 @@ namespace FluidSimulation
         public float brushRadius = 10f;
         public float maxSpeed = 10f;
 
-        public Simulation simulation;        
-        
+        [FormerlySerializedAs("_simulationManager")] public Simulation simulation;
+
+        private void Start()
+        {
+            simulation = FindObjectOfType<Simulation>();
+            if (simulation == null) Debug.LogError("No Simulation found in the scene.");
+        }
+
         void Update()
         {
+            if (simulation == null) return;
+            
             if (LeftMouseButton)
             {
                 for (int i=0; i<blobsPerFrame; i++)
                 {
-                    simulation.SpawnParticleAt(MousePosition + RandomOffset, Velocity);
+                  simulation.SpawnParticle(MousePosition + RandomOffset, Velocity, ParticleType.Liquid);
                 }
             }
 
             if (RightMouseButton)
             {
-                for (int i=0; i<blobsPerFrame; i++)
-                {
-                    simulation.SpawnParticle2At(MousePosition + RandomOffset, Vector2.zero);
-                }
+                simulation.SpawnParticle(MousePosition + RandomOffset*0.25f, Velocity, ParticleType.Solid);
             }
         }
 

@@ -1,441 +1,134 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using RikusGameDevToolbox.GeneralUse;
-using TMPro;
-using Unity.VisualScripting;
-using Unity.VisualScripting.Dependencies.NCalc;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
-using Timer = RikusGameDevToolbox.GeneralUse.Timer;
 
-// Based on paper by Miles Macklin and Matthias Müller
-// https://mmacklin.com/pbf_sig_preprint.pdf
 
-// useful reference: https://github.com/yuki-koyama/position-based-fluids/blob/main/src/main.cpp
 namespace FluidSimulation
 {
-
-
     public class Simulation : MonoBehaviour
     {
-        private struct BoxEdge
-        {
-            public BoxEdge(Vector2 start, Vector2 end, Vector2 normal)
-            {
-                this.start = start;
-                this.end = end;
-                this.normal = normal;
-            }
-            public Vector2 start;
-            public Vector2 end;
-            public Vector2 normal;
-        }
+        private IParticleData _particleData;
+        private ParticleDynamics _particleDynamics;
+        private ParticleVisualization _particleVisualization;
+        private Container _container;
 
-        private static List<LiquidParticle> _particles;
-
-
-        public float interactionRadius;
-        public float gravity;
-        
-        [Header("Density & incompressibility")]
-        public float restDensity;
-        public float stiffness;
-        public float nearStiffness;
-        
-        
-        [Header("Viscosity")]
-        public bool viscosityEnabled = true;
-        public float sigma = 0.0f;
-        public float beta = 0.3f;
-
-        [Header(" ")]
-        public GameObject liquidParticlePrefab;
-        public TextMeshPro text1;
-        public TextMeshPro text2;
-       
-
-
-        private MovingAverage timeAvgCalc;
-        private Texture2D densityTexture;
-        private Container container;
-        private bool isRunning;
-
-        static Simulation()
-        {
-            _particles = new List<LiquidParticle>();
-        }
-
-        public static void AddParticle(LiquidParticle particle)
-        {
-            _particles.Add(particle);
-        }
-
-        public static List<LiquidParticle> GetLiquidParticlesInCircle(Vector2 center, float radius)
-        {
-            var colliders = Physics2D.OverlapCircleAll(center, radius);
-            return colliders.Where(c => c.GetComponent<LiquidParticle>() != null)
-                .Select(c => c.GetComponent<LiquidParticle>()).ToList();
-        }
-
-        #region ------------------------------------------- UNITY METHODS -----------------------------------------------
+        private bool _isPaused;
 
         private void Awake()
         {
-            densityTexture = new Texture2D(100, 100);
-            for (int i = 0; i < 100; i++)
+            SetMaxFrameRate(60);
+
+
+            _particleVisualization = FindObjectOfType<ParticleVisualization>();
+            _container = FindObjectOfType<Container>();
+            if (_particleVisualization == null) Debug.LogError("No visualization found in the scene.");
+            if (_container == null) Debug.LogError("No container found in the scene.");
+
+            _particleData = CreateParticleData();
+            _particleDynamics = CreateSimulation();
+            _particleData = CreateParticleData();
+            
+            void SetMaxFrameRate(int frameRate)
             {
-                for (int j = 0; j < 100; j++)
-                {
-                    densityTexture.SetPixel(i, j, new Color(0f, 0f, 1f, 0.5f));
-                }
-            }
-
-            densityTexture.Apply();
-
-            container = GameObject.FindObjectOfType<Container>();
-
-            isRunning = true;
-
-        }
-
-
-
-        private void Update()
-        {
-            if (isRunning || Input.GetKeyDown(KeyCode.Period)) Simulate(0.015f);
-
-
-            if (Input.GetKeyDown(KeyCode.N)) Debug.Log("Number of particles: " + _particles.Count);
-
-            if (Input.GetKeyDown(KeyCode.Space)) isRunning = !isRunning;
-
-            if (Input.GetKeyDown(KeyCode.T)) PerformanceTest();
-
-            if (Input.GetKeyDown(KeyCode.C))
-            {
-                foreach (var particle in _particles)
-                {
-                    Destroy(particle.gameObject);
-                }
-                _particles.Clear();
+                QualitySettings.vSyncCount = 0;
+                Application.targetFrameRate = frameRate;
             }
         }
 
-
-
-        void OnDrawGizmos()
+        void Update()
         {
-
-            //DrawDensityMap();
-            //DrawVelocityVectors();
-
-            void DrawDensityMap()
+            if (!_isPaused)
             {
-                for (int i = 0; i < 100; i++)
-                {
-                    for (int j = 0; j < 100; j++)
-                    {
-                        Vector2 position = container.Bounds.min +
-                                           container.Bounds.size * new Vector2(i / 100f, j / 100f);
-                        //     Color color = ColorForDensity(DensityAt(position));
-                        //    densityTexture.SetPixel(i, 99-j, color);
-                    }
-                }
-
-                densityTexture.Apply();
-                Gizmos.DrawGUITexture(container.Bounds, densityTexture);
+                _particleDynamics.Step(_particleData, 0.015f);
+                UpdateParticleVisualization();
             }
+            ProcessUserInput();
+        }
 
+        private void ProcessUserInput()
+        {
+            if (Input.GetKeyDown(KeyCode.C)) Clear();
+            if (Input.GetKeyDown(KeyCode.Q)) Application.Quit();
+            if (Input.GetKeyDown(KeyCode.N)) Debug.Log("Number of particles: " + _particleData.NumberOfParticles);
+            if (Input.GetKeyDown(KeyCode.Space)) _isPaused = !_isPaused;
+            if (Input.GetKeyDown(KeyCode.T)) RunPerformanceTest();
+        }
 
-            void DrawVelocityVectors()
+        public void SpawnParticle(Vector2 position, Vector2 velocity, ParticleType type)
+        {
+            var particle = new FluidParticle()
             {
-                foreach (var particle in _particles)
-                {
-                    Gizmos.DrawLine(particle.Position, particle.Position + particle.velocity * 0.3f);
-                }
-            }
+                Position = position,
+                Velocity = velocity,
+                Type = type
+            };
 
+            int particleId = _particleData.Add(particle);
+            _particleVisualization.AddParticle(particleId, type);
+        }
 
-            Color ColorForDensity(float density)
+        private ParticleData CreateParticleData()
+        {
+            int maxNumParticles = 10000;
+            int maxNumNeighbours = 100;
+            var particleData = new ParticleData(maxNumParticles, maxNumNeighbours, DefaultSettings.InteractionRadius, _container.Bounds);
+            return particleData;
+        }
+
+        private ParticleDynamics CreateSimulation()
+        {
+            var simulation = new ParticleDynamics(DefaultSettings, _container.Bounds);
+            return simulation;
+        }
+
+        private void UpdateParticleVisualization()
+        {
+            foreach (var particle in _particleData.All())
             {
-                float margin = 0.1f;
-
-                Color restDensityColor = new Color(0f, 0f, 1f, 0.5f);
-                Color highDensityColor = new Color(1f, 0f, 0f, 0.5f);
-                Color lowDensityColor = new Color(0f, 1f, 0f, 0.5f);
-
-                if (density < restDensity * (1f - margin)) return lowDensityColor;
-                if (density > restDensity * (1f + margin)) return highDensityColor;
-
-                return restDensityColor;
+                _particleVisualization.MoveParticle(particle.Id, particle.Position);
             }
         }
 
-        #endregion
-
-        #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
-
-        public void SpawnParticleAt(Vector2 position, Vector2 velocity)
+        private void Clear()
         {
-            GameObject particle = Instantiate(liquidParticlePrefab, position, Quaternion.identity);
-            particle.GetComponent<LiquidParticle>().velocity = velocity;
-        }
-        
-        public void SpawnParticle2At(Vector2 position, Vector2 velocity)
-        {
-            GameObject particle = Instantiate(liquidParticlePrefab, position, Quaternion.identity);
-            particle.GetComponent<LiquidParticle>().velocity = velocity;
-            particle.GetComponent<LiquidParticle>().Color =Color.blue;
-            particle.GetComponent<LiquidParticle>().gravityMultiplier = -0.5f;
-            particle.GetComponent<LiquidParticle>().movementMultiplier = 0f;
-            
+            _particleData.Clear();
+            _particleVisualization.Clear();
         }
 
-        #endregion
-
-        #region ------------------------------------------ PRIVATE METHODS ----------------------------------------------
-
-        void Simulate(float timeStep)
+        private void RunPerformanceTest()
         {
-            foreach (var particle in _particles)
-            {
-                particle.velocity += Vector2.down * timeStep * gravity * particle.gravityMultiplier;
-            }
-
-            if (viscosityEnabled)
-            {
-                foreach (var (particleA, particleB) in AllNeighbouringParticlePairs())
-                {
-                    ApplyViscosity(particleA, particleB, timeStep);
-                }
-            }
-
-            foreach (var particle in _particles)
-            {
-                particle.previousPosition = particle.Position;
-                particle.Position += particle.velocity * timeStep * particle.movementMultiplier;
-            }
-
-            Timer timer = new Timer();
-            foreach (var particle in _particles) particle.neighbours = NeighboursOf(particle);
-            float time = timer.Time;
-            
-            foreach (var particle in _particles) DoubleDensityRelaxation(particle, timeStep);
-
-            foreach (var particle in _particles) particle.Position += CollisionImpulse(particle, timeStep) * particle.movementMultiplier;
-
-          
-
-            foreach (var particle in _particles)
-            {
-                particle.velocity = (particle.Position - particle.previousPosition) / timeStep;
-            }
-
-            text1.text = "Particles: " + _particles.Count;
-            text2.text = "Neigh. search: " + time * 1000f + " ms";
-            text2.text += "\nAvg. neigh.: " + AvgNumNeighbours();
-        }
-
-        private void ApplyViscosity(LiquidParticle particleA, LiquidParticle particleB, float timeStep)
-        {
-            float q = (particleA.Position - particleB.Position).magnitude / interactionRadius;
-            if (q < 1f)
-            {
-                Vector2 r = (particleA.Position - particleB.Position).normalized;
-                // Inward radial velocity
-                float u = Vector2.Dot(particleA.velocity - particleB.velocity,  r);
-                
-                if (u <= 0f) return;
-                
-                Vector2 impulse = timeStep * (1f - q) * (sigma * u + beta * Pow2(u)) * r;
-                particleA.velocity -= impulse * 0.5f;
-                particleB.velocity += impulse * 0.5f;
-            }
-        }
-
-
-        private Vector2 CollisionImpulse(LiquidParticle particle, float timeStep)
-        {
-            Rect box = container.Bounds;
-
-            if (box.Contains(particle.Position)) return Vector2.zero;
-
-            if (!box.Contains(particle.previousPosition))
-            {
-                Debug.LogWarning("Particle's previous position was outside the container. This should not happen.");
-            }
-
-            (Vector2 collisionPosition, Vector2 collisionNormal) = CollisionToBoxFromInside(box, particle.previousPosition, particle.Position);
-
-            Vector2 velocity = particle.Position - particle.previousPosition;
-            
-            // components of velocity in the direction of the normal of the box edge and tangential to it
-            Vector2 velocityNormal = Vector2.Dot(velocity, collisionNormal) * collisionNormal;
-            Vector2 velocityTangent = velocity - velocityNormal;
-            
-            float tangentialFriction = 0.5f;
-           
-            
-            Vector2 impulse = -velocityNormal - tangentialFriction * velocityTangent;
-            
-            Vector2 endPosition = particle.Position + impulse;
-            if (!box.Contains(endPosition))
-            {
-                endPosition = ClampToBox(collisionPosition, Shrink(box, box.width * 0.0001f));
-               impulse = endPosition - particle.Position;
-            }
-
-
-
-            return impulse;
-
-            Vector2 ClampToBox(Vector2 position, Rect box)
-            {
-                return new Vector2(Mathf.Clamp(position.x, box.xMin, box.xMax),
-                    Mathf.Clamp(position.y, box.yMin, box.yMax));
-            }
-            
-            Rect Shrink(Rect rect, float amount)
-            {
-                return new Rect(rect.xMin + amount/2f, rect.yMin + amount/2f, rect.width - amount, rect.height - amount);
-            }
-
-            (Vector2 position, Vector2 normal) CollisionToBoxFromInside(Rect box, Vector2 startPosition, Vector2 attemptedPosition)
-            {
-                BoxEdge[] boxEdges = 
-                {
-                    new BoxEdge(new Vector2(box.xMin, box.yMin), new Vector2(box.xMin, box.yMax), Vector2.right),
-                    new BoxEdge(new Vector2(box.xMin, box.yMax), new Vector2(box.xMax, box.yMax), Vector2.down),
-                    new BoxEdge(new Vector2(box.xMax, box.yMax), new Vector2(box.xMax, box.yMin), Vector2.left),
-                    new BoxEdge(new Vector2(box.xMax, box.yMin), new Vector2(box.xMin, box.yMin), Vector2.up)
-                };
-                
-                Vector2 collisionPosition = Vector2.positiveInfinity;
-                Vector2 collisionNormal = Vector2.zero;
-
-                foreach (BoxEdge edge in boxEdges)
-                {
-                    if (LineUtil.IntersectLineSegments2D(startPosition, attemptedPosition, edge.start, edge.end, out Vector2 intersection))
-                    {
-                        if ((startPosition - intersection).magnitude < (startPosition - collisionPosition).magnitude)
-                        {
-                            collisionPosition = intersection;
-                            collisionNormal = edge.normal;
-                        }
-                    }
-                }
-
-                return (collisionPosition, collisionNormal);
-            }
-            
-
-            
-           
-        }
-
-        private void DoubleDensityRelaxation(LiquidParticle particle, float timeStep)
-        {
-            float density = 0f;
-            float nearDensity = 0f;
-            
-            foreach (var otherParticle in particle.neighbours)
-            {
-                if (otherParticle == particle) continue;
-                
-                float distance = (particle.Position - otherParticle.Position).magnitude;
-                float q = distance / interactionRadius;
-                if (q < 1f)
-                {
-                    density += Pow2(1f - q);
-                    nearDensity += Pow3(1f - q);
-                }
-
-            }
-    
-            float pressure = stiffness * (density - restDensity);
-            float nearPressure = nearStiffness * nearDensity;
-            
-            Vector2 displacement = Vector2.zero;
-
-            foreach (var otherParticle in particle.neighbours)
-            {
-                if (otherParticle == particle) continue;
-
-                float distance = (particle.Position - otherParticle.Position).magnitude;
-                float q = distance / interactionRadius;
-                if (q < 1f)
-                {
-                    Vector2 d = Pow2(timeStep) * (pressure * (1f - q) + nearPressure * Pow2(1f - q)) * (otherParticle.Position - particle.Position).normalized;
-                    otherParticle.Position += 0.5f * d * otherParticle.movementMultiplier;
-                    displacement -= 0.5f * d;
-                }
-            }
-            particle.Position += displacement * particle.movementMultiplier;
-
-        }
-        
-
-     
-
-        void PerformanceTest()
-        {
-            if (_particles.Count != 0) return;
+            Clear();
             
             Random.InitState(123);
-            
+         
             for (int i = 0; i < 500; i++)
             {
-                Vector2 position = new Vector2
-                (
-                    x: Random.Range( container.Bounds.xMin, container.Bounds.xMax),
-                    y: Random.Range( container.Bounds.yMin, container.Bounds.yMax)
-                );
-          
-                SpawnParticleAt(position, Vector2.zero);
+                SpawnParticle(RandomPosition(), Vector2.zero, ParticleType.Liquid);
             }
-            
+
             Timer timer = new Timer();
-            for (int i = 0; i < 60; i++)
-            {
-                Simulate(0.016666f);
-            }
+            for (int i = 0; i < 60; i++) _particleDynamics.Step(_particleData, 0.015f);
+            Debug.Log("Performance test took " + timer.Time * 1000f + " ms.");
             
-            Debug.Log("Performance test time: " + timer.Time*1000f + " ms");
-            
-        }
-
-
-        private List<LiquidParticle> NeighboursOf(LiquidParticle p) => GetLiquidParticlesInCircle(p.Position, interactionRadius);
-        
-        private IEnumerable<(LiquidParticle, LiquidParticle)> AllNeighbouringParticlePairs()
-        {
-            foreach (LiquidParticle particleA in _particles)
+            Vector2 RandomPosition()
             {
-                foreach (LiquidParticle particleB in particleA.neighbours)
-                {
-                    if (particleA.GetInstanceID() < particleB.GetInstanceID()) yield return (particleA, particleB);
-                }
+                return new Vector2
+                (
+                    x: Random.Range(_container.Bounds.xMin, _container.Bounds.xMax),
+                    y: Random.Range(_container.Bounds.yMin, _container.Bounds.yMax)
+                );
             }
         }
-        
-       
-        float Pow2 (float x) => x * x;
-        float Pow3 (float x) => x * x * x;
 
-        
-        float AvgNumNeighbours()
+        ParticleDynamics.Settings DefaultSettings => new ParticleDynamics.Settings
         {
-            if (_particles.Count == 0) return 0f;
-            float sum = 0f;
-            foreach (var particle in _particles)
-            {
-                sum += particle.neighbours.Count;
-            }
-
-            return sum / _particles.Count;
-        }
-        #endregion
+            InteractionRadius = 15f,
+            Gravity = 500,
+            RestDensity = 5,
+            Stiffness = 750,
+            NearStiffness = 1500,
+            ViscositySigma = 0f,
+            ViscosityBeta = 0.05f,
+        };
     }
 }
