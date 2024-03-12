@@ -26,7 +26,7 @@ namespace FluidSimulation
         
         private readonly (int, int)[] _particlePairs;
         private int _nextId = 0;
-        private readonly SpatialPartitioning _partitioning;
+        private readonly NeighbourSearch _partitioning;
         private readonly SpatialPartitioningCell[] _spatialPartitioningCells;
         private readonly Rect _bounds;
       //  private readonly Vector2[] _neighbourCellOffsets;
@@ -55,7 +55,7 @@ namespace FluidSimulation
             _particlePairs = new (int, int)[maxNumParticlePairs];
             
             
-            _partitioning = new SpatialPartitioning(neighbourRadius, maxNumNeighbours);
+            _partitioning = new NeighbourSearch(neighbourRadius, maxNumNeighbours);
             _spatialPartitioningCells = InitSpatialPartitioningCells(_bounds, _neighbourRadius);
 /*
             _neighbourCellOffsets = new[]
@@ -103,7 +103,6 @@ namespace FluidSimulation
             _particles[index] = particle;
             _neighbourCount[index] = 0;
             
-            _partitioning.AddEntity(index, particle.Position);
             return particle.Id;
         }
 

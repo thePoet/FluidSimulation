@@ -1,15 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Net;
 using UnityEngine;
-using RikusGameDevToolbox.GeneralUse;
+
 
 namespace FluidSimulation
 {
 
  
 
-    public class SpatialPartitioning
+    public class NeighbourSearch
     {
         private readonly float _neighbourhoodRadius;
         private readonly float _cellSize;
@@ -17,7 +16,7 @@ namespace FluidSimulation
         private readonly Dictionary<(int,int), List<(int, Vector2)>> _cells;
         private readonly Vector2[] _neighbourCellOffsets;
      
-        public SpatialPartitioning(float neighbourhoodRadius, int maxNumNeighbours)
+        public NeighbourSearch(float neighbourhoodRadius, int maxNumNeighbours)
         {
             _neighbourhoodRadius = neighbourhoodRadius;
             _cellSize = _neighbourhoodRadius;
@@ -25,11 +24,7 @@ namespace FluidSimulation
             _cells = new Dictionary<(int,int), List<(int, Vector2)>>();
         }
 
-        public void AddEntity(int id, Vector2 position)
-        {
-            var cellIndex = CellIndex(position);
-            GetCell(cellIndex.x, cellIndex.y).Add((id,position));
-        }
+    
         
         public void UpdateNeighbours(Span<FluidParticle> particles, int[][] neighbours, int[] neighbourCount)
         {
@@ -55,6 +50,7 @@ namespace FluidSimulation
             }
             void FindNeighboursForParticles(Span<FluidParticle> particles)
             {
+                
                 for (int i = 0; i < particles.Length; i++)
                 {
                     int numNeighbours = FindNeighboursFor(i, particles[i].Position, neighbours[i]);
@@ -97,23 +93,9 @@ namespace FluidSimulation
       
         public void Clear()
         {
-            _cells.Clear();
+           
         }
-        /*
-        public string DebugInfo()
-        {
-            string result = "";
-            int numParticles = 0;
-            foreach (var cell in _cells)
-            {
-                result += "Cell " + cell.Key + " has " + cell.Value.Count + " entities\n";
-                numParticles+= cell.Value.Count;
-            }
-            result += "Total cells: " + _cells.Count;
-            result += "Total particles: " + numParticles;
-            result += "Cell size: " + _cellSize;
-            return result;
-        }*/
+       
 
         private List<(int, Vector2)> GetCell(int x, int y)
         {
