@@ -77,7 +77,7 @@ namespace FluidSimulation
 
         private ParticleDynamics CreateSimulation()
         {
-            var simulation = new ParticleDynamics(DefaultSettings, _container.Bounds);
+            var simulation = new ParticleDynamics(CurrentSettings, _container.Bounds);
             return simulation;
         }
 
@@ -129,6 +129,22 @@ namespace FluidSimulation
             NearStiffness = 1500,
             ViscositySigma = 0f,
             ViscosityBeta = 0.05f,
+            AreElasticityAndPlasticityEnabled = false
+        };
+        
+        ParticleDynamics.Settings CurrentSettings => new ParticleDynamics.Settings
+        {
+            InteractionRadius = 15f,
+            Gravity = 500,
+            RestDensity = 5,
+            Stiffness = 750,
+            NearStiffness = 1500,
+            ViscositySigma = 0f,
+            ViscosityBeta = 0.4f,
+            AreElasticityAndPlasticityEnabled = true,
+            Plasticity = 5f,
+            YieldRatio = 0.1f,
+            SpringK = 1000f
         };
     }
 }

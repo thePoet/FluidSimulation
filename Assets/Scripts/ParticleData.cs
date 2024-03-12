@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -6,6 +7,8 @@ namespace FluidSimulation
 {
     public class ParticleData : IParticleData
     {
+        public Dictionary<(int,int),float> Springs { get; }
+        
         private readonly int _maxNumParticles;
         private readonly int _maxNumNeighbours;
         private readonly int _maxNumParticlesInSpatialCell;
@@ -30,6 +33,7 @@ namespace FluidSimulation
             _bounds = bounds;
             _particles = new FluidParticle[maxNumParticles];
             _neighbourSearch = new NeighbourSearch(neighbourRadius, maxNumParticles, maxNumNeighbours);
+            Springs = new Dictionary<(int, int), float>();
         }
 
         

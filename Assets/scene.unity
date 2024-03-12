@@ -244,9 +244,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3375c9b1056d44704a34f7789ead9081, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  blobsPerFrame: 5
-  brushRadius: 10
-  maxSpeed: 1
+  blobsPerFrame: 3
+  brushRadius: 6
+  maxSpeed: 0.1
   simulation: {fileID: 0}
 --- !u!4 &405270752
 Transform:
