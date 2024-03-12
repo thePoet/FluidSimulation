@@ -72,7 +72,7 @@ namespace FluidSimulation
             MaintainDensity(particleData, timeStep);
  
             for (int i=0; i<particles.Length; i++)
-                particles[i].Position += CollisionImpulse(particles[i]);
+                particles[i].Position += CollisionImpulseFromBorders(particles[i]);
             
 
             for (int i=0; i<particles.Length; i++)
@@ -174,14 +174,9 @@ namespace FluidSimulation
         }
 
 
-        private Vector2 CollisionImpulse(FluidParticle particle)
+        private Vector2 CollisionImpulseFromBorders(FluidParticle particle)
         {
             if (_bounds.Contains(particle.Position)) return Vector2.zero;
-
-            if (!_bounds.Contains(particle.PreviousPosition))
-            {
-                Debug.LogWarning("Particle's previous position was outside the container. This should not happen.");
-            }
 
             (Vector2 collisionPosition, Vector2 collisionNormal) = CollisionToBoxFromInside(_bounds, particle.PreviousPosition, particle.Position);
 
@@ -198,7 +193,7 @@ namespace FluidSimulation
             Vector2 endPosition = particle.Position + impulse;
             if (!_bounds.Contains(endPosition))
             {
-                endPosition = ClampToBox(collisionPosition, Shrink(_bounds, _bounds.width * 0.0001f));
+                endPosition = ClampToBox(endPosition, Shrink(_bounds, _bounds.width * 0.0001f));
                impulse = endPosition - particle.Position;
             }
             
