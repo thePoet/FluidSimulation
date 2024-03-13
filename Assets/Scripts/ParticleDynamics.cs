@@ -167,8 +167,14 @@ namespace FluidSimulation
                 float distance = solidToFluid.magnitude;
                 
                 if (distance > 5f) return;
+
+                float factor = 1.1f;
+                particles[indexFluid].PreviousPosition =
+                    particles[indexFluid].Position + solidToFluid.normalized * (5f - distance);
+                particles[indexFluid].Position += solidToFluid.normalized * (5f-distance) * factor;
                 
-                particles[indexFluid].Position += solidToFluid.normalized * (5f-distance);
+                 
+
             }
         }
         

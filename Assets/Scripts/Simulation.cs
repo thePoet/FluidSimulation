@@ -10,7 +10,6 @@ namespace FluidSimulation
     public class Simulation : MonoBehaviour
     {
         public ParticleDynamics.Settings settings;
-        
         private IParticleData _particleData;
         private ParticleDynamics _particleDynamics;
         private ParticleVisualization _particleVisualization;
