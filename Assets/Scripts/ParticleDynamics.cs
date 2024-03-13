@@ -55,6 +55,7 @@ namespace FluidSimulation
         {
             var particles = particleData.All();
             
+            // External forces (gravity)
             for (int i=0; i<particles.Length; i++)
             {
                 if (particles[i].Type == ParticleType.Solid) continue;
@@ -66,6 +67,7 @@ namespace FluidSimulation
                 ApplyViscosity(particleData, timeStep);
             }
             
+            // Move particles due to their velocity
             for (int i=0; i<particles.Length; i++)
             {
                 if (particles[i].Type == ParticleType.Solid) continue;
@@ -106,6 +108,8 @@ namespace FluidSimulation
             
             for (int i=0; i<particles.Length; i++)
             {
+                if (particles[i].Type == ParticleType.Solid) continue;
+                
                 float density = 0f;
                 float nearDensity = 0f;
                 
@@ -113,6 +117,12 @@ namespace FluidSimulation
                 
                 foreach (int j in neighbours)
                 {
+                    if (particles[j].Type == ParticleType.Solid)
+                    {
+                        CollisionToSolid(i, j);
+                        continue;
+                    }
+                    
                     float distance = (particles[i].Position - particles[j].Position).magnitude;
                     float q = distance / _settings.InteractionRadius;
                     if (q < 1f)
@@ -128,23 +138,40 @@ namespace FluidSimulation
 
                 foreach (int j in neighbours)
                 {
+                    if (particles[j].Type == ParticleType.Solid) continue;
+
                     float distance = (particles[i].Position - particles[j].Position).magnitude;
                     float q = distance / _settings.InteractionRadius;
                     if (q < 1f)
                     {
                         Vector2 d = Pow2(timeStep) * (pressure * (1f - q) + nearPressure * Pow2(1f - q)) *
                                     (particles[j].Position - particles[i].Position).normalized;
+                        
+                        
                         if (particles[j].Type == ParticleType.Liquid)
                             particles[j].Position += 0.5f * d;
                         displacement -= 0.5f * d;
                     }
                 }
-
-                if (particles[i].Type == ParticleType.Liquid)
-                    particles[i].Position += displacement;
+      
+                particles[i].Position += displacement;
+                
+     
             }
-
+            
+            
+            void CollisionToSolid(int indexFluid, int indexSolid) 
+            {
+                var particles = particleData.All();
+                Vector2 solidToFluid = particles[indexFluid].Position - particles[indexSolid].Position;
+                float distance = solidToFluid.magnitude;
+                
+                if (distance > 5f) return;
+                
+                particles[indexFluid].Position += solidToFluid.normalized * (5f-distance);
+            }
         }
+        
 
 
         private void ApplyElasticityAndPlasticity(IParticleData particleData, float timeStep)
@@ -225,11 +252,13 @@ namespace FluidSimulation
             
             for (int i=0; i<particles.Length; i++)
             {
+                if (particles[i].Type == ParticleType.Solid) continue;
+                
                 foreach (int j in particleData.NeighbourIndices(i))
                 {
                     if (i<=j) continue;
                     
-                    if (particles[i].Type == ParticleType.Solid || particles[j].Type == ParticleType.Solid) continue;
+                    if (particles[j].Type == ParticleType.Solid) continue;
                 
                     float q = (particles[i].Position - particles[j].Position).magnitude / interactionRadius;
                     if (q>=1f) continue;
