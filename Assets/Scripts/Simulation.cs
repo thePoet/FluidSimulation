@@ -1,5 +1,7 @@
+using System.Collections;
 using RikusGameDevToolbox.GeneralUse;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 
@@ -7,6 +9,8 @@ namespace FluidSimulation
 {
     public class Simulation : MonoBehaviour
     {
+        public ParticleDynamics.Settings settings;
+        
         private IParticleData _particleData;
         private ParticleDynamics _particleDynamics;
         private ParticleVisualization _particleVisualization;
@@ -14,19 +18,25 @@ namespace FluidSimulation
 
         private bool _isPaused;
 
+        #region ------------------------------------------- UNITY METHODS -----------------------------------------------
         private void Awake()
         {
             SetMaxFrameRate(60);
-
 
             _particleVisualization = FindObjectOfType<ParticleVisualization>();
             _container = FindObjectOfType<Container>();
             if (_particleVisualization == null) Debug.LogError("No visualization found in the scene.");
             if (_container == null) Debug.LogError("No container found in the scene.");
 
-            _particleData = CreateParticleData();
-            _particleDynamics = CreateSimulation();
-            _particleData = CreateParticleData();
+
+            _particleDynamics =  new ParticleDynamics(settings, _container.Bounds);
+
+            _particleData = new ParticleData(
+                maxNumParticles: 10000, 
+                maxNumNeighbours: 100, 
+                DefaultSettings.InteractionRadius, 
+                _container.Bounds
+            );
             
             void SetMaxFrameRate(int frameRate)
             {
@@ -44,6 +54,10 @@ namespace FluidSimulation
             }
             ProcessUserInput();
         }
+        
+        #endregion
+
+        #region ------------------------------------------ PRIVATE METHODS ----------------------------------------------
 
         private void ProcessUserInput()
         {
@@ -67,19 +81,7 @@ namespace FluidSimulation
             _particleVisualization.AddParticle(particleId, type);
         }
 
-        private ParticleData CreateParticleData()
-        {
-            int maxNumParticles = 10000;
-            int maxNumNeighbours = 100;
-            var particleData = new ParticleData(maxNumParticles, maxNumNeighbours, DefaultSettings.InteractionRadius, _container.Bounds);
-            return particleData;
-        }
-
-        private ParticleDynamics CreateSimulation()
-        {
-            var simulation = new ParticleDynamics(CurrentSettings, _container.Bounds);
-            return simulation;
-        }
+      
 
         private void UpdateParticleVisualization()
         {
@@ -132,7 +134,7 @@ namespace FluidSimulation
             AreElasticityAndPlasticityEnabled = false
         };
         
-        ParticleDynamics.Settings CurrentSettings => new ParticleDynamics.Settings
+        ParticleDynamics.Settings PoopSettings => new ParticleDynamics.Settings
         {
             InteractionRadius = 15f,
             Gravity = 500,
@@ -143,8 +145,10 @@ namespace FluidSimulation
             ViscosityBeta = 0.4f,
             AreElasticityAndPlasticityEnabled = true,
             Plasticity = 5f,
-            YieldRatio = 0.1f,
+            YieldRatio = 0.01f,
             SpringK = 1000f
         };
+        
+        #endregion
     }
 }

@@ -10,7 +10,8 @@ namespace FluidSimulation
     
     public class ParticleDynamics 
     {
-        public struct Settings
+        [System.Serializable]
+        public class Settings
         {
             public float InteractionRadius;
             public float Gravity;
@@ -47,6 +48,8 @@ namespace FluidSimulation
             _settings = settings;
             _bounds = bounds;
         }
+        
+     
         
         public void Step(IParticleData particleData, float timeStep)
         {
@@ -163,7 +166,10 @@ namespace FluidSimulation
  
                     if (!particleData.Springs.TryGetValue((i, j), out float restLenght))
                     {
-                        particleData.Springs[(i, j)] = interactionRadius;
+                        // The Clavet et al. paper says that rest length of the spring should be set to
+                        // interaction radius, but I found that it works better if it's set to the actual distance 
+                        // between the particles.
+                        particleData.Springs[(i, j)] = distance; 
                     }
                     else
                     {
@@ -184,7 +190,9 @@ namespace FluidSimulation
             foreach (var spring in particleData.Springs)
             {
                 // Remove dysfunctional springs
-                if (spring.Value > interactionRadius || spring.Key.Item1 >= particles.Length || spring.Key.Item2 >= particles.Length)
+                if (spring.Value > interactionRadius || 
+                    spring.Key.Item1 >= particleData.NumberOfParticles || 
+                    spring.Key.Item2 >= particleData.NumberOfParticles)
                 {
                     particleData.Springs.Remove(spring.Key);
                 }

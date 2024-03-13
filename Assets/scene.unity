@@ -376,6 +376,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e0318b743faf4ffb9c28c6167a90b9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  settings:
+    InteractionRadius: 15
+    Gravity: 500
+    RestDensity: 5
+    Stiffness: 750
+    NearStiffness: 1500
+    ViscositySigma: 0
+    ViscosityBeta: 0.05
+    AreElasticityAndPlasticityEnabled: 0
+    Plasticity: 0
+    YieldRatio: 0
+    SpringK: 0
 --- !u!114 &1692431640
 MonoBehaviour:
   m_ObjectHideFlags: 0
