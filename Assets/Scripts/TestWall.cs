@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -5,13 +6,19 @@ using UnityEngine;
 namespace FluidSimulation
 {
    public class TestWall : MonoBehaviour
-    {
-       
+   {
+        private int particleId;
+        private Simulation simulation;
         
         void Start()
         {
-            var simulation = FindObjectOfType<Simulation>();
-            simulation.SpawnParticle(transform.position, Vector2.zero, ParticleType.Solid);
+            simulation = FindObjectOfType<Simulation>();
+            particleId = simulation.SpawnParticle(transform.position, Vector2.zero, ParticleType.Solid);
         }
-    }
+
+        private void Update()
+        {
+            simulation.MoveParticle(particleId, transform.position);
+        }
+   }
 }

@@ -67,7 +67,7 @@ namespace FluidSimulation
             if (Input.GetKeyDown(KeyCode.T)) RunPerformanceTest();
         }
 
-        public void SpawnParticle(Vector2 position, Vector2 velocity, ParticleType type)
+        public int SpawnParticle(Vector2 position, Vector2 velocity, ParticleType type)
         {
             var particle = new FluidParticle()
             {
@@ -78,6 +78,13 @@ namespace FluidSimulation
 
             int particleId = _particleData.Add(particle);
             _particleVisualization.AddParticle(particleId, type);
+
+            return particleId;
+        }
+        
+        public void MoveParticle(int particleId, Vector2 newPosition)
+        {
+            _particleData.All()[particleId].Position = newPosition;
         }
 
       

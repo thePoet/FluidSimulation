@@ -1,4 +1,5 @@
 using System;
+using RikusGameDevToolbox.Discrete3d;
 using UnityEngine;
 using RikusGameDevToolbox.GeneralUse;
 
@@ -168,7 +169,9 @@ namespace FluidSimulation
                 
                 if (distance > 5f) return;
 
-                float factor = 1.1f;
+                
+                // TODO: separete tangent and normal impulse
+                float factor = 1.05f;
                 particles[indexFluid].PreviousPosition =
                     particles[indexFluid].Position + solidToFluid.normalized * (5f - distance);
                 particles[indexFluid].Position += solidToFluid.normalized * (5f-distance) * factor;
@@ -354,6 +357,10 @@ namespace FluidSimulation
     
         float Pow2 (float x) => x * x;
         float Pow3 (float x) => x * x * x;
+
+
+
+     
 
         #endregion
       
