@@ -1,5 +1,3 @@
-using System;
-using RikusGameDevToolbox.Discrete3d;
 using UnityEngine;
 using RikusGameDevToolbox.GeneralUse;
 
@@ -167,18 +165,59 @@ namespace FluidSimulation
                 Vector2 solidToFluid = particles[indexFluid].Position - particles[indexSolid].Position;
                 float distance = solidToFluid.magnitude;
                 
-                if (distance > 5f) return;
+                float solidRadius = 10f;
+                if (distance >= solidRadius) return;
 
+/*
+                Vector2 impactPoint = Math2d.LineIntersectionWithCircle
+                (
+                    linePointA: particles[indexFluid].Position,
+                    linePointB: particles[indexFluid].PreviousPosition,
+                    center: particles[indexSolid].Position,
+                    radius: solidRadius
+                );
+*/
+
+
+                Vector2 deltaPosition = particles[indexFluid].Position - particles[indexFluid].PreviousPosition;
+                Vector2 closestPointOutsideSolid = particles[indexSolid].Position + solidToFluid.normalized * solidRadius;
                 
-                // TODO: separete tangent and normal impulse
-                float factor = 1.05f;
-                particles[indexFluid].PreviousPosition =
-                    particles[indexFluid].Position + solidToFluid.normalized * (5f - distance);
-                particles[indexFluid].Position += solidToFluid.normalized * (5f-distance) * factor;
+                Vector2 bounceDirection = Vector2.Reflect
+                (
+                    deltaPosition, // old velocity, projected on...
+                    particles[indexSolid].Position - closestPointOutsideSolid // ...surface normal of solid circle
+                ).normalized;
+                              
                 
-                 
+                /*
+                Vector2 bounceDirection = Vector2.Reflect
+                (
+                    deltaPosition, // old velocity, projected on...
+                    particles[indexSolid].Position - impactPoint // ...surface normal of solid circle
+                ).normalized;
+*/
+                
+                float bounceFriction = -0.1f;
+                float bounceDistance = (closestPointOutsideSolid - particles[indexFluid].Position).magnitude * bounceFriction;
+                
+                
+                // The main method of the simulation calcultates velocity from the difference between current and
+                // previous position, so changing particle velocity would do not good. Instead we change the previous
+                // position to indirectly induce the wanted velocity.
+                particles[indexFluid].PreviousPosition = closestPointOutsideSolid - bounceDirection * bounceDistance;
+                particles[indexFluid].Position =closestPointOutsideSolid;
+
+                /*
+                   Vector2 impactPosition = particles[indexFluid].Position + solidToFluid.normalized * (5f - distance);
+                   particles[indexFluid].Position = impactPosition +
+
+                   particles[indexFluid].PreviousPosition = impactPosition;
+
+   */
 
             }
+
+         
         }
         
 
