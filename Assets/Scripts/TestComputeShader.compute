@@ -32,11 +32,8 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         return;
     }
 
-
     // Assign random value
-    _Particles[indexFromId(id)].position.x = rand(float2(id.x * _Time, id.y * _Time)) * 100.0;
-    _Particles[indexFromId(id)].position.y = rand(float2(id.y * _Time, id.x * _Time)) * 100.0;
-
-    
+    int index = indexFromId(id);
+    _Particles[index].position += _Particles[index].velocity * _Time;
 }
 

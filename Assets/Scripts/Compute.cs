@@ -1,6 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class Compute : MonoBehaviour
 {
@@ -20,65 +22,73 @@ public class Compute : MonoBehaviour
     public int CubesPerAxis = 80;
     
 
-    // Cube objects
-    private Transform[] _cubes;
-
-    // Array containing all z positions of cubes.
-    // Will be put on the compute buffer
-   // private Vector2[] _cubesPositions;
-
+    
+    private Transform[] _sprites;
     private Particle[] _particles;
     
     private void Awake() 
     {
         _particlesBuffer = new ComputeBuffer(CubesPerAxis * CubesPerAxis, 4*sizeof(float));
+        _particles = CreateParticles();
+        _particlesBuffer.SetData(_particles);
+        CreateSprites();
     }
     private void Start() 
     {
-        CreateGrid();
+   
+        
+    }
+
+    private Particle[] CreateParticles()
+    {
+        Particle[] particles = new Particle[CubesPerAxis * CubesPerAxis];
+        for (int i=0; i<particles.Length; i++)
+        {
+            particles[i] = new Particle
+            {
+                Position = new Vector2(Random.Range(0f, 100f), Random.Range(0f, 100f)),
+                Velocity = Random.insideUnitCircle * 10f
+            };
+        }
+
+        return particles;
     }
 
     private void OnDestroy() 
     {
         _particlesBuffer.Release();
     }
-    
-    void CreateGrid() 
+
+    private void Update()
     {
-        _cubes = new Transform[CubesPerAxis * CubesPerAxis];
-        _particles = new Particle[CubesPerAxis * CubesPerAxis];
+        UpdatePositionsGPU();
+        MoveSprites();
+
+    }
+
+    void CreateSprites() 
+    {
+        _sprites = new Transform[CubesPerAxis * CubesPerAxis];
+       
         for (int x = 0, i = 0; x < CubesPerAxis; x++) 
         {
             for (int y = 0; y < CubesPerAxis; y++, i++) 
             {
-                _cubes[i] = Instantiate(CubePrefab, transform);
-                _cubes[i].transform.position = new Vector3(x, y, 0);
+                _sprites[i] = Instantiate(CubePrefab, transform);
+                _sprites[i].transform.position = new Vector3(x, y, 0);
             }
         }
-        
-        StartCoroutine(UpdateCubeGrid());
     }
     
-    IEnumerator UpdateCubeGrid() {
-        while (true) 
-        {
-         
-            UpdatePositionsGPU();
-        
 
-            for (int i = 0; i < _cubes.Length; i++) 
-            {
-                Vector2 position = _particles[i].Position;
-                _cubes[i].localPosition = position;
-                //new Vector3(_cubesPositions[i].x, 
-                  //  _cubesPositions[i].y,
-                   // 0f );
-            }
-            yield return new WaitForSeconds(1);
+    private void MoveSprites()
+    {
+        for (int i = 0; i < _sprites.Length; i++) 
+        {
+            _sprites[i].position = _particles[i].Position;
         }
     }
-    
-   
+
     void UpdatePositionsGPU() 
     {
         CubeShader.SetBuffer(0, "_Particles", _particlesBuffer);

@@ -2161,7 +2161,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   CubePrefab: {fileID: 5051592475686794841, guid: d1e1075ba890b44649bb3f6bf34f11cc, type: 3}
   CubeShader: {fileID: 7200000, guid: a033e915b1bb849238619f926825543b, type: 3}
-  CubesPerAxis: 50
+  CubesPerAxis: 100
 --- !u!4 &1925480357
 Transform:
   m_ObjectHideFlags: 0
@@ -2171,7 +2171,7 @@ Transform:
   m_GameObject: {fileID: 1925480355}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 151.2608, y: 60.899193, z: -0.31318963}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
