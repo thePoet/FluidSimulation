@@ -13,7 +13,7 @@ namespace FluidSimulation
         void UpdateNeighbours();
         int NumberOfParticles { get; }
         void Clear();
-        
+   
         Dictionary<(int,int),float> Springs { get; }
     } 
     

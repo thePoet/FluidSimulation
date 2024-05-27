@@ -573,7 +573,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &405270751
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1681,7 +1681,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1692431638
 Transform:
   m_ObjectHideFlags: 0
@@ -1711,13 +1711,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   settings:
     InteractionRadius: 15
-    Gravity: 0
+    Gravity: 500
     RestDensity: 5
     Stiffness: 750
     NearStiffness: 1500
+    ViscosityEnabled: 1
     ViscositySigma: 0.1
     ViscosityBeta: 0.1
-    AreElasticityAndPlasticityEnabled: 0
+    ElasticityAndPlasticityEnabled: 0
     Plasticity: 0
     YieldRatio: 0
     SpringK: 0

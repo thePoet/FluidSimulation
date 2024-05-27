@@ -1,9 +1,11 @@
 #pragma kernel CSMain
+#pragma kernel SecondPhase
 
 struct Particle
 {
     float2 position;
     float2 velocity;
+    uint alive;
 };
 
 RWStructuredBuffer<Particle> _Particles;
@@ -23,6 +25,8 @@ int indexFromId(uint3 id)
     return id.x + _CubesPerAxis * (id.y + _CubesPerAxis * id.z);
 }
 
+
+
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
@@ -32,8 +36,32 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         return;
     }
 
-    // Assign random value
+    
     int index = indexFromId(id);
-    _Particles[index].position += _Particles[index].velocity * _Time;
+    if (_Particles[index].alive == 1)
+    {
+        _Particles[index].position += _Particles[index].velocity * _Time;
+    }
+        
 }
+
+[numthreads(8,8,1)]
+void SecondPhase (uint3 id : SV_DispatchThreadID)
+{
+    // Check if id is in the grid
+    if (id.x > _CubesPerAxis - 1 || id.y > _CubesPerAxis - 1)
+    {
+        return;
+    }
+
+    
+    int index = indexFromId(id);
+    if (_Particles[index].alive == 1)
+    {
+        _Particles[index].alive = 0;
+    }
+        
+}
+
+
 

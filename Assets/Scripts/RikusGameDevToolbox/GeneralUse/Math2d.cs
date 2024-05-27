@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using System.Collections;
+
 namespace RikusGameDevToolbox.GeneralUse
 {
     public static class Math2d

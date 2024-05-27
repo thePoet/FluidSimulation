@@ -1,6 +1,4 @@
 using UnityEngine;
-using RikusGameDevToolbox.GeneralUse;
-using UnityEngine.Serialization;
 
 // Based on paper by Simon Clavet, Philippe Beaudoin, and Pierre Poulin
 // https://www.academia.edu/452554/Particle-Based_Viscoelastic_Fluid_Simulation
@@ -8,24 +6,10 @@ using UnityEngine.Serialization;
 namespace FluidSimulation
 {
     
-    public class ParticleDynamics : IParticleDynamics
+    public class ParticleDynamicsAlternative : IParticleDynamics
     {
         [System.Serializable]
-        public class Settings
-        {
-            public float InteractionRadius;
-            public float Gravity;
-            public float RestDensity;
-            public float Stiffness;
-            public float NearStiffness;
-            public bool ViscosityEnabled;
-            public float ViscositySigma;
-            public float ViscosityBeta;
-            public bool ElasticityAndPlasticityEnabled;
-            public float Plasticity;
-            public float YieldRatio;
-            public float SpringK;
-        }
+
         
         private struct BoxEdge
         {
@@ -41,14 +25,16 @@ namespace FluidSimulation
         }
      
         private Rect _bounds;
-        private readonly Settings _settings;
+        private readonly ParticleDynamics.Settings _settings;
 
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
-        public ParticleDynamics(Settings settings, Rect bounds)
+        public ParticleDynamicsAlternative(ParticleDynamics.Settings settings, Rect bounds)
         {
             _settings = settings;
             _bounds = bounds;
         }
+        
+     
         
         public void Step(IParticleData particleData, float timeStep)
         {
@@ -76,13 +62,11 @@ namespace FluidSimulation
 
             
             particleData.UpdateNeighbours();
-     
-            if (_settings.ElasticityAndPlasticityEnabled)
-            {
-                ApplyElasticityAndPlasticity(particleData, timeStep);
-            }
+      
             MaintainDensity(particleData, timeStep);
  
+            
+            
             for (int i=0; i<particles.Length; i++)
                 particles[i].Position += CollisionImpulseFromBorders(particles[i]);
             
@@ -115,12 +99,6 @@ namespace FluidSimulation
                 
                 foreach (int j in neighbours)
                 {
-                    if (particles[j].Type == ParticleType.Solid)
-                    {
-                        CollisionToSolid(i, j);
-                        continue;
-                    }
-                    
                     float distance = (particles[i].Position - particles[j].Position).magnitude;
                     float q = distance / _settings.InteractionRadius;
                     if (q < 1f)
@@ -145,6 +123,7 @@ namespace FluidSimulation
                         Vector2 d = Pow2(timeStep) * (pressure * (1f - q) + nearPressure * Pow2(1f - q)) *
                                     (particles[j].Position - particles[i].Position).normalized;
                         
+                        
                         if (particles[j].Type == ParticleType.Liquid)
                             particles[j].Position += 0.5f * d;
                         displacement -= 0.5f * d;
@@ -163,136 +142,12 @@ namespace FluidSimulation
             }
         
             
-            void CollisionToSolid(int indexFluid, int indexSolid) 
-            {
-                var particles = particleData.All();
-                Vector2 solidToFluid = particles[indexFluid].Position - particles[indexSolid].Position;
-                float distance = solidToFluid.magnitude;
-                
-                float solidRadius = 10f;
-                if (distance >= solidRadius) return;
-
-/*
-                Vector2 impactPoint = Math2d.LineIntersectionWithCircle
-                (
-                    linePointA: particles[indexFluid].Position,
-                    linePointB: particles[indexFluid].PreviousPosition,
-                    center: particles[indexSolid].Position,
-                    radius: solidRadius
-                );
-*/
-
-
-                Vector2 deltaPosition = particles[indexFluid].Position - particles[indexFluid].PreviousPosition;
-                Vector2 closestPointOutsideSolid = particles[indexSolid].Position + solidToFluid.normalized * solidRadius;
-                
-                Vector2 bounceDirection = Vector2.Reflect
-                (
-                    deltaPosition, // old velocity, projected on...
-                    particles[indexSolid].Position - closestPointOutsideSolid // ...surface normal of solid circle
-                ).normalized;
-                              
-                
-                /*
-                Vector2 bounceDirection = Vector2.Reflect
-                (
-                    deltaPosition, // old velocity, projected on...
-                    particles[indexSolid].Position - impactPoint // ...surface normal of solid circle
-                ).normalized;
-*/
-                
-                float bounceFriction = -0.1f;
-                float bounceDistance = (closestPointOutsideSolid - particles[indexFluid].Position).magnitude * bounceFriction;
-                
-                
-                // The main method of the simulation calcultates velocity from the difference between current and
-                // previous position, so changing particle velocity would do not good. Instead we change the previous
-                // position to indirectly induce the wanted velocity.
-                particles[indexFluid].PreviousPosition = closestPointOutsideSolid - bounceDirection * bounceDistance;
-                particles[indexFluid].Position = closestPointOutsideSolid;
-
-                /*
-                   Vector2 impactPosition = particles[indexFluid].Position + solidToFluid.normalized * (5f - distance);
-                   particles[indexFluid].Position = impactPosition +
-
-                   particles[indexFluid].PreviousPosition = impactPosition;
-
-   */
-
-            }
-
+          
          
         }
         
 
 
-        private void ApplyElasticityAndPlasticity(IParticleData particleData, float timeStep)
-        {
-            var particles = particleData.All();
-            
-            var interactionRadius = _settings.InteractionRadius;
-            var alpha = _settings.Plasticity;
-            var gamma = _settings.YieldRatio;
-
-            // Adjust spring rest lengths
-            for (int i = 0; i < particles.Length; i++)
-            {
-                foreach (int j in particleData.NeighbourIndices(i))
-                {
-                    if (i <= j) continue;
-                    
-                    float distance = (particles[i].Position - particles[j].Position).magnitude;
- 
-                    if (!particleData.Springs.TryGetValue((i, j), out float restLenght))
-                    {
-                        // The Clavet et al. paper says that rest length of the spring should be set to
-                        // interaction radius, but I found that it works better if it's set to the actual distance 
-                        // between the particles.
-                        particleData.Springs[(i, j)] = distance; 
-                    }
-                    else
-                    {
-                        float d = gamma * restLenght; // tolerable deformation
-                        if (distance > restLenght + d)
-                        {
-                            particleData.Springs[(i, j)] = restLenght + timeStep * alpha * (distance - restLenght - d);
-                        }
-                        else if (distance < restLenght - d)
-                        {
-                            particleData.Springs[(i, j)] = restLenght - timeStep * alpha * (restLenght - d - distance);
-                        }
-                    }
-                }
-            }
-            
-         
-            foreach (var spring in particleData.Springs)
-            {
-                // Remove dysfunctional springs
-                if (spring.Value > interactionRadius || 
-                    spring.Key.Item1 >= particleData.NumberOfParticles || 
-                    spring.Key.Item2 >= particleData.NumberOfParticles)
-                {
-                    particleData.Springs.Remove(spring.Key);
-                }
-                
-                // Apply spring displacements
-                Vector2 iPos = particles[spring.Key.Item1].Position;
-                Vector2 jPos = particles[spring.Key.Item2].Position;
-
-                Vector2 displacement = Pow2(timeStep) * _settings.SpringK * (1f - spring.Value / interactionRadius) *
-                                      (spring.Value - (jPos-iPos).magnitude) * (jPos-iPos).normalized;
-                
-                particles[spring.Key.Item1].Position -= displacement * 0.5f;
-                particles[spring.Key.Item2].Position += displacement * 0.5f;
-                                      
-
-            }
-            
-            
-            
-
-        }
         
         private void ApplyViscosity(IParticleData particleData,  float timeStep)
         {
@@ -308,7 +163,7 @@ namespace FluidSimulation
                 
                 foreach (int j in particleData.NeighbourIndices(i))
                 {
-                    if (i<=j) continue;
+                    if (i==j) continue;
                     
                     if (particles[j].Type == ParticleType.Solid) continue;
                 
@@ -322,7 +177,7 @@ namespace FluidSimulation
                 
                     Vector2 impulse = timeStep * (1f - q) * (sigma * u + beta * Pow2(u)) * r;
                     particles[i].Velocity -= impulse * 0.5f;
-                    particles[j].Velocity += impulse * 0.5f;
+                    //particles[j].Velocity += impulse * 0.5f;
                 }
    
             }

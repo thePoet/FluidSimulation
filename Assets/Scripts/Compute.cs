@@ -1,17 +1,23 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
+
 using UnityEngine;
 using Random = UnityEngine.Random;
 
 public class Compute : MonoBehaviour
 {
-
     struct Particle
     {
         public Vector2 Position;
         public Vector2 Velocity;
+        public byte IsAlive;
     }
+
+    struct TestData
+    {
+        public Vector2 something;
+        public int[] somethingElse;
+    }
+    
+    private int _bytesPerParticle = 5*sizeof(float);
     
     public Transform CubePrefab;
     public ComputeShader CubeShader;
@@ -21,23 +27,17 @@ public class Compute : MonoBehaviour
     // Grid size
     public int CubesPerAxis = 80;
     
-
-    
     private Transform[] _sprites;
     private Particle[] _particles;
     
     private void Awake() 
     {
-        _particlesBuffer = new ComputeBuffer(CubesPerAxis * CubesPerAxis, 4*sizeof(float));
+        _particlesBuffer = new ComputeBuffer(CubesPerAxis * CubesPerAxis, _bytesPerParticle);
         _particles = CreateParticles();
         _particlesBuffer.SetData(_particles);
         CreateSprites();
     }
-    private void Start() 
-    {
-   
-        
-    }
+
 
     private Particle[] CreateParticles()
     {
@@ -47,11 +47,15 @@ public class Compute : MonoBehaviour
             particles[i] = new Particle
             {
                 Position = new Vector2(Random.Range(0f, 100f), Random.Range(0f, 100f)),
-                Velocity = Random.insideUnitCircle * 10f
+                Velocity = Random.insideUnitCircle * 10f,
+                IsAlive = CoinToss()
             };
         }
 
         return particles;
+        
+        
+        byte CoinToss() => (byte)Random.Range(0, 2);
     }
 
     private void OnDestroy() 
@@ -95,10 +99,13 @@ public class Compute : MonoBehaviour
 
         CubeShader.SetInt("_CubesPerAxis", CubesPerAxis);
         CubeShader.SetFloat("_Time", Time.deltaTime);
-
+        
         int workgroups = Mathf.CeilToInt(CubesPerAxis / 8.0f);
         CubeShader.Dispatch(0, workgroups, workgroups, 1);
-
         _particlesBuffer.GetData(_particles);
+        
+        CubeShader.Dispatch(1, workgroups, workgroups, 1);
     }
+    
+
 }

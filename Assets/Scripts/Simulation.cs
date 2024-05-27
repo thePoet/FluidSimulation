@@ -11,7 +11,7 @@ namespace FluidSimulation
     {
         public ParticleDynamics.Settings settings;
         private IParticleData _particleData;
-        private ParticleDynamics _particleDynamics;
+        private IParticleDynamics _particleDynamics;
         private ParticleVisualization _particleVisualization;
         private Container _container;
 
@@ -28,7 +28,7 @@ namespace FluidSimulation
             if (_container == null) Debug.LogError("No container found in the scene.");
 
 
-            _particleDynamics =  new ParticleDynamics(settings, _container.Bounds);
+            _particleDynamics =  new ParticleDynamicsAlternative(settings, _container.Bounds);
 
             _particleData = new ParticleData(
                 maxNumParticles: 10000, 
@@ -109,7 +109,7 @@ namespace FluidSimulation
             
             Random.InitState(123);
          
-            for (int i = 0; i < 500; i++)
+            for (int i = 0; i < 1000; i++)
             {
                 SpawnParticle(RandomPosition(), Vector2.zero, ParticleType.Liquid);
             }
@@ -137,7 +137,7 @@ namespace FluidSimulation
             NearStiffness = 1500,
             ViscositySigma = 0f,
             ViscosityBeta = 0.05f,
-            AreElasticityAndPlasticityEnabled = false
+            ElasticityAndPlasticityEnabled = false
         };
         
         ParticleDynamics.Settings PoopSettings => new ParticleDynamics.Settings
@@ -149,7 +149,7 @@ namespace FluidSimulation
             NearStiffness = 1500,
             ViscositySigma = 0f,
             ViscosityBeta = 0.4f,
-            AreElasticityAndPlasticityEnabled = true,
+            ElasticityAndPlasticityEnabled = true,
             Plasticity = 5f,
             YieldRatio = 0.01f,
             SpringK = 1000f
