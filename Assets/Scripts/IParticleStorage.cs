@@ -12,8 +12,15 @@ namespace FluidSimulation
         Span<int> NeighbourIndices(int particleIndex);
         void UpdateNeighbours();
         int NumberOfParticles { get; }
+        int MaxNumberOfParticles { get; }
+        
         void Clear();
    
+        public ComputeBuffer CreateParticlesBuffer();
+        public void WriteParticlesToBuffer(ComputeBuffer buffer);
+        public void ReadParticlesFromBuffer(ComputeBuffer buffer);
+        
+        
         Dictionary<(int,int),float> Springs { get; }
     } 
     

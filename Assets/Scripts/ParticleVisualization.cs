@@ -61,7 +61,7 @@ namespace FluidSimulation
             _particles.Clear();
         }
 
-        public void MoveParticle(int id, Vector2 position)
+        public void UpdateParticle(int id, Vector2 position)
         {
             if (!_particles.ContainsKey(id))
             {

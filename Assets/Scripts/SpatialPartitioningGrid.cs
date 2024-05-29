@@ -4,9 +4,10 @@ using UnityEngine;
 
 public class SpatialPartitioningGrid
 {
+
     private readonly int[] _particleIndices;
     private readonly int[] _numParticlesInCell;
-    readonly int _maxNumParticlesInCell;
+    private readonly int _maxNumParticlesInCell;
     private readonly Grid2D _grid;
     
     public SpatialPartitioningGrid(Grid2D grid, int maxNumParticlesInCell)

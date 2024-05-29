@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using RikusGameDevToolbox.GeneralUse;
 using UnityEngine;
@@ -9,6 +10,8 @@ namespace FluidSimulation
 {
     public class Simulation : MonoBehaviour
     {
+        public ComputeShader particleDynamicCompute;
+        
         public ParticleDynamics.Settings settings;
         private IParticleData _particleData;
         private IParticleDynamics _particleDynamics;
@@ -31,17 +34,26 @@ namespace FluidSimulation
             _particleDynamics =  new ParticleDynamicsAlternative(settings, _container.Bounds);
 
             _particleData = new ParticleData(
-                maxNumParticles: 10000, 
+                maxNumberOfParticles: 10000, 
                 maxNumNeighbours: 100, 
                 DefaultSettings.InteractionRadius, 
                 _container.Bounds
             );
+            
+            // TODO: POISTA TÄMÄ KAUHISTUS
+            (_particleDynamics as ParticleDynamicsAlternative).TemporaryInit(particleDynamicCompute, _particleData);
             
             void SetMaxFrameRate(int frameRate)
             {
                 QualitySettings.vSyncCount = 0;
                 Application.targetFrameRate = frameRate;
             }
+        }
+
+        private void OnDestroy()
+        {
+            // TODO: POISTA TÄMÄ KAUHISTUS
+            (_particleDynamics as ParticleDynamicsAlternative).TemporayRelease();
         }
 
         void Update()
@@ -93,7 +105,11 @@ namespace FluidSimulation
         {
             foreach (var particle in _particleData.All())
             {
-                _particleVisualization.MoveParticle(particle.Id, particle.Position);
+                _particleVisualization.UpdateParticle(particle.Id, particle.Position);
+                if (particle.typeNumber%2==0) 
+                    _particleVisualization.ColorParticle(particle.Id, Color.black);
+                else 
+                    _particleVisualization.ColorParticle(particle.Id, Color.red);
             }
         }
 

@@ -23,10 +23,16 @@ namespace FluidSimulation
             public readonly Vector2 End;
             public readonly Vector2 Normal;
         }
-     
+        private ComputeShader _dynamicsComputeShader;
+        
+        
+        
         private Rect _bounds;
         private readonly ParticleDynamics.Settings _settings;
-
+        private ComputeBuffer _particleBuffer;
+        private ComputeBuffer _cellParticleCount;
+        private ComputeBuffer _particlesInCells;
+        
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
         public ParticleDynamicsAlternative(ParticleDynamics.Settings settings, Rect bounds)
         {
@@ -34,7 +40,43 @@ namespace FluidSimulation
             _bounds = bounds;
         }
         
-     
+       
+        
+        public void TemporaryInit(ComputeShader computeShader, IParticleData pdata)
+        {
+            _dynamicsComputeShader = computeShader;
+            _particleBuffer = pdata.CreateParticlesBuffer();
+            
+            _dynamicsComputeShader.SetBuffer(1, "_Particles", _particleBuffer);
+            _dynamicsComputeShader.SetBuffer(2, "_Particles", _particleBuffer);
+
+            _dynamicsComputeShader.SetInt("_MaxNumParticles", pdata.MaxNumberOfParticles);
+           _dynamicsComputeShader.SetFloat("_AreaMinX", _bounds.xMin);
+           _dynamicsComputeShader.SetFloat("_AreaMinY", _bounds.yMin);
+           _dynamicsComputeShader.SetFloat("_AreaMaxX", _bounds.xMax);
+           _dynamicsComputeShader.SetFloat("_AreaMaxY", _bounds.yMax);
+
+           int maxNumParticlesInCell = 25;
+           _dynamicsComputeShader.SetInt("MaxNumParticlesPerCell", maxNumParticlesInCell);
+           _dynamicsComputeShader.SetFloat("_InteractionRadius", _settings.InteractionRadius);
+           
+           int numberOfCells = Mathf.CeilToInt(_bounds.width / _settings.InteractionRadius) 
+                               * Mathf.CeilToInt(_bounds.height / _settings.InteractionRadius);
+
+           _cellParticleCount = new ComputeBuffer(numberOfCells, sizeof(int));
+           _particlesInCells = new ComputeBuffer(maxNumParticlesInCell*numberOfCells, sizeof(int));
+           
+           _dynamicsComputeShader.SetBuffer(0, "_CellParticleCount", _cellParticleCount);
+           _dynamicsComputeShader.SetBuffer(1, "_CellParticleCount", _cellParticleCount);
+           _dynamicsComputeShader.SetBuffer(1, "_ParticlesInCells", _particlesInCells);
+        }
+        
+        public void TemporayRelease()
+        {
+            _particleBuffer.Release();
+            _cellParticleCount.Release();
+            _particlesInCells.Release();
+        }
         
         public void Step(IParticleData particleData, float timeStep)
         {
@@ -46,6 +88,21 @@ namespace FluidSimulation
                 if (particles[i].Type == ParticleType.Solid) continue;
                 particles[i].Velocity += Vector2.down * timeStep * _settings.Gravity;
             }
+            
+           // float t1= Time.realtimeSinceStartup;
+           particleData.WriteParticlesToBuffer(_particleBuffer);
+            _dynamicsComputeShader.SetInt("_NumParticles", particleData.NumberOfParticles);
+            _dynamicsComputeShader.SetFloat("_Time", Time.deltaTime);
+ 
+                
+            _dynamicsComputeShader.Dispatch(0, 32, 16, 1);
+            _dynamicsComputeShader.Dispatch(1, 32, 16, 1);
+            _dynamicsComputeShader.Dispatch(2, 32, 16, 1);
+
+            
+            particleData.ReadParticlesFromBuffer(_particleBuffer);
+           // float t2= Time.realtimeSinceStartup;
+            //Debug.Log(1000f*(t2-t1));
             
             if (_settings.ViscosityEnabled)
             {

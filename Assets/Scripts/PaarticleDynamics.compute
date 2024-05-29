@@ -1,0 +1,143 @@
+#pragma kernel ClearPartitioningCells
+#pragma kernel FillPartitioningCells
+#pragma kernel CSMain
+
+
+struct Particle
+{
+    int id;
+    float2 Position;
+    float2 PreviousPosition;
+    float2 Velocity;
+    float2 PosChange;
+    int typeNumber;
+};
+
+
+// Settings
+int _NumParticles;
+int _MaxNumParticles;
+float _AreaMinX;
+float _AreaMinY;
+float _AreaMaxX;
+float _AreaMaxY;
+int _MaxNumParticlesPerCell;
+float _InteractionRadius;
+
+
+// Adjusted per frame
+float _Time;
+
+
+
+RWStructuredBuffer<Particle> _Particles; //Length: MaxNumParticles
+
+// Number of cells: ceil((AreaMaxX - AreaMinX) / InteractionRadius) * ceil((AreaMaxY - AreaMinY) / InteractionRadius)
+RWStructuredBuffer<int> _CellParticleCount; // Length: Number of cells
+RWStructuredBuffer<int> _ParticlesInCells; //Length:  Number of cells * MaxNumParticlesPerCell
+
+int2 CellCoordinates(in float2 position)
+{
+    int2 result;
+    result. x = floor((position.x-_AreaMinX)/_InteractionRadius);
+    result. y = floor((position.y-_AreaMinY)/_InteractionRadius);
+    return result;
+}
+
+int CellIndex(in float2 position)
+{
+    if (position.x < _AreaMinX || position.x > _AreaMaxX || 
+    position.y < _AreaMinY || position.y > _AreaMaxY)
+    {
+        return -1;
+    }
+
+    int2 coords = CellCoordinates(position);
+    return coords.x + coords.y * ceil((_AreaMaxX-_AreaMinX)/_InteractionRadius);
+    
+}
+
+
+
+float rand(in float2 uv)
+{
+    return (frac(sin(dot(uv, float2(12.9898, 78.233) * 2.0)) * 43758.5453)) * 2 - 1;
+}
+
+int numCells()
+{
+    return ceil((_AreaMaxX-_AreaMinX)/_InteractionRadius) *
+        ceil((_AreaMaxY-_AreaMinY)/_InteractionRadius);
+}
+
+/*
+ *int indexFromId(uint3 id)
+{
+    return id.x + _CubesPerAxis * (id.y + _CubesPerAxis * id.z);
+}
+*/
+
+//TODO: Threadien lkm järkeväksi
+[numthreads(8,8,1)]
+void ClearPartitioningCells (uint3 id : SV_DispatchThreadID)
+{
+    int index = id.x * 8 + id.y;
+    if (index >= numCells()) return;
+    _CellParticleCount[index] = 0;
+}
+
+//TODO: Threadien lkm järkeväksi
+[numthreads(8,8,1)]
+void FillPartitioningCells (uint3 id : SV_DispatchThreadID)
+{
+    const int index = id.x * 8 + id.y;
+    if (index >= _NumParticles) return;
+
+    int previousCount = 0;
+    const int cellIndex = CellIndex(_Particles[index].Position);
+    _Particles[index].typeNumber=cellIndex;
+    InterlockedAdd(_CellParticleCount[cellIndex], 1, previousCount);
+    if (previousCount >= _MaxNumParticlesPerCell)
+    {
+        return;
+    }
+  
+    _ParticlesInCells[cellIndex * _MaxNumParticlesPerCell + previousCount] = index;
+
+}
+
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    int index = id.x * 8 + id.y;
+
+    if (index >= _NumParticles)
+    {
+        return;
+    }
+
+    _Particles[index].Velocity = float2(0.0, 50.0);
+ 
+}
+/*
+[numthreads(8,8,1)]
+void SecondPhase (uint3 id : SV_DispatchThreadID)
+{
+    // Check if id is in the grid
+    if (id.x > _CubesPerAxis - 1 || id.y > _CubesPerAxis - 1)
+    {
+        return;
+    }
+
+    
+    int index = indexFromId(id);
+    if (_Particles[index].alive == 1)
+    {
+        _Particles[index].alive = 0;
+    }
+        
+}*/
+
+
+

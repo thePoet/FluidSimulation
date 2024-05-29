@@ -9,7 +9,7 @@ namespace FluidSimulation
       
         public Dictionary<(int,int),float> Springs { get; }
         
-        private readonly int _maxNumParticles;
+        public int MaxNumberOfParticles { get; }
         private readonly int _maxNumNeighbours;
         private readonly int _maxNumParticlesInSpatialCell;
         private int _numParticles = 0;
@@ -27,16 +27,17 @@ namespace FluidSimulation
         private SpatialPartitioningGrid _neighbourGrid;
 
         
+        
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
-        public ParticleData(int maxNumParticles, int maxNumNeighbours, float neighbourRadius, Rect bounds)
+        public ParticleData(int maxNumberOfParticles, int maxNumNeighbours, float neighbourRadius, Rect bounds)
         {
-            _maxNumParticles = maxNumParticles;
+            MaxNumberOfParticles = maxNumberOfParticles;
             _maxNumNeighbours = maxNumNeighbours;
             _neighbourRadius = neighbourRadius;
             _maxNumParticlesInSpatialCell = maxNumNeighbours * 2;
             _bounds = bounds;
-            _particles = new FluidParticle[maxNumParticles];
-            _neighbourSearch = new NeighbourSearch(neighbourRadius, maxNumParticles, maxNumNeighbours);
+            _particles = new FluidParticle[maxNumberOfParticles];
+            _neighbourSearch = new NeighbourSearch(neighbourRadius, maxNumberOfParticles, maxNumNeighbours);
             Springs = new Dictionary<(int, int), float>();
            
             Rect gridBounds = new Rect(bounds.min - Vector2.one * 2f * neighbourRadius, 
@@ -45,10 +46,22 @@ namespace FluidSimulation
             var grid = new Grid2D(gridBounds, cellSize : neighbourRadius);
             _partitioningGrid = new SpatialPartitioningGrid(grid,  maxNumParticlesInCell: 25);
             _neighbourGrid = new SpatialPartitioningGrid(grid,  maxNumParticlesInCell: 25*9);
+            
+            
+            
+           
            
         }
 
-       
+        public ComputeBuffer CreateParticlesBuffer() => new ComputeBuffer(MaxNumberOfParticles, FluidParticle.Stride);
+        public void WriteParticlesToBuffer(ComputeBuffer buffer) => buffer.SetData(_particles);
+        public void ReadParticlesFromBuffer(ComputeBuffer buffer) => buffer.GetData(_particles);
+        
+        
+        public ComputeBuffer CreateSpatialBuffer() => new ComputeBuffer(MaxNumberOfParticles, FluidParticle.Stride);
+        public void WriteSpatialToBuffer(ComputeBuffer buffer) => buffer.SetData(_particles);
+        public void ReadSpatialFromBuffer(ComputeBuffer buffer) => buffer.GetData(_particles);
+
 
         // Returns id number of the added particle
         public int Add(FluidParticle particle)
@@ -97,11 +110,11 @@ namespace FluidSimulation
            _neighbourGrid.AddParticles(All(), addToNeighbourCellsAlso:true);
            float t3 = Time.realtimeSinceStartup;
 
-           Debug.Log("Partitioning grid: " + 1000f*(t2 - t1) + " Neighbour grid: " + 1000f*(t3 - t2) + " Total: " + 1000f*(t3 - t1) + " ms.");
+//           Debug.Log("Partitioning grid: " + 1000f*(t2 - t1) + " Neighbour grid: " + 1000f*(t3 - t2) + " Total: " + 1000f*(t3 - t1) + " ms.");
         }
 
-     
 
+   
 
         public void Clear()
         {
