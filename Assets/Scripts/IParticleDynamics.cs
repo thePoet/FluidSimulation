@@ -1,7 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
 using FluidSimulation;
-using UnityEngine;
 
 public interface IParticleDynamics 
 {

@@ -53,7 +53,7 @@ namespace FluidSimulation
         private void OnDestroy()
         {
             // TODO: POISTA TÄMÄ KAUHISTUS
-            (_particleDynamics as ParticleDynamicsAlternative).TemporayRelease();
+            (_particleDynamics as ParticleDynamicsAlternative).TemporaryRelease();
         }
 
         void Update()
@@ -106,11 +106,24 @@ namespace FluidSimulation
             foreach (var particle in _particleData.All())
             {
                 _particleVisualization.UpdateParticle(particle.Id, particle.Position);
-                if (particle.typeNumber%2==0) 
-                    _particleVisualization.ColorParticle(particle.Id, Color.black);
-                else 
-                    _particleVisualization.ColorParticle(particle.Id, Color.red);
+         //       _particleVisualization.ColorParticle(particle.Id, Color.blue);
+              //  _particleVisualization.ColorParticle(particle.Id, particle.color);
             }
+/*
+            if (_particleData.All().Length > 0)
+            {
+                int i = Random.Range(0, _particleData.All().Length);
+                _particleVisualization.ColorParticle(i, Color.red);
+                
+              
+                
+                foreach (var n in _particleData.NeighbourIndicesTest(i))
+                {
+                    
+                    if (n!=i)
+                        _particleVisualization.ColorParticle(n, Color.green);
+                }
+            }*/
         }
 
         private void Clear()

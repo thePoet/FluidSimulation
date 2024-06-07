@@ -1709,6 +1709,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e0318b743faf4ffb9c28c6167a90b9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  particleDynamicCompute: {fileID: 7200000, guid: 427418cd92f914fbc92228599a7d7bd2, type: 3}
   settings:
     InteractionRadius: 15
     Gravity: 500
@@ -2147,7 +2148,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1925480356
 MonoBehaviour:
   m_ObjectHideFlags: 0

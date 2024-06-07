@@ -10,6 +10,7 @@ namespace FluidSimulation
         void Remove(int particleIndex);
         Span<FluidParticle> All();
         Span<int> NeighbourIndices(int particleIndex);
+        Span<int> NeighbourIndicesTest(int particleIndex);
         void UpdateNeighbours();
         int NumberOfParticles { get; }
         int MaxNumberOfParticles { get; }
@@ -22,6 +23,7 @@ namespace FluidSimulation
         
         
         Dictionary<(int,int),float> Springs { get; }
+        void ReadNeighboursFromBuffer(ComputeBuffer particleNeighbours, ComputeBuffer particleNeighbourCount);
     } 
     
     public interface IPositionAndId

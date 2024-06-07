@@ -1,5 +1,6 @@
 #pragma kernel ClearPartitioningCells
 #pragma kernel FillPartitioningCells
+#pragma kernel FindNeighbours
 #pragma kernel CSMain
 
 
@@ -11,12 +12,14 @@ struct Particle
     float2 Velocity;
     float2 PosChange;
     int typeNumber;
+    float4 Color;
 };
 
 
 // Settings
 int _NumParticles;
 int _MaxNumParticles;
+int _MaxNumNeighbours;
 float _AreaMinX;
 float _AreaMinY;
 float _AreaMaxX;
@@ -35,12 +38,18 @@ RWStructuredBuffer<Particle> _Particles; //Length: MaxNumParticles
 // Number of cells: ceil((AreaMaxX - AreaMinX) / InteractionRadius) * ceil((AreaMaxY - AreaMinY) / InteractionRadius)
 RWStructuredBuffer<int> _CellParticleCount; // Length: Number of cells
 RWStructuredBuffer<int> _ParticlesInCells; //Length:  Number of cells * MaxNumParticlesPerCell
+RWStructuredBuffer<int> _ParticleNeighbours; //Length: MaxNumParticles * MaxNumNeighours
+RWStructuredBuffer<int> _ParticleNeighbourCount; //Length: MaxNumParticles 
+
+
+
+
 
 int2 CellCoordinates(in float2 position)
 {
     int2 result;
-    result. x = floor((position.x-_AreaMinX)/_InteractionRadius);
-    result. y = floor((position.y-_AreaMinY)/_InteractionRadius);
+    result.x = floor((position.x-_AreaMinX)/_InteractionRadius);
+    result.y = floor((position.y-_AreaMinY)/_InteractionRadius);
     return result;
 }
 
@@ -81,7 +90,7 @@ int numCells()
 [numthreads(8,8,1)]
 void ClearPartitioningCells (uint3 id : SV_DispatchThreadID)
 {
-    int index = id.x * 8 + id.y;
+    int index = id.x * 128 + id.y;
     if (index >= numCells()) return;
     _CellParticleCount[index] = 0;
 }
@@ -90,12 +99,15 @@ void ClearPartitioningCells (uint3 id : SV_DispatchThreadID)
 [numthreads(8,8,1)]
 void FillPartitioningCells (uint3 id : SV_DispatchThreadID)
 {
-    const int index = id.x * 8 + id.y;
+    const int index = id.x * 128 + id.y;
     if (index >= _NumParticles) return;
 
-    int previousCount = 0;
     const int cellIndex = CellIndex(_Particles[index].Position);
-    _Particles[index].typeNumber=cellIndex;
+
+    if (cellIndex==-1) return;
+  
+    
+    int previousCount = 0;
     InterlockedAdd(_CellParticleCount[cellIndex], 1, previousCount);
     if (previousCount >= _MaxNumParticlesPerCell)
     {
@@ -106,11 +118,44 @@ void FillPartitioningCells (uint3 id : SV_DispatchThreadID)
 
 }
 
+[numthreads(8,8,1)]
+void FindNeighbours (uint3 id : SV_DispatchThreadID)
+{
+    int particleIndex = id.x * 128 + id.y;
+    if (particleIndex >= _NumParticles) return;
+    
+    int count = 0;
+   
+    for (int x=-1; x<=1; x++)
+    {
+        for (int y=-1; y<=1; y++)
+        {
+            int cellIndex = CellIndex(_Particles[particleIndex].Position + float2(x*_InteractionRadius, y*_InteractionRadius));
+            if (cellIndex == -1) continue;
+
+            for (int i=0; i<_CellParticleCount[cellIndex]; i++)
+            {
+                if (i==_MaxNumParticlesPerCell) break;
+
+                int otherParticleIndex = _ParticlesInCells[cellIndex * _MaxNumParticlesPerCell + i];
+                if (otherParticleIndex == particleIndex) continue;
+                if (length(_Particles[particleIndex].Position - _Particles[otherParticleIndex].Position) < _InteractionRadius)
+                {
+                    _ParticleNeighbours[particleIndex * _MaxNumNeighbours + count] = otherParticleIndex;
+                    count = count + 1;
+                }
+            }
+        }
+    }
+
+    _ParticleNeighbourCount[particleIndex] = count;
+}
+
 
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    int index = id.x * 8 + id.y;
+    int index = id.x * 128 + id.y;
 
     if (index >= _NumParticles)
     {

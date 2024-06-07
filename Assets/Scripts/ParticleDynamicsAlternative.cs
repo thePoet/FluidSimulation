@@ -32,6 +32,8 @@ namespace FluidSimulation
         private ComputeBuffer _particleBuffer;
         private ComputeBuffer _cellParticleCount;
         private ComputeBuffer _particlesInCells;
+        private ComputeBuffer _particleNeighbours;
+        private ComputeBuffer _particleNeighbourCount;
         
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
         public ParticleDynamicsAlternative(ParticleDynamics.Settings settings, Rect bounds)
@@ -57,7 +59,7 @@ namespace FluidSimulation
            _dynamicsComputeShader.SetFloat("_AreaMaxY", _bounds.yMax);
 
            int maxNumParticlesInCell = 25;
-           _dynamicsComputeShader.SetInt("MaxNumParticlesPerCell", maxNumParticlesInCell);
+           _dynamicsComputeShader.SetInt("_MaxNumParticlesPerCell", maxNumParticlesInCell);
            _dynamicsComputeShader.SetFloat("_InteractionRadius", _settings.InteractionRadius);
            
            int numberOfCells = Mathf.CeilToInt(_bounds.width / _settings.InteractionRadius) 
@@ -68,15 +70,29 @@ namespace FluidSimulation
            
            _dynamicsComputeShader.SetBuffer(0, "_CellParticleCount", _cellParticleCount);
            _dynamicsComputeShader.SetBuffer(1, "_CellParticleCount", _cellParticleCount);
+           _dynamicsComputeShader.SetBuffer(2, "_CellParticleCount", _cellParticleCount);
            _dynamicsComputeShader.SetBuffer(1, "_ParticlesInCells", _particlesInCells);
+           _dynamicsComputeShader.SetBuffer(2, "_ParticlesInCells", _particlesInCells);
+           
+           int maxNumNeighbours = 100;
+           _dynamicsComputeShader.SetInt("_MaxNumNeighbours", maxNumNeighbours);
+           _particleNeighbours = new ComputeBuffer(pdata.MaxNumberOfParticles * maxNumNeighbours , sizeof(int));
+           _particleNeighbourCount = new ComputeBuffer(pdata.MaxNumberOfParticles , sizeof(int));
+
+           _dynamicsComputeShader.SetBuffer(2, "_ParticleNeighbours", _particleNeighbours);
+           _dynamicsComputeShader.SetBuffer(2, "_ParticleNeighbourCount", _particleNeighbourCount);
         }
         
-        public void TemporayRelease()
+        public void TemporaryRelease()
         {
             _particleBuffer.Release();
             _cellParticleCount.Release();
             _particlesInCells.Release();
+            _particleNeighbours.Release();
+            _particleNeighbourCount.Release();
         }
+        
+   
         
         public void Step(IParticleData particleData, float timeStep)
         {
@@ -94,13 +110,14 @@ namespace FluidSimulation
             _dynamicsComputeShader.SetInt("_NumParticles", particleData.NumberOfParticles);
             _dynamicsComputeShader.SetFloat("_Time", Time.deltaTime);
  
-                
+                // tsekkaa määrät
             _dynamicsComputeShader.Dispatch(0, 32, 16, 1);
             _dynamicsComputeShader.Dispatch(1, 32, 16, 1);
             _dynamicsComputeShader.Dispatch(2, 32, 16, 1);
 
             
             particleData.ReadParticlesFromBuffer(_particleBuffer);
+            particleData.ReadNeighboursFromBuffer(_particleNeighbours, _particleNeighbourCount);
            // float t2= Time.realtimeSinceStartup;
             //Debug.Log(1000f*(t2-t1));
             

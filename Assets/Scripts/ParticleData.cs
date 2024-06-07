@@ -8,7 +8,8 @@ namespace FluidSimulation
     {
       
         public Dictionary<(int,int),float> Springs { get; }
-        
+
+
         public int MaxNumberOfParticles { get; }
         private readonly int _maxNumNeighbours;
         private readonly int _maxNumParticlesInSpatialCell;
@@ -26,6 +27,8 @@ namespace FluidSimulation
         private SpatialPartitioningGrid _partitioningGrid;
         private SpatialPartitioningGrid _neighbourGrid;
 
+        private int[] _neighbourIndices;
+        private int[] _neighbourCount;
         
         
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
@@ -48,7 +51,8 @@ namespace FluidSimulation
             _neighbourGrid = new SpatialPartitioningGrid(grid,  maxNumParticlesInCell: 25*9);
             
             
-            
+            _neighbourIndices = new int[maxNumberOfParticles * maxNumNeighbours];
+            _neighbourCount = new int[maxNumberOfParticles];
            
            
         }
@@ -57,6 +61,11 @@ namespace FluidSimulation
         public void WriteParticlesToBuffer(ComputeBuffer buffer) => buffer.SetData(_particles);
         public void ReadParticlesFromBuffer(ComputeBuffer buffer) => buffer.GetData(_particles);
         
+        public void ReadNeighboursFromBuffer(ComputeBuffer particleNeighbours, ComputeBuffer particleNeighbourCount)
+        {
+           particleNeighbours.GetData(_neighbourIndices);
+           particleNeighbourCount.GetData(_neighbourCount);
+        }
         
         public ComputeBuffer CreateSpatialBuffer() => new ComputeBuffer(MaxNumberOfParticles, FluidParticle.Stride);
         public void WriteSpatialToBuffer(ComputeBuffer buffer) => buffer.SetData(_particles);
@@ -86,13 +95,27 @@ namespace FluidSimulation
             var span = (Span<FluidParticle>)_particles;
             return span.Slice(0, _numParticles);
         }
+
+
+        public Span<int> NeighbourIndicesTest(int particleIndex)
+        {
+           
+            var span = _neighbourIndices.AsSpan(particleIndex * _maxNumNeighbours, _neighbourCount[particleIndex]);
+
+            
+            string s = "";
+            foreach (int i in span)
+            {
+              s+= i + " ";
+            }
+            Debug.Log(s);
+            return span;
+        }
         
-
-
         public Span<int> NeighbourIndices(int particleIndex)
         {
          //  return _neighbourSearch.NeighboursOf(particleIndex);
-         return _neighbourGrid.GetParticlesInCell(_particles[particleIndex].Position);
+            return _neighbourGrid.GetParticlesInCell(_particles[particleIndex].Position);
         }
         
      
