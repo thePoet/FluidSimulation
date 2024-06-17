@@ -152,14 +152,14 @@ namespace FluidSimulation
                 }
       
                 //particles[i].Position += displacement;
-                particles[i].PosChange = displacement;
+                particles[i].Change = displacement;
 
      
             }
             for (int i=0; i<particles.Length; i++)
             {
                 if (particles[i].Type == ParticleType.Solid) continue;
-                particles[i].Position += particles[i].PosChange;
+                particles[i].Position += particles[i].Change;
             }
         
             

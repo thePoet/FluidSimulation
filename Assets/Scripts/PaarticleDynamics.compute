@@ -1,7 +1,8 @@
 #pragma kernel ClearPartitioningCells
 #pragma kernel FillPartitioningCells
 #pragma kernel FindNeighbours
-#pragma kernel CSMain
+#pragma kernel CalculateViscosity
+#pragma kernel ApplyViscosity
 
 
 struct Particle
@@ -10,7 +11,7 @@ struct Particle
     float2 Position;
     float2 PreviousPosition;
     float2 Velocity;
-    float2 PosChange;
+    float2 Change;
     int typeNumber;
     float4 Color;
 };
@@ -38,9 +39,9 @@ RWStructuredBuffer<Particle> _Particles; //Length: MaxNumParticles
 // Number of cells: ceil((AreaMaxX - AreaMinX) / InteractionRadius) * ceil((AreaMaxY - AreaMinY) / InteractionRadius)
 RWStructuredBuffer<int> _CellParticleCount; // Length: Number of cells
 RWStructuredBuffer<int> _ParticlesInCells; //Length:  Number of cells * MaxNumParticlesPerCell
-RWStructuredBuffer<int> _ParticleNeighbours; //Length: MaxNumParticles * MaxNumNeighours
+RWStructuredBuffer<int> _ParticleNeighbours; //Length: MaxNumParticles * MaxNumNeighbours
 RWStructuredBuffer<int> _ParticleNeighbourCount; //Length: MaxNumParticles 
-
+RWStructuredBuffer<float2> _ChangeBuffer; //Length: MaxNumParticles * MaxNumNeighbours
 
 
 
@@ -152,19 +153,68 @@ void FindNeighbours (uint3 id : SV_DispatchThreadID)
 }
 
 
-[numthreads(8,8,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+// Record change to particle with index1 that is caused by particle with index2
+void RecordChange(float2 change, int index1, int index2)
 {
-    int index = id.x * 128 + id.y;
-
-    if (index >= _NumParticles)
+    for (int i=0; i<_ParticleNeighbourCount[index1]; i++)
     {
-        return;
+        if (_ParticleNeighbours[index1 * _MaxNumNeighbours + i] == index2)
+        {
+            _ChangeBuffer[index1 * _MaxNumNeighbours + i] = change;
+            return;
+        }
     }
-
-    _Particles[index].Velocity = float2(0.0, 50.0);
- 
 }
+
+float2 ViscosityImpulse(int particle1, int particle2)
+{
+    //   if (_Particles[neighbourIndex].typeNumber == 1) continue;
+    const float sigma = 0.05;
+    const float beta = 0.05;
+
+    float q = length(_Particles[particle1].Position - _Particles[particle2].Position) / _InteractionRadius;
+    if (q >= 1) return float2(0,0);
+    float2 r = normalize(_Particles[particle1].Position - _Particles[particle2].Position);
+    float u = dot(_Particles[particle1].Velocity - _Particles[particle2].Velocity, r);
+    if (u <= 0) return float2(0,0);
+    return _Time * (1 - q) * (sigma * u + beta * u * u) * r;
+}
+
+
+[numthreads(8,8,1)]
+void CalculateViscosity (uint3 id : SV_DispatchThreadID)
+{
+    int particleIndex = id.x * 128 + id.y;
+    if (particleIndex >= _NumParticles) return;
+
+    _Particles[particleIndex].Change = float2(0,0);
+    
+    for (int i=0; i<_ParticleNeighbourCount[particleIndex]; i++)
+    {
+        int neighbourIndex = _ParticleNeighbours[particleIndex * _MaxNumNeighbours + i];
+        float2 impulse = ViscosityImpulse(particleIndex, neighbourIndex);
+        _Particles[particleIndex].Change += -impulse * 0.5;
+        RecordChange(impulse * 0.5, neighbourIndex, particleIndex);
+    }
+}
+
+
+
+[numthreads(8,8,1)]
+void ApplyViscosity (uint3 id : SV_DispatchThreadID)
+{
+    int particleIndex = id.x * 128 + id.y;
+    if (particleIndex >= _NumParticles) return;
+
+    _Particles[particleIndex].Velocity += _Particles[particleIndex].Change;
+
+    for (int i=0; i<_ParticleNeighbourCount[particleIndex]; i++)
+    {
+        _Particles[particleIndex].Velocity += _ChangeBuffer[particleIndex * _MaxNumNeighbours + i];
+    }
+}
+
+
 /*
 [numthreads(8,8,1)]
 void SecondPhase (uint3 id : SV_DispatchThreadID)

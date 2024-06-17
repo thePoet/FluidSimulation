@@ -15,9 +15,9 @@ namespace FluidSimulation
         {
             public BoxEdge(Vector2 start, Vector2 end, Vector2 normal)
             {
-                this.Start = start;
-                this.End = end;
-                this.Normal = normal;
+                Start = start;
+                End = end;
+                Normal = normal;
             }
             public readonly Vector2 Start;
             public readonly Vector2 End;
@@ -34,6 +34,15 @@ namespace FluidSimulation
         private ComputeBuffer _particlesInCells;
         private ComputeBuffer _particleNeighbours;
         private ComputeBuffer _particleNeighbourCount;
+        private ComputeBuffer _changeBuffer;
+      
+        // Kernel indices
+        private const int ClearPartitioningKernel = 0;
+        private const int FillPartitioningKernel  = 1;
+        private const int FindNeighboursKernel    = 2;
+        private const int CalculateViscosityKernel    = 3;
+        private const int ApplyViscosityKernel    = 4;
+
         
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
         public ParticleDynamicsAlternative(ParticleDynamics.Settings settings, Rect bounds)
@@ -51,6 +60,8 @@ namespace FluidSimulation
             
             _dynamicsComputeShader.SetBuffer(1, "_Particles", _particleBuffer);
             _dynamicsComputeShader.SetBuffer(2, "_Particles", _particleBuffer);
+            _dynamicsComputeShader.SetBuffer(3, "_Particles", _particleBuffer);
+            _dynamicsComputeShader.SetBuffer(4, "_Particles", _particleBuffer);
 
             _dynamicsComputeShader.SetInt("_MaxNumParticles", pdata.MaxNumberOfParticles);
            _dynamicsComputeShader.SetFloat("_AreaMinX", _bounds.xMin);
@@ -81,6 +92,14 @@ namespace FluidSimulation
 
            _dynamicsComputeShader.SetBuffer(2, "_ParticleNeighbours", _particleNeighbours);
            _dynamicsComputeShader.SetBuffer(2, "_ParticleNeighbourCount", _particleNeighbourCount);
+           _dynamicsComputeShader.SetBuffer(3, "_ParticleNeighbours", _particleNeighbours);
+           _dynamicsComputeShader.SetBuffer(3, "_ParticleNeighbourCount", _particleNeighbourCount);
+           _dynamicsComputeShader.SetBuffer(4, "_ParticleNeighbours", _particleNeighbours);
+           _dynamicsComputeShader.SetBuffer(4, "_ParticleNeighbourCount", _particleNeighbourCount);
+           
+           _changeBuffer = new ComputeBuffer(pdata.MaxNumberOfParticles * maxNumNeighbours , 2*sizeof(float));
+           _dynamicsComputeShader.SetBuffer(3, "_ChangeBuffer", _changeBuffer);
+           _dynamicsComputeShader.SetBuffer(4, "_ChangeBuffer", _changeBuffer);
         }
         
         public void TemporaryRelease()
@@ -90,6 +109,7 @@ namespace FluidSimulation
             _particlesInCells.Release();
             _particleNeighbours.Release();
             _particleNeighbourCount.Release();
+            _changeBuffer.Release();
         }
         
    
@@ -111,20 +131,27 @@ namespace FluidSimulation
             _dynamicsComputeShader.SetFloat("_Time", Time.deltaTime);
  
                 // tsekkaa määrät
-            _dynamicsComputeShader.Dispatch(0, 32, 16, 1);
-            _dynamicsComputeShader.Dispatch(1, 32, 16, 1);
-            _dynamicsComputeShader.Dispatch(2, 32, 16, 1);
+            _dynamicsComputeShader.Dispatch(ClearPartitioningKernel,  32, 16, 1);
+            _dynamicsComputeShader.Dispatch(FillPartitioningKernel,   32, 16, 1);
+            _dynamicsComputeShader.Dispatch(FindNeighboursKernel,     32, 16, 1);
+            _dynamicsComputeShader.Dispatch(CalculateViscosityKernel, 32, 16, 1);
+            _dynamicsComputeShader.Dispatch(ApplyViscosityKernel,     32, 16, 1);
 
+          //  Vector2[] changes = new Vector2[10000*100];
+            //_changeBuffer.GetData(changes);
+            
             
             particleData.ReadParticlesFromBuffer(_particleBuffer);
             particleData.ReadNeighboursFromBuffer(_particleNeighbours, _particleNeighbourCount);
-           // float t2= Time.realtimeSinceStartup;
-            //Debug.Log(1000f*(t2-t1));
             
+            
+  
+       /*
+ 
             if (_settings.ViscosityEnabled)
             {
                 ApplyViscosity(particleData, timeStep);
-            }
+            }*/
             
             // Move particles due to their velocity
             for (int i=0; i<particles.Length; i++)
@@ -204,17 +231,18 @@ namespace FluidSimulation
                     }
                 }
       
-                //particles[i].Position += displacement;
-                particles[i].PosChange = displacement;
+                particles[i].Position += displacement;
+            //    particles[i].Change = displacement;
 
      
             }
+            /*
             for (int i=0; i<particles.Length; i++)
             {
                 if (particles[i].Type == ParticleType.Solid) continue;
-                particles[i].Position += particles[i].PosChange;
+                particles[i].Position += particles[i].Change;
             }
-        
+        */
             
           
          
@@ -237,7 +265,7 @@ namespace FluidSimulation
                 
                 foreach (int j in particleData.NeighbourIndices(i))
                 {
-                    if (i==j) continue;
+                    if (i<=j) continue;
                     
                     if (particles[j].Type == ParticleType.Solid) continue;
                 
@@ -251,13 +279,11 @@ namespace FluidSimulation
                 
                     Vector2 impulse = timeStep * (1f - q) * (sigma * u + beta * Pow2(u)) * r;
                     particles[i].Velocity -= impulse * 0.5f;
-                    //particles[j].Velocity += impulse * 0.5f;
+                    particles[j].Velocity += impulse * 0.5f;
                 }
    
             }
-            
-            
-          
+        
         }
 
 

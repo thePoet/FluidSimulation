@@ -9,7 +9,7 @@ namespace FluidSimulation
         public Vector2 Position;
         public Vector2 PreviousPosition;
         public Vector2 Velocity;
-        public Vector2 PosChange;
+        public Vector2 Change;
         public int typeNumber;
         public Vector4 color;
 
