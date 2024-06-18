@@ -196,8 +196,7 @@ void CalculateViscosity (uint3 id : SV_DispatchThreadID)
         int neighbourIndex = _ParticleNeighbours[particleIndex * _MaxNumNeighbours + i];
         float2 impulse = ViscosityImpulse(particleIndex, neighbourIndex);
         _Particles[particleIndex].Change += -impulse * 0.5;
-        RecordChange(impulse * 0.5, neighbourIndex, particleIndex);
-    }
+   }
 }
 
 
@@ -209,11 +208,11 @@ void ApplyViscosity (uint3 id : SV_DispatchThreadID)
     if (particleIndex >= _NumParticles) return;
 
     _Particles[particleIndex].Velocity += _Particles[particleIndex].Change;
-
+/*
     for (int i=0; i<_ParticleNeighbourCount[particleIndex]; i++)
     {
         _Particles[particleIndex].Velocity += _ChangeBuffer[particleIndex * _MaxNumNeighbours + i];
-    }
+    }*/
 }
 
 [numthreads(8,8,1)]
