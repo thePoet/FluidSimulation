@@ -102,13 +102,13 @@ namespace FluidSimulation
            
             var span = _neighbourIndices.AsSpan(particleIndex * _maxNumNeighbours, _neighbourCount[particleIndex]);
 
-            
+            /*
             string s = "";
             foreach (int i in span)
             {
               s+= i + " ";
             }
-            Debug.Log(s);
+            Debug.Log(s);*/
             return span;
         }
         

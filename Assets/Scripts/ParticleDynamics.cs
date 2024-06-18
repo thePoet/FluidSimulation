@@ -76,11 +76,11 @@ namespace FluidSimulation
 
             
             particleData.UpdateNeighbours();
-     
+     /*
             if (_settings.ElasticityAndPlasticityEnabled)
             {
                 ApplyElasticityAndPlasticity(particleData, timeStep);
-            }
+            }*/
             MaintainDensity(particleData, timeStep);
  
             for (int i=0; i<particles.Length; i++)
@@ -111,7 +111,7 @@ namespace FluidSimulation
                 float density = 0f;
                 float nearDensity = 0f;
                 
-                var neighbours = particleData.NeighbourIndices(i);
+                var neighbours = particleData.NeighbourIndicesTest(i);
                 
                 foreach (int j in neighbours)
                 {

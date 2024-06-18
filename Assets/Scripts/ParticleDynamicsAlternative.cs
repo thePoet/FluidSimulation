@@ -141,7 +141,7 @@ namespace FluidSimulation
            // float t1= Time.realtimeSinceStartup;
            particleData.WriteParticlesToBuffer(_particleBuffer);
             _dynamicsComputeShader.SetInt("_NumParticles", particleData.NumberOfParticles);
-            _dynamicsComputeShader.SetFloat("_Time", Time.deltaTime);
+            _dynamicsComputeShader.SetFloat("_Time", timeStep);
  
                 // tsekkaa määrät
             _dynamicsComputeShader.Dispatch(ClearPartitioningKernel,  32, 16, 1);
@@ -150,26 +150,29 @@ namespace FluidSimulation
             _dynamicsComputeShader.Dispatch(CalculateViscosityKernel, 32, 16, 1);
             _dynamicsComputeShader.Dispatch(ApplyViscosityKernel,     32, 16, 1);
 
+            _dynamicsComputeShader.Dispatch(ApplyVelocityKernel,     32, 16, 1);
             
             particleData.ReadParticlesFromBuffer(_particleBuffer);
             particleData.ReadNeighboursFromBuffer(_particleNeighbours, _particleNeighbourCount);
+
+         
             
-            
-            
+            /*
             // Move particles due to their velocity
             for (int i=0; i<particles.Length; i++)
             {
                 if (particles[i].Type == ParticleType.Solid) continue;
                 particles[i].PreviousPosition = particles[i].Position;
                 particles[i].Position += particles[i].Velocity * timeStep;
-            }
+            }*/
 
             
-            particleData.UpdateNeighbours();
+         //   particleData.UpdateNeighbours();
       
             MaintainDensity(particleData, timeStep);
  
             
+            particles = particleData.All();
             
             for (int i=0; i<particles.Length; i++)
                 particles[i].Position += CollisionImpulseFromBorders(particles[i]);
@@ -198,7 +201,7 @@ namespace FluidSimulation
                 float density = 0f;
                 float nearDensity = 0f;
                 
-                var neighbours = particleData.NeighbourIndices(i);
+                var neighbours = particleData.NeighbourIndicesTest(i);
                 
                 foreach (int j in neighbours)
                 {
