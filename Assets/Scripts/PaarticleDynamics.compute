@@ -4,6 +4,7 @@
 #pragma kernel CalculateViscosity
 #pragma kernel ApplyViscosity
 #pragma kernel ApplyVelocity
+#pragma kernel CalculatePressures
 #pragma kernel CalculateDensityDisplacement
 #pragma kernel ApplyDensityDisplacement
 
@@ -14,6 +15,8 @@ struct Particle
     float2 PreviousPosition;
     float2 Velocity;
     float2 Change;
+    float Pressure;
+    float NearPressure;
     int typeNumber;
     float4 Color;
 };
@@ -206,13 +209,7 @@ void ApplyViscosity (uint3 id : SV_DispatchThreadID)
 {
     int particleIndex = id.x * 128 + id.y;
     if (particleIndex >= _NumParticles) return;
-
     _Particles[particleIndex].Velocity += _Particles[particleIndex].Change;
-/*
-    for (int i=0; i<_ParticleNeighbourCount[particleIndex]; i++)
-    {
-        _Particles[particleIndex].Velocity += _ChangeBuffer[particleIndex * _MaxNumNeighbours + i];
-    }*/
 }
 
 [numthreads(8,8,1)]
@@ -226,9 +223,8 @@ void ApplyVelocity (uint3 id : SV_DispatchThreadID)
 
 }
 
-
 [numthreads(8,8,1)]
-void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
+void CalculatePressures (uint3 id : SV_DispatchThreadID)
 {
     int particleIndex = id.x * 128 + id.y;
     if (particleIndex >= _NumParticles) return;
@@ -236,11 +232,9 @@ void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
     const float restDensity = 5;
     const float stiffness = 750;
     const float nearStiffness = 1500;
-    
-    _Particles[particleIndex].Change = float2(0,0);
+
     float density = 0;
     float nearDensity = 0;
-     
     
     for (int i=0; i<_ParticleNeighbourCount[particleIndex]; i++)
     {
@@ -251,26 +245,41 @@ void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
             density += (1-q)*(1-q);
             nearDensity += (1-q)*(1-q)*(1-q);
         }
-
-        RecordChange(float2(0,0),neighbourIndex,particleIndex);
     }
+    _Particles[particleIndex].Pressure = stiffness * (density - restDensity);
+    _Particles[particleIndex].NearPressure = nearStiffness * nearDensity;
+}
 
-    float pressure = stiffness * (density - restDensity);
-    float nearPressure = nearStiffness * nearDensity;
+float2 DensityDisplacement(int particle1, int particle2)
+{
+    float q = length(_Particles[particle1].Position - _Particles[particle2].Position) / _InteractionRadius;
+
+    if (q>=1) return float2(0.0,0.0);
+
+    
+    float pressure = _Particles[particle1].Pressure;
+    float nearPressure = _Particles[particle1].NearPressure;
+            
+    float2 d = _Time * _Time * (pressure * (1 - q) + nearPressure * (1 - q) * (1 - q)) *
+                normalize(_Particles[particle2].Position - _Particles[particle1].Position);
+    
+    return 0.5 * d;
+}
+
+
+[numthreads(8,8,1)]
+void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
+{
+    int particleIndex = id.x * 128 + id.y;
+    if (particleIndex >= _NumParticles) return;
+
+    _Particles[particleIndex].Change = float2(0,0);
 
     for (int j=0; j<_ParticleNeighbourCount[particleIndex]; j++)
     {
         int neighbourIndex = _ParticleNeighbours[particleIndex * _MaxNumNeighbours + j];
-        float q = length(_Particles[particleIndex].Position - _Particles[neighbourIndex].Position) / _InteractionRadius;
-
-        if (q < 1)
-        {
-            float2 d = _Time * _Time * (pressure * (1 - q) + nearPressure * (1 - q) * (1 - q)) *
-                        normalize(_Particles[particleIndex].Position - _Particles[neighbourIndex].Position);
-            _Particles[particleIndex].Change -= 0.5 * d;
-            RecordChange(0.5 * d, neighbourIndex, particleIndex);
-        }
-      
+        _Particles[particleIndex].Change -= DensityDisplacement(particleIndex, neighbourIndex);
+        _Particles[particleIndex].Change += DensityDisplacement(neighbourIndex, particleIndex);
     }
     
 }
@@ -281,73 +290,8 @@ void ApplyDensityDisplacement (uint3 id : SV_DispatchThreadID)
     int particleIndex = id.x * 128 + id.y;
     if (particleIndex >= _NumParticles) return;
     _Particles[particleIndex].Position += _Particles[particleIndex].Change;
-
-    for (int i=0; i<_ParticleNeighbourCount[particleIndex]; i++)
-    {
-        _Particles[particleIndex].Position += _ChangeBuffer[particleIndex * _MaxNumNeighbours + i];
-    }
 }
 
-
-
-/*
- private void MaintainDensity(IParticleData particleData,  float timeStep)
-        {
-             var particles = particleData.All();
-            
-            for (int i=0; i<particles.Length; i++)
-            {
-                if (particles[i].Type == ParticleType.Solid) continue;
-                
-                float density = 0f;
-                float nearDensity = 0f;
-                
-                var neighbours = particleData.NeighbourIndices(i);
-                
-                foreach (int j in neighbours)
-                {
-                    float distance = (particles[i].Position - particles[j].Position).magnitude;
-                    float q = distance / _settings.InteractionRadius;
-                    if (q < 1f)
-                    {
-                        density += Pow2(1f - q);
-                        nearDensity += Pow3(1f - q);
-                    }
-                }
-
-                float pressure = _settings.Stiffness * (density - _settings.RestDensity);
-                float nearPressure = _settings.NearStiffness * nearDensity;
-                Vector2 displacement = Vector2.zero;
-
-                foreach (int j in neighbours)
-                {
-                    if (particles[j].Type == ParticleType.Solid) continue;
-
-                    float distance = (particles[i].Position - particles[j].Position).magnitude;
-                    float q = distance / _settings.InteractionRadius;
-                    if (q < 1f)
-                    {
-                        Vector2 d = Pow2(timeStep) * (pressure * (1f - q) + nearPressure * Pow2(1f - q)) *
-                                    (particles[j].Position - particles[i].Position).normalized;
-                        
-                        
-                        if (particles[j].Type == ParticleType.Liquid)
-                            particles[j].Position += 0.5f * d;
-                        displacement -= 0.5f * d;
-                    }
-                }
-      
-                particles[i].Position += displacement;
-        
-
-     
-            }
-   
-            
-          
-         
-        }
-        */
         
 
 

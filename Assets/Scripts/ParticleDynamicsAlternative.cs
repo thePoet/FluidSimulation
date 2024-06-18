@@ -43,8 +43,9 @@ namespace FluidSimulation
         private const int CalculateViscosityKernel           = 3;
         private const int ApplyViscosityKernel               = 4;
         private const int ApplyVelocityKernel                = 5;
-        private const int CalculateDensityDisplacementKernel = 6;
-        private const int ApplyDensityDisplacementKernel     = 7;
+        private const int CalculatePressuresKernel           = 6;
+        private const int CalculateDensityDisplacementKernel = 7;
+        private const int ApplyDensityDisplacementKernel     = 8;
 
         
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
@@ -68,6 +69,7 @@ namespace FluidSimulation
             _dynamicsComputeShader.SetBuffer(5, "_Particles", _particleBuffer);
             _dynamicsComputeShader.SetBuffer(6, "_Particles", _particleBuffer);
             _dynamicsComputeShader.SetBuffer(7, "_Particles", _particleBuffer);
+            _dynamicsComputeShader.SetBuffer(8, "_Particles", _particleBuffer);
 
             _dynamicsComputeShader.SetInt("_MaxNumParticles", pdata.MaxNumberOfParticles);
            _dynamicsComputeShader.SetFloat("_AreaMinX", _bounds.xMin);
@@ -106,13 +108,15 @@ namespace FluidSimulation
            _dynamicsComputeShader.SetBuffer(6, "_ParticleNeighbourCount", _particleNeighbourCount);
            _dynamicsComputeShader.SetBuffer(7, "_ParticleNeighbours", _particleNeighbours);
            _dynamicsComputeShader.SetBuffer(7, "_ParticleNeighbourCount", _particleNeighbourCount);
+           _dynamicsComputeShader.SetBuffer(8, "_ParticleNeighbours", _particleNeighbours);
+           _dynamicsComputeShader.SetBuffer(8, "_ParticleNeighbourCount", _particleNeighbourCount);
 
            
            _changeBuffer = new ComputeBuffer(pdata.MaxNumberOfParticles * maxNumNeighbours , 2*sizeof(float));
            _dynamicsComputeShader.SetBuffer(3, "_ChangeBuffer", _changeBuffer);
            _dynamicsComputeShader.SetBuffer(4, "_ChangeBuffer", _changeBuffer);
-           _dynamicsComputeShader.SetBuffer(6, "_ChangeBuffer", _changeBuffer);
            _dynamicsComputeShader.SetBuffer(7, "_ChangeBuffer", _changeBuffer);
+           _dynamicsComputeShader.SetBuffer(8, "_ChangeBuffer", _changeBuffer);
         }
         
         public void TemporaryRelease()
@@ -143,33 +147,28 @@ namespace FluidSimulation
             _dynamicsComputeShader.SetInt("_NumParticles", particleData.NumberOfParticles);
             _dynamicsComputeShader.SetFloat("_Time", timeStep);
  
-                // tsekkaa määrät
+               
             _dynamicsComputeShader.Dispatch(ClearPartitioningKernel,  32, 16, 1);
             _dynamicsComputeShader.Dispatch(FillPartitioningKernel,   32, 16, 1);
             _dynamicsComputeShader.Dispatch(FindNeighboursKernel,     32, 16, 1);
+            
             _dynamicsComputeShader.Dispatch(CalculateViscosityKernel, 32, 16, 1);
             _dynamicsComputeShader.Dispatch(ApplyViscosityKernel,     32, 16, 1);
 
             _dynamicsComputeShader.Dispatch(ApplyVelocityKernel,     32, 16, 1);
             
+            _dynamicsComputeShader.Dispatch(ClearPartitioningKernel,  32, 16, 1);
+            _dynamicsComputeShader.Dispatch(FillPartitioningKernel,   32, 16, 1);
+            _dynamicsComputeShader.Dispatch(FindNeighboursKernel,     32, 16, 1);
+            
+            _dynamicsComputeShader.Dispatch(CalculatePressuresKernel,     32, 16, 1);
+            _dynamicsComputeShader.Dispatch(CalculateDensityDisplacementKernel,     32, 16, 1);
+            _dynamicsComputeShader.Dispatch(ApplyDensityDisplacementKernel,     32, 16, 1);
+            
+            
             particleData.ReadParticlesFromBuffer(_particleBuffer);
             particleData.ReadNeighboursFromBuffer(_particleNeighbours, _particleNeighbourCount);
-
-         
-            
-            /*
-            // Move particles due to their velocity
-            for (int i=0; i<particles.Length; i++)
-            {
-                if (particles[i].Type == ParticleType.Solid) continue;
-                particles[i].PreviousPosition = particles[i].Position;
-                particles[i].Position += particles[i].Velocity * timeStep;
-            }*/
-
-            
-         //   particleData.UpdateNeighbours();
-      
-            MaintainDensity(particleData, timeStep);
+            //MaintainDensity(particleData, timeStep);
  
             
             particles = particleData.All();
@@ -194,9 +193,12 @@ namespace FluidSimulation
         {
              var particles = particleData.All();
             
+            for (int i=0; i<particles.Length; i++) particles[i].Change = Vector2.zero;
+                 
+                 
             for (int i=0; i<particles.Length; i++)
             {
-                if (particles[i].Type == ParticleType.Solid) continue;
+               // if (particles[i].Type == ParticleType.Solid) continue;
                 
                 float density = 0f;
                 float nearDensity = 0f;
@@ -213,14 +215,16 @@ namespace FluidSimulation
                         nearDensity += Pow3(1f - q);
                     }
                 }
+                
+          
 
                 float pressure = _settings.Stiffness * (density - _settings.RestDensity);
                 float nearPressure = _settings.NearStiffness * nearDensity;
-                Vector2 displacement = Vector2.zero;
-
+             
+               
                 foreach (int j in neighbours)
                 {
-                    if (particles[j].Type == ParticleType.Solid) continue;
+                 //   if (particles[j].Type == ParticleType.Solid) continue;
 
                     float distance = (particles[i].Position - particles[j].Position).magnitude;
                     float q = distance / _settings.InteractionRadius;
@@ -230,24 +234,24 @@ namespace FluidSimulation
                                     (particles[j].Position - particles[i].Position).normalized;
                         
                         
-                        if (particles[j].Type == ParticleType.Liquid)
-                            particles[j].Position += 0.5f * d;
-                        displacement -= 0.5f * d;
+                      //  if (particles[j].Type == ParticleType.Liquid)
+                           particles[j].Change += 0.5f * d;
+                        particles[i].Change -= 0.5f * d;
                     }
                 }
       
-                particles[i].Position += displacement;
+               // particles[i].Position += displacement;
             //    particles[i].Change = displacement;
 
      
             }
-            /*
+            
             for (int i=0; i<particles.Length; i++)
             {
-                if (particles[i].Type == ParticleType.Solid) continue;
+         
                 particles[i].Position += particles[i].Change;
             }
-        */
+        
             
           
          

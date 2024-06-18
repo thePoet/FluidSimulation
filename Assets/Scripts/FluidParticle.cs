@@ -10,10 +10,12 @@ namespace FluidSimulation
         public Vector2 PreviousPosition;
         public Vector2 Velocity;
         public Vector2 Change;
+        public float Pressure;
+        public float NearPressure;
         public int typeNumber;
         public Vector4 color;
 
-        public static int Stride => sizeof(int) + 8 * sizeof(float) + sizeof(int) + sizeof(float) * 4;
+        public static int Stride => sizeof(int) + 10 * sizeof(float) + sizeof(int) + sizeof(float) * 4;
         public ParticleType Type
         {
             get => (ParticleType)typeNumber;
