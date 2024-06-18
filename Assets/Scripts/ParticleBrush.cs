@@ -1,7 +1,4 @@
-using System;
-using RikusGameDevToolbox.GeneralUse;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 namespace FluidSimulation
@@ -12,7 +9,7 @@ namespace FluidSimulation
         public float brushRadius = 10f;
         public float maxSpeed = 10f;
 
-        [FormerlySerializedAs("_simulationManager")] public Simulation simulation;
+        public Simulation simulation;
 
         private void Start()
         {

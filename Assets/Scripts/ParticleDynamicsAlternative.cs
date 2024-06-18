@@ -1,3 +1,4 @@
+using RikusGameDevToolbox.GeneralUse;
 using UnityEngine;
 
 // Based on paper by Simon Clavet, Philippe Beaudoin, and Pierre Poulin
@@ -35,8 +36,9 @@ namespace FluidSimulation
         private ComputeBuffer _particleNeighbours;
         private ComputeBuffer _particleNeighbourCount;
         private ComputeBuffer _changeBuffer;
+        private ComputeBuffer _statsBuffer;
       
-        // Kernel indices
+        // Kernel indices TODO Use findKernel
         private const int ClearPartitioningKernel            = 0;
         private const int FillPartitioningKernel             = 1;
         private const int FindNeighboursKernel               = 2;
@@ -62,6 +64,8 @@ namespace FluidSimulation
             _dynamicsComputeShader = computeShader;
             _particleBuffer = pdata.CreateParticlesBuffer();
             
+            
+            
             _dynamicsComputeShader.SetBuffer(1, "_Particles", _particleBuffer);
             _dynamicsComputeShader.SetBuffer(2, "_Particles", _particleBuffer);
             _dynamicsComputeShader.SetBuffer(3, "_Particles", _particleBuffer);
@@ -70,14 +74,28 @@ namespace FluidSimulation
             _dynamicsComputeShader.SetBuffer(6, "_Particles", _particleBuffer);
             _dynamicsComputeShader.SetBuffer(7, "_Particles", _particleBuffer);
             _dynamicsComputeShader.SetBuffer(8, "_Particles", _particleBuffer);
+            
+            
+            _statsBuffer = new ComputeBuffer(10 , sizeof(int));
+            _dynamicsComputeShader.SetBuffer(0, "_Stats", _statsBuffer);
+            _dynamicsComputeShader.SetBuffer(1, "_Stats", _statsBuffer);
+            _dynamicsComputeShader.SetBuffer(2, "_Stats", _statsBuffer);
+            _dynamicsComputeShader.SetBuffer(3, "_Stats", _statsBuffer);
+            _dynamicsComputeShader.SetBuffer(4, "_Stats", _statsBuffer);
+            _dynamicsComputeShader.SetBuffer(5, "_Stats", _statsBuffer);
+            _dynamicsComputeShader.SetBuffer(6, "_Stats", _statsBuffer);
+            _dynamicsComputeShader.SetBuffer(7, "_Stats", _statsBuffer);
+            _dynamicsComputeShader.SetBuffer(8, "_Stats", _statsBuffer);
+
+            
 
             _dynamicsComputeShader.SetInt("_MaxNumParticles", pdata.MaxNumberOfParticles);
-           _dynamicsComputeShader.SetFloat("_AreaMinX", _bounds.xMin);
-           _dynamicsComputeShader.SetFloat("_AreaMinY", _bounds.yMin);
-           _dynamicsComputeShader.SetFloat("_AreaMaxX", _bounds.xMax);
-           _dynamicsComputeShader.SetFloat("_AreaMaxY", _bounds.yMax);
+           _dynamicsComputeShader.SetFloat("_AreaMinX", _bounds.xMin-1f);
+           _dynamicsComputeShader.SetFloat("_AreaMinY", _bounds.yMin-1f);
+           _dynamicsComputeShader.SetFloat("_AreaMaxX", _bounds.xMax+1f);
+           _dynamicsComputeShader.SetFloat("_AreaMaxY", _bounds.yMax+1f);
 
-           int maxNumParticlesInCell = 25;
+           int maxNumParticlesInCell = 50;
            _dynamicsComputeShader.SetInt("_MaxNumParticlesPerCell", maxNumParticlesInCell);
            _dynamicsComputeShader.SetFloat("_InteractionRadius", _settings.InteractionRadius);
            
@@ -127,6 +145,7 @@ namespace FluidSimulation
             _particleNeighbours.Release();
             _particleNeighbourCount.Release();
             _changeBuffer.Release();
+            _statsBuffer.Release();
         }
         
    
@@ -147,6 +166,7 @@ namespace FluidSimulation
             _dynamicsComputeShader.SetInt("_NumParticles", particleData.NumberOfParticles);
             _dynamicsComputeShader.SetFloat("_Time", timeStep);
  
+            
                
             _dynamicsComputeShader.Dispatch(ClearPartitioningKernel,  32, 16, 1);
             _dynamicsComputeShader.Dispatch(FillPartitioningKernel,   32, 16, 1);
@@ -168,24 +188,29 @@ namespace FluidSimulation
             
             particleData.ReadParticlesFromBuffer(_particleBuffer);
             particleData.ReadNeighboursFromBuffer(_particleNeighbours, _particleNeighbourCount);
-            //MaintainDensity(particleData, timeStep);
- 
-            
+        
             particles = particleData.All();
 
+            for (int i=0; i<particles.Length; i++)
+               particles[i].Position += CollisionImpulseFromBorders(particles[i]);
             
-       
-
-//            for (int i=0; i<particles.Length; i++)
-  //              particles[i].Position += CollisionImpulseFromBorders(particles[i]);
-            
+   
 
             for (int i=0; i<particles.Length; i++)
                 particles[i].Velocity = (particles[i].Position - particles[i].PreviousPosition) / timeStep;
-            
-            for (int i=0; i<particles.Length; i++)
-                particles[i] = KeepInBox(particles[i]);
+   
+           // for (int i=0; i<particles.Length; i++)
+             //   particles[i] = KeepInBox(particles[i]);
 
+            PrintStats(_statsBuffer);
+
+        }
+
+        private void PrintStats(ComputeBuffer statsBuffer)
+        {
+            int[] stats = new int[10];
+            statsBuffer.GetData(stats);
+            Debug.Log("Stats: " + stats[0] + " " + stats[1] + " " + stats[2] + " " + stats[3] + " " + stats[4] + " " + stats[5] + " " + stats[6] + " " + stats[7] + " " + stats[8] + " " + stats[9]);
         }
 
         #endregion
@@ -196,14 +221,51 @@ namespace FluidSimulation
         private FluidParticle KeepInBox(FluidParticle particle)
         {
             if (_bounds.Contains(particle.Position)) return particle;
-
-            particle.Velocity = -particle.Velocity * 0.5f;
-
-            particle.Position =  ClampToBox(particle.Position, _bounds);
-            particle.Position = MoveTowardsBoxCenter(particle.Position, 0.2f, _bounds);
-            particle.Position += Random.insideUnitCircle * 0.1f;
             
+            particle.Position = ClampToBox(particle.Position, _bounds);
+
             return particle;
+            
+            /*
+            float damping = -0.5f;
+
+            float e = Random.Range(0.001f, 0.1f);
+            
+            if (particle.Position.x < _bounds.xMin)
+            {
+                particle.Velocity = particle.Velocity.SetX(particle.Velocity.x * damping);
+                particle.Position = particle.Position.SetX(_bounds.xMin+e);
+            }
+            else if (particle.Position.x > _bounds.xMax)
+            {
+                particle.Velocity = particle.Velocity.SetX(particle.Velocity.x * damping);
+                particle.Position = particle.Position.SetX(_bounds.xMax-e);
+            }
+            
+            if (particle.Position.y < _bounds.yMin)
+            {
+                particle.Velocity = particle.Velocity.SetY(particle.Velocity.y * damping);
+                particle.Position = particle.Position.SetY(_bounds.yMin+e);
+            }
+            else if (particle.Position.y > _bounds.yMax)
+            {
+                particle.Velocity = particle.Velocity.SetY(particle.Velocity.y * damping);
+                particle.Position = particle.Position.SetY(_bounds.yMax-e);
+            }
+            
+            //particle.Position = MoveTowardsBoxCenter(particle.Position, Random.Range(0.01f,0.02f), _bounds);
+            //particle.Position += Random.insideUnitCircle * 0.001f;
+            return particle;
+            /*
+        }
+
+        particle.Velocity = -particle.Velocity * 0.5f;
+
+        particle.Position =  ClampToBox(particle.Position, _bounds);
+        particle.Position = MoveTowardsBoxCenter(particle.Position, 0.2f, _bounds);
+        particle.Position += Random.insideUnitCircle * 0.1f;
+        */
+           
             
             Vector2 ClampToBox(Vector2 position, Rect box)
             {
