@@ -197,15 +197,26 @@ namespace FluidSimulation
         {
             if (_bounds.Contains(particle.Position)) return particle;
 
-            particle.Velocity = -particle.Velocity;
+            particle.Velocity = -particle.Velocity * 0.5f;
 
             particle.Position =  ClampToBox(particle.Position, _bounds);
+            particle.Position = MoveTowardsBoxCenter(particle.Position, 0.2f, _bounds);
+            particle.Position += Random.insideUnitCircle * 0.1f;
+            
             return particle;
             
             Vector2 ClampToBox(Vector2 position, Rect box)
             {
                 return new Vector2(Mathf.Clamp(position.x, box.xMin, box.xMax),
                     Mathf.Clamp(position.y, box.yMin, box.yMax));
+            }
+            
+            
+            Vector2 MoveTowardsBoxCenter(Vector2 position, float amount, Rect box)
+            {
+                Vector2 center = box.center;
+                Vector2 direction = center - position;
+                return position + direction.normalized * amount;
             }
         }
 
