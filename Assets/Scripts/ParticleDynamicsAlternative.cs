@@ -129,43 +129,47 @@ namespace FluidSimulation
         
         public void Step(IParticleData particleData, float timeStep)
         {
-            var particles = particleData.All();
+                var particles = particleData.All();
             
             // External forces (gravity)
             for (int i=0; i<particles.Length; i++)
             {
                 if (particles[i].Type == ParticleType.Solid) continue;
-           //     particles[i].Velocity += Vector2.down * timeStep * _settings.Gravity;
+                particles[i].Velocity += Vector2.down * timeStep * _settings.Gravity;
             }
             
            // float t1= Time.realtimeSinceStartup;
-            particleData.WriteParticlesToBuffer(_particleBuffer);
+           particleData.WriteParticlesToBuffer(_particleBuffer);
             _dynamicsComputeShader.SetInt("_NumParticles", particleData.NumberOfParticles);
             _dynamicsComputeShader.SetFloat("_Time", Time.deltaTime);
  
-           
+                // tsekkaa määrät
             _dynamicsComputeShader.Dispatch(ClearPartitioningKernel,  32, 16, 1);
             _dynamicsComputeShader.Dispatch(FillPartitioningKernel,   32, 16, 1);
             _dynamicsComputeShader.Dispatch(FindNeighboursKernel,     32, 16, 1);
             _dynamicsComputeShader.Dispatch(CalculateViscosityKernel, 32, 16, 1);
             _dynamicsComputeShader.Dispatch(ApplyViscosityKernel,     32, 16, 1);
-            _dynamicsComputeShader.Dispatch(ApplyVelocityKernel, 32, 16, 1);
 
             
-            _dynamicsComputeShader.Dispatch(ClearPartitioningKernel,  32, 16, 1);
-            _dynamicsComputeShader.Dispatch(FillPartitioningKernel,   32, 16, 1);
-            _dynamicsComputeShader.Dispatch(FindNeighboursKernel,     32, 16, 1);
-
-            
-            _dynamicsComputeShader.Dispatch(CalculateDensityDisplacementKernel, 32, 16, 1);
-            _dynamicsComputeShader.Dispatch(ApplyDensityDisplacementKernel,     32, 16, 1);
-            
-      
-            //MaintainDensity(particleData, timeStep);
             particleData.ReadParticlesFromBuffer(_particleBuffer);
             particleData.ReadNeighboursFromBuffer(_particleNeighbours, _particleNeighbourCount);
             
-            particles = particleData.All();
+            
+            
+            // Move particles due to their velocity
+            for (int i=0; i<particles.Length; i++)
+            {
+                if (particles[i].Type == ParticleType.Solid) continue;
+                particles[i].PreviousPosition = particles[i].Position;
+                particles[i].Position += particles[i].Velocity * timeStep;
+            }
+
+            
+            particleData.UpdateNeighbours();
+      
+            MaintainDensity(particleData, timeStep);
+ 
+            
             
             for (int i=0; i<particles.Length; i++)
                 particles[i].Position += CollisionImpulseFromBorders(particles[i]);
@@ -173,7 +177,6 @@ namespace FluidSimulation
 
             for (int i=0; i<particles.Length; i++)
                 particles[i].Velocity = (particles[i].Position - particles[i].PreviousPosition) / timeStep;
-           
 
         }
 
