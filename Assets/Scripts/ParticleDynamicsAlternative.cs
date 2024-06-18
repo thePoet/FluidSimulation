@@ -76,7 +76,7 @@ namespace FluidSimulation
             _dynamicsComputeShader.SetBuffer(8, "_Particles", _particleBuffer);
             
             
-            _statsBuffer = new ComputeBuffer(10 , sizeof(int));
+            _statsBuffer = new ComputeBuffer(10 , sizeof(float));
             _dynamicsComputeShader.SetBuffer(0, "_Stats", _statsBuffer);
             _dynamicsComputeShader.SetBuffer(1, "_Stats", _statsBuffer);
             _dynamicsComputeShader.SetBuffer(2, "_Stats", _statsBuffer);
@@ -177,9 +177,9 @@ namespace FluidSimulation
 
             _dynamicsComputeShader.Dispatch(ApplyVelocityKernel,     32, 16, 1);
             
-            _dynamicsComputeShader.Dispatch(ClearPartitioningKernel,  32, 16, 1);
-            _dynamicsComputeShader.Dispatch(FillPartitioningKernel,   32, 16, 1);
-            _dynamicsComputeShader.Dispatch(FindNeighboursKernel,     32, 16, 1);
+          //  _dynamicsComputeShader.Dispatch(ClearPartitioningKernel,  32, 16, 1);
+           // _dynamicsComputeShader.Dispatch(FillPartitioningKernel,   32, 16, 1);
+           // _dynamicsComputeShader.Dispatch(FindNeighboursKernel,     32, 16, 1);
             
             _dynamicsComputeShader.Dispatch(CalculatePressuresKernel,     32, 16, 1);
             _dynamicsComputeShader.Dispatch(CalculateDensityDisplacementKernel,     32, 16, 1);
@@ -208,7 +208,7 @@ namespace FluidSimulation
 
         private void PrintStats(ComputeBuffer statsBuffer)
         {
-            int[] stats = new int[10];
+            float[] stats = new float[10];
             statsBuffer.GetData(stats);
             Debug.Log("Stats: " + stats[0] + " " + stats[1] + " " + stats[2] + " " + stats[3] + " " + stats[4] + " " + stats[5] + " " + stats[6] + " " + stats[7] + " " + stats[8] + " " + stats[9]);
         }

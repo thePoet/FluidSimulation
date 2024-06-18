@@ -31,7 +31,7 @@ namespace FluidSimulation
             if (_container == null) Debug.LogError("No container found in the scene.");
 
 
-            _particleDynamics =  new ParticleDynamicsAlternative(settings, _container.Bounds);
+            _particleDynamics =  new ParticleDynamics(settings, _container.Bounds);
 
             _particleData = new ParticleData(
                 maxNumberOfParticles: 10000, 
@@ -41,7 +41,7 @@ namespace FluidSimulation
             );
             
             // TODO: POISTA TÄMÄ KAUHISTUS
-            (_particleDynamics as ParticleDynamicsAlternative).TemporaryInit(particleDynamicCompute, _particleData);
+         //   (_particleDynamics as ParticleDynamicsAlternative).TemporaryInit(particleDynamicCompute, _particleData);
             
             void SetMaxFrameRate(int frameRate)
             {
@@ -53,7 +53,7 @@ namespace FluidSimulation
         private void OnDestroy()
         {
             // TODO: POISTA TÄMÄ KAUHISTUS
-            (_particleDynamics as ParticleDynamicsAlternative).TemporaryRelease();
+           // (_particleDynamics as ParticleDynamicsAlternative).TemporaryRelease();
         }
 
         void Update()
@@ -85,7 +85,8 @@ namespace FluidSimulation
             {
                 Position = position,
                 Velocity = velocity,
-                Type = type
+                Type = type,
+                color = Color.blue
             };
 
             int particleId = _particleData.Add(particle);
@@ -106,10 +107,10 @@ namespace FluidSimulation
             foreach (var particle in _particleData.All())
             {
                 _particleVisualization.UpdateParticle(particle.Id, particle.Position);
-               _particleVisualization.ColorParticle(particle.Id, Color.blue);
-              //  _particleVisualization.ColorParticle(particle.Id, particle.color);
+               //_particleVisualization.ColorParticle(particle.Id, Color.blue);
+                _particleVisualization.ColorParticle(particle.Id, particle.color);
             }
-
+/*
             if (_particleData.All().Length > 0)
             {
                 int i = Random.Range(0, _particleData.All().Length);
@@ -123,7 +124,7 @@ namespace FluidSimulation
                     if (n!=i)
                         _particleVisualization.ColorParticle(n, Color.green);
                 }
-            }
+            }*/
         }
 
         private void Clear()
@@ -166,7 +167,7 @@ namespace FluidSimulation
             NearStiffness = 1500,
             ViscositySigma = 0f,
             ViscosityBeta = 0.05f,
-            ElasticityAndPlasticityEnabled = false
+            
         };
         
         ParticleDynamics.Settings PoopSettings => new ParticleDynamics.Settings
@@ -178,10 +179,7 @@ namespace FluidSimulation
             NearStiffness = 1500,
             ViscositySigma = 0f,
             ViscosityBeta = 0.4f,
-            ElasticityAndPlasticityEnabled = true,
-            Plasticity = 5f,
-            YieldRatio = 0.01f,
-            SpringK = 1000f
+         
         };
         
         #endregion

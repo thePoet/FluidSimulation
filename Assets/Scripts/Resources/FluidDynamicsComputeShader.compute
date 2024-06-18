@@ -47,7 +47,7 @@ RWStructuredBuffer<int> _ParticlesInCells; //Length:  Number of cells * MaxNumPa
 RWStructuredBuffer<int> _ParticleNeighbours; //Length: MaxNumParticles * MaxNumNeighbours
 RWStructuredBuffer<int> _ParticleNeighbourCount; //Length: MaxNumParticles 
 RWStructuredBuffer<float2> _ChangeBuffer; //Length: MaxNumParticles * MaxNumNeighbours
-RWStructuredBuffer<int> _Stats; //Length: 10 
+RWStructuredBuffer<float> _Stats; //Length: 10 
 
 
 
@@ -117,16 +117,27 @@ void FillPartitioningCells (uint3 id : SV_DispatchThreadID)
 
     const int cellIndex = CellIndex(_Particles[index].Position);
 
-    if (cellIndex==-1) return;
+    if (cellIndex==-1)
+    {
+        _Stats[1] += 1;
+        _Stats[8] = _Particles[index].Position.x;
+        _Stats[9] = _Particles[index].Position.y;
+        
+        _Particles[index].Color = float4(1,0,0,1);
+        return;
+    }
   
     
     int previousCount = 0;
     InterlockedAdd(_CellParticleCount[cellIndex], 1, previousCount);
     if (previousCount >= _MaxNumParticlesPerCell)
     {
-        InterlockedAdd(_Stats[0], 1);
+        _Stats[0] += 1;
         return;
     }
+
+    if (cellIndex%2==0)  _Particles[index].Color = float4(1,1,0,1);
+    if (cellIndex%2==1)  _Particles[index].Color = float4(1,0,1,1);
   
     _ParticlesInCells[cellIndex * _MaxNumParticlesPerCell + previousCount] = index;
 
@@ -225,8 +236,8 @@ void CalculatePressures (uint3 id : SV_DispatchThreadID)
     if (particleIndex >= _NumParticles) return;
 
     const float restDensity = 5;
-    const float stiffness = 300;
-    const float nearStiffness = 600;
+    const float stiffness = 750;
+    const float nearStiffness = 1500;
 
     float density = 0;
     float nearDensity = 0;
