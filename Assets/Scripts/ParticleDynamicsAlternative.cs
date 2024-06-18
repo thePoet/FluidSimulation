@@ -188,6 +188,11 @@ namespace FluidSimulation
         private void MaintainDensity(IParticleData particleData,  float timeStep)
         {
              var particles = particleData.All();
+
+             for (int i = 0; i < particles.Length; i++)
+             {
+                 particles[i].Change = Vector2.zero;
+             }
             
             for (int i=0; i<particles.Length; i++)
             {
@@ -225,24 +230,25 @@ namespace FluidSimulation
                                     (particles[j].Position - particles[i].Position).normalized;
                         
                         
-                        if (particles[j].Type == ParticleType.Liquid)
-                            particles[j].Position += 0.5f * d;
-                        displacement -= 0.5f * d;
+                       // if (particles[j].Type == ParticleType.Liquid)
+                     //       particles[j].Change += 0.5f * d;
+                     particles[i].Change -= 0.5f * d;
+                        particles[j].Change += 0.5f * d;
                     }
                 }
       
-                particles[i].Position += displacement;
+                //particles[i].Position += displacement;
             //    particles[i].Change = displacement;
 
      
             }
-            /*
+            
             for (int i=0; i<particles.Length; i++)
             {
-                if (particles[i].Type == ParticleType.Solid) continue;
+                //if (particles[i].Type == ParticleType.Solid) continue;
                 particles[i].Position += particles[i].Change;
             }
-        */
+        
             
           
          
