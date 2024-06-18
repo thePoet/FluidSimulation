@@ -137,9 +137,6 @@ namespace FluidSimulation
             _dynamicsComputeShader.Dispatch(CalculateViscosityKernel, 32, 16, 1);
             _dynamicsComputeShader.Dispatch(ApplyViscosityKernel,     32, 16, 1);
 
-          //  Vector2[] changes = new Vector2[10000*100];
-            //_changeBuffer.GetData(changes);
-            
             
             particleData.ReadParticlesFromBuffer(_particleBuffer);
             particleData.ReadNeighboursFromBuffer(_particleNeighbours, _particleNeighbourCount);

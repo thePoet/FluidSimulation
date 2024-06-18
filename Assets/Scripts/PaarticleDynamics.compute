@@ -169,8 +169,8 @@ void RecordChange(float2 change, int index1, int index2)
 float2 ViscosityImpulse(int particle1, int particle2)
 {
     //   if (_Particles[neighbourIndex].typeNumber == 1) continue;
-    const float sigma = 0.05;
-    const float beta = 0.05;
+    const float sigma = 0.1;
+    const float beta = 0.1;
 
     float q = length(_Particles[particle1].Position - _Particles[particle2].Position) / _InteractionRadius;
     if (q >= 1) return float2(0,0);
@@ -194,7 +194,7 @@ void CalculateViscosity (uint3 id : SV_DispatchThreadID)
         int neighbourIndex = _ParticleNeighbours[particleIndex * _MaxNumNeighbours + i];
         float2 impulse = ViscosityImpulse(particleIndex, neighbourIndex);
         _Particles[particleIndex].Change += -impulse * 0.5;
-        RecordChange(impulse * 0.5, neighbourIndex, particleIndex);
+      //  RecordChange(impulse * 0.5, neighbourIndex, particleIndex);
     }
 }
 
@@ -207,32 +207,13 @@ void ApplyViscosity (uint3 id : SV_DispatchThreadID)
     if (particleIndex >= _NumParticles) return;
 
     _Particles[particleIndex].Velocity += _Particles[particleIndex].Change;
-
+/*
     for (int i=0; i<_ParticleNeighbourCount[particleIndex]; i++)
     {
         _Particles[particleIndex].Velocity += _ChangeBuffer[particleIndex * _MaxNumNeighbours + i];
-    }
+    }*/
 }
 
-
-/*
-[numthreads(8,8,1)]
-void SecondPhase (uint3 id : SV_DispatchThreadID)
-{
-    // Check if id is in the grid
-    if (id.x > _CubesPerAxis - 1 || id.y > _CubesPerAxis - 1)
-    {
-        return;
-    }
-
-    
-    int index = indexFromId(id);
-    if (_Particles[index].alive == 1)
-    {
-        _Particles[index].alive = 0;
-    }
-        
-}*/
 
 
 
