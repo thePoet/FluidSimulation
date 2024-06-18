@@ -172,95 +172,43 @@ namespace FluidSimulation
  
             
             particles = particleData.All();
+
             
-            for (int i=0; i<particles.Length; i++)
-                particles[i].Position += CollisionImpulseFromBorders(particles[i]);
+       
+
+//            for (int i=0; i<particles.Length; i++)
+  //              particles[i].Position += CollisionImpulseFromBorders(particles[i]);
             
 
             for (int i=0; i<particles.Length; i++)
                 particles[i].Velocity = (particles[i].Position - particles[i].PreviousPosition) / timeStep;
+            
+            for (int i=0; i<particles.Length; i++)
+                particles[i] = KeepInBox(particles[i]);
 
         }
 
         #endregion
         #region ------------------------------------------ PRIVATE METHODS ----------------------------------------------
 
-        /// <summary>
-        /// Maintains the density of the fluid by moving particles with Double Density Relaxation method.
-        /// See section 4. in the Beaudoin et al. paper.
-        /// </summary>
-        private void MaintainDensity(IParticleData particleData,  float timeStep)
+
+
+        private FluidParticle KeepInBox(FluidParticle particle)
         {
-             var particles = particleData.All();
+            if (_bounds.Contains(particle.Position)) return particle;
+
+            particle.Velocity = -particle.Velocity;
+
+            particle.Position =  ClampToBox(particle.Position, _bounds);
+            return particle;
             
-            for (int i=0; i<particles.Length; i++) particles[i].Change = Vector2.zero;
-                 
-                 
-            for (int i=0; i<particles.Length; i++)
+            Vector2 ClampToBox(Vector2 position, Rect box)
             {
-               // if (particles[i].Type == ParticleType.Solid) continue;
-                
-                float density = 0f;
-                float nearDensity = 0f;
-                
-                var neighbours = particleData.NeighbourIndicesTest(i);
-                
-                foreach (int j in neighbours)
-                {
-                    float distance = (particles[i].Position - particles[j].Position).magnitude;
-                    float q = distance / _settings.InteractionRadius;
-                    if (q < 1f)
-                    {
-                        density += Pow2(1f - q);
-                        nearDensity += Pow3(1f - q);
-                    }
-                }
-                
-          
-
-                float pressure = _settings.Stiffness * (density - _settings.RestDensity);
-                float nearPressure = _settings.NearStiffness * nearDensity;
-             
-               
-                foreach (int j in neighbours)
-                {
-                 //   if (particles[j].Type == ParticleType.Solid) continue;
-
-                    float distance = (particles[i].Position - particles[j].Position).magnitude;
-                    float q = distance / _settings.InteractionRadius;
-                    if (q < 1f)
-                    {
-                        Vector2 d = Pow2(timeStep) * (pressure * (1f - q) + nearPressure * Pow2(1f - q)) *
-                                    (particles[j].Position - particles[i].Position).normalized;
-                        
-                        
-                      //  if (particles[j].Type == ParticleType.Liquid)
-                           particles[j].Change += 0.5f * d;
-                        particles[i].Change -= 0.5f * d;
-                    }
-                }
-      
-               // particles[i].Position += displacement;
-            //    particles[i].Change = displacement;
-
-     
+                return new Vector2(Mathf.Clamp(position.x, box.xMin, box.xMax),
+                    Mathf.Clamp(position.y, box.yMin, box.yMax));
             }
-            
-            for (int i=0; i<particles.Length; i++)
-            {
-         
-                particles[i].Position += particles[i].Change;
-            }
-        
-            
-          
-         
         }
-        
 
-
-        
-        
 
         private Vector2 CollisionImpulseFromBorders(FluidParticle particle)
         {
