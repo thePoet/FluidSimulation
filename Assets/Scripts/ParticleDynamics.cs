@@ -82,6 +82,7 @@ namespace FluidSimulation
                 ApplyElasticityAndPlasticity(particleData, timeStep);
             }
             MaintainDensity(particleData, timeStep);
+          
  
             for (int i=0; i<particles.Length; i++)
                 particles[i].Position += CollisionImpulseFromBorders(particles[i]);
@@ -105,6 +106,10 @@ namespace FluidSimulation
         {
              var particles = particleData.All();
             
+             
+             for (int i=0; i<particles.Length; i++) particles[i].Change = Vector2.zero;
+             
+             
             for (int i=0; i<particles.Length; i++)
             {
                 if (particles[i].Type == ParticleType.Solid) continue;
@@ -147,17 +152,20 @@ namespace FluidSimulation
                                     (particles[j].Position - particles[i].Position).normalized;
                         
                         
-                        if (particles[j].Type == ParticleType.Liquid)
-                            particles[j].Position += 0.5f * d;
-                        displacement -= 0.5f * d;
+                      //  if (particles[j].Type == ParticleType.Liquid)
+                        particles[j].Change += 0.5f * d;
+                        particles[i].Change -= 0.5f * d;
                     }
                 }
       
-                particles[i].Position += displacement;
+              //  particles[i].Position += displacement;
                 
      
             }
+
+            for (int i=0; i<particles.Length; i++) particles[i].Position += particles[i].Change;
             
+            //----
             
             void CollisionToSolid(int indexFluid, int indexSolid) 
             {
