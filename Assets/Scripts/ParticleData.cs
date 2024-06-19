@@ -4,12 +4,8 @@ using UnityEngine;
 
 namespace FluidSimulation
 {
-    public class ParticleData : IParticleData
+    public class ParticleData 
     {
-      
-        public Dictionary<(int,int),float> Springs { get; }
-
-
         public int MaxNumberOfParticles { get; }
         private readonly int _maxNumNeighbours;
         private readonly int _maxNumParticlesInSpatialCell;
@@ -41,7 +37,7 @@ namespace FluidSimulation
             _bounds = bounds;
             _particles = new FluidParticle[maxNumberOfParticles];
             _neighbourSearch = new NeighbourSearch(neighbourRadius, maxNumberOfParticles, maxNumNeighbours);
-            Springs = new Dictionary<(int, int), float>();
+           
            
             Rect gridBounds = new Rect(bounds.min - Vector2.one * 2f * neighbourRadius, 
                 bounds.size + 4*Vector2.one * neighbourRadius);

@@ -13,7 +13,7 @@ namespace FluidSimulation
         public ComputeShader particleDynamicCompute;
         
         public ParticleDynamics.Settings settings;
-        private IParticleData _particleData;
+        private ParticleData _particleData;
         private IParticleDynamics _particleDynamics;
         private ParticleVisualization _particleVisualization;
         private Container _container;

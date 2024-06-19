@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace FluidSimulation
-{
+{/*
     public interface IParticleData
     {
         int Add(FluidParticle particle);
@@ -25,7 +25,7 @@ namespace FluidSimulation
         Dictionary<(int,int),float> Springs { get; }
         void ReadNeighboursFromBuffer(ComputeBuffer particleNeighbours, ComputeBuffer particleNeighbourCount);
     } 
-    
+    */
     public interface IPositionAndId
     {
         Vector2 Position { get;  }

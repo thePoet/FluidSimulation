@@ -2,5 +2,5 @@ using FluidSimulation;
 
 public interface IParticleDynamics 
 {
-    void Step(IParticleData particleData, float deltaTime);
+    void Step(ParticleData particleData, float deltaTime);
 }

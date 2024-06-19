@@ -23,8 +23,11 @@ namespace FluidSimulation
             public float ViscosityBeta;
        
 
+            [FormerlySerializedAs("MaxNumbParticles")] public int MaxNumParticles;
             public Rect AreaBounds;
-            public float PartitioningCellSize => InteractionRadius;
+
+            // TODO: MOVE:
+            public Grid2D PartitioningGrid => new Grid2D(AreaBounds, cellSize: InteractionRadius);
         }
         
         private struct BoxEdge
@@ -40,6 +43,7 @@ namespace FluidSimulation
             public readonly Vector2 Normal;
         }
      
+        private FluidsComputeShader _computeShader;
         private Rect _bounds;
         private readonly Settings _settings;
 
@@ -49,10 +53,10 @@ namespace FluidSimulation
             _settings = settings;
             _bounds = bounds;
 
-            var shader = new FluidsComputeShader();
+            _computeShader = new FluidsComputeShader("FluidDynamicsComputeShader", settings);
         }
         
-        public void Step(IParticleData particleData, float timeStep)
+        public void Step(ParticleData particleData, float timeStep)
         {
             var particles = particleData.All();
             
@@ -69,13 +73,15 @@ namespace FluidSimulation
             }
             
             // Move particles due to their velocity
+            /*
             for (int i=0; i<particles.Length; i++)
             {
                 if (particles[i].Type == ParticleType.Solid) continue;
                 particles[i].PreviousPosition = particles[i].Position;
                 particles[i].Position += particles[i].Velocity * timeStep;
-            }
+            }*/
 
+            _computeShader.Step(timeStep, particleData);
             
             particleData.UpdateNeighbours();
    
@@ -99,7 +105,7 @@ namespace FluidSimulation
         /// Maintains the density of the fluid by moving particles with Double Density Relaxation method.
         /// See section 4. in the Beaudoin et al. paper.
         /// </summary>
-        private void MaintainDensity(IParticleData particleData,  float timeStep)
+        private void MaintainDensity(ParticleData particleData,  float timeStep)
         {
              var particles = particleData.All();
             
@@ -227,7 +233,7 @@ namespace FluidSimulation
 
         
         
-        private void ApplyViscosity(IParticleData particleData,  float timeStep)
+        private void ApplyViscosity(ParticleData particleData,  float timeStep)
         {
             var particles = particleData.All();
             

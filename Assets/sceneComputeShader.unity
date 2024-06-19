@@ -386,10 +386,7 @@ MonoBehaviour:
     ViscosityEnabled: 1
     ViscositySigma: 0.1
     ViscosityBeta: 0.1
-    ElasticityAndPlasticityEnabled: 0
-    Plasticity: 0
-    YieldRatio: 0
-    SpringK: 0
+    MaxNumParticles: 10000
     AreaBounds:
       serializedVersion: 2
       x: 0

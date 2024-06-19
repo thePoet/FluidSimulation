@@ -7,7 +7,7 @@ using UnityEngine;
 namespace FluidSimulation
 {
     
-    public class ParticleDynamicsAlternative : IParticleDynamics
+    public class ParticleDynamicsAlternative 
     {
         [System.Serializable]
 
@@ -35,7 +35,7 @@ namespace FluidSimulation
         private ComputeBuffer _particlesInCells;
         private ComputeBuffer _particleNeighbours;
         private ComputeBuffer _particleNeighbourCount;
-        private ComputeBuffer _changeBuffer;
+
         private ComputeBuffer _statsBuffer;
       
         // Kernel indices TODO Use findKernel
@@ -59,7 +59,7 @@ namespace FluidSimulation
         
        
         
-        public void TemporaryInit(ComputeShader computeShader, IParticleData pdata)
+        public void TemporaryInit(ComputeShader computeShader, ParticleData pdata)
         {
             _dynamicsComputeShader = computeShader;
             _particleBuffer = pdata.CreateParticlesBuffer();
@@ -129,12 +129,7 @@ namespace FluidSimulation
            _dynamicsComputeShader.SetBuffer(8, "_ParticleNeighbours", _particleNeighbours);
            _dynamicsComputeShader.SetBuffer(8, "_ParticleNeighbourCount", _particleNeighbourCount);
 
-           
-           _changeBuffer = new ComputeBuffer(pdata.MaxNumberOfParticles * maxNumNeighbours , 2*sizeof(float));
-           _dynamicsComputeShader.SetBuffer(3, "_ChangeBuffer", _changeBuffer);
-           _dynamicsComputeShader.SetBuffer(4, "_ChangeBuffer", _changeBuffer);
-           _dynamicsComputeShader.SetBuffer(7, "_ChangeBuffer", _changeBuffer);
-           _dynamicsComputeShader.SetBuffer(8, "_ChangeBuffer", _changeBuffer);
+          
         }
         
         public void TemporaryRelease()
@@ -143,14 +138,13 @@ namespace FluidSimulation
             _cellParticleCount.Release();
             _particlesInCells.Release();
             _particleNeighbours.Release();
-            _particleNeighbourCount.Release();
-            _changeBuffer.Release();
+     
             _statsBuffer.Release();
         }
         
    
         
-        public void Step(IParticleData particleData, float timeStep)
+        public void Step(ParticleData particleData, float timeStep)
         {
                 var particles = particleData.All();
             
