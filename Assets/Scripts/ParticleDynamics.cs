@@ -74,27 +74,11 @@ namespace FluidSimulation
                 if (particles[i].Type == ParticleType.Solid) continue;
                 particles[i].Velocity += Vector2.down * timeStep * _settings.Gravity;
             }
-            
-            if (_settings.ViscosityEnabled)
-            {
-                ApplyViscosity(particleData, timeStep);
-            }
-            
-            // Move particles due to their velocity
-            /*
-            for (int i=0; i<particles.Length; i++)
-            {
-                if (particles[i].Type == ParticleType.Solid) continue;
-                particles[i].PreviousPosition = particles[i].Position;
-                particles[i].Position += particles[i].Velocity * timeStep;
-            }*/
+       
 
             _computeShader.Step(timeStep, particleData);
            
-            //particleData.UpdateNeighbours();
-   
-            
-           //MaintainDensity(particleData, timeStep);
+          
  
             for (int i=0; i<particles.Length; i++)
                 particles[i].Position += CollisionImpulseFromBorders(particles[i], Shrink(_bounds, 20f));
@@ -254,13 +238,15 @@ namespace FluidSimulation
             var sigma = _settings.ViscositySigma;
             var beta = _settings.ViscosityBeta;
             
+            for (int i=0; i<particles.Length; i++) particles[i].Change = Vector2.zero;
+            
             for (int i=0; i<particles.Length; i++)
             {
                 if (particles[i].Type == ParticleType.Solid) continue;
                 
                 foreach (int j in particleData.NeighbourIndices(i))
                 {
-                    if (i<=j) continue;
+                //    if (i<=j) continue;
                     
                     if (particles[j].Type == ParticleType.Solid) continue;
                 
@@ -273,14 +259,14 @@ namespace FluidSimulation
                     if (u <= 0f) continue;
                 
                     Vector2 impulse = timeStep * (1f - q) * (sigma * u + beta * Pow2(u)) * r;
-                    particles[i].Velocity -= impulse * 0.5f;
-                    particles[j].Velocity += impulse * 0.5f;
+                    particles[i].Change -= impulse * 0.5f;
+                    //particles[j].Change += impulse * 0.5f;
                 }
    
             }
             
             
-          
+            for (int i=0; i<particles.Length; i++) particles[i].Velocity += particles[i].Change;
         }
 
 

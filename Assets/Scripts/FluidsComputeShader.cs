@@ -61,12 +61,14 @@ namespace FluidSimulation
         }
 
 
-        public void Step(float deltaTime, ParticleData data)
+        public void Step(float deltaTime,  ParticleData data)
         {
             _computeShader.SetInt("_NumParticles", data.NumberOfParticles);
             _computeShader.SetFloat("_Time", deltaTime);
            
             WriteToBuffers(data);
+            Execute(Kernel.CalculateViscosity, threadGroupsForParticles);
+            Execute(Kernel.ApplyViscosity, threadGroupsForParticles);
             Execute(Kernel.ApplyVelocity, threadGroupsForParticles);
             ReadFromBuffers(data);
           
@@ -74,14 +76,18 @@ namespace FluidSimulation
             data.UpdateNeighbours();
             WriteToBuffers(data);
             
-            if (data.Check()!="") Debug.Log("A: " + data.Check());
-            Execute(Kernel.CalculatePressures, threadGroupsForParticles);
-            Execute(Kernel.CalculateDensityDisplacement, threadGroupsForParticles);
-            Execute(Kernel.ApplyDensityDisplacement, threadGroupsForParticles);
+           
+            
+            for (int i=0; i<3; i++)
+            {
+                Execute(Kernel.CalculatePressures, threadGroupsForParticles);
+                Execute(Kernel.CalculateDensityDisplacement, threadGroupsForParticles);
+                Execute(Kernel.ApplyDensityDisplacement, threadGroupsForParticles);
+            }
             
             ReadFromBuffers(data);
 
-            if (data.Check()!="") Debug.Log("B: " + data.Check());
+          
             
       
 
@@ -97,21 +103,19 @@ namespace FluidSimulation
 
         private void SetBuffers()
         {
-            _computeShader.SetBuffer((int)Kernel.ApplyVelocity, "_Particles", _particleBuffer);
-            _computeShader.SetBuffer((int)Kernel.CalculatePressures, "_Particles", _particleBuffer);
-            _computeShader.SetBuffer((int)Kernel.CalculateDensityDisplacement, "_Particles", _particleBuffer);
-            _computeShader.SetBuffer((int)Kernel.ApplyDensityDisplacement, "_Particles", _particleBuffer);
+            SetBufferForAllKernels("_Particles", _particleBuffer);
+            SetBufferForAllKernels("_ParticleNeighbours", _particleNeighbours); 
+            SetBufferForAllKernels("_ParticleNeighbourCount", _particleNeighbourCount);
 
-
-
-            _computeShader.SetBuffer((int)Kernel.CalculatePressures, "_ParticleNeighbours", _particleNeighbours);
-            _computeShader.SetBuffer((int)Kernel.CalculatePressures, "_ParticleNeighbourCount",
-                _particleNeighbourCount);
-            _computeShader.SetBuffer((int)Kernel.CalculateDensityDisplacement, "_ParticleNeighbours",
-                _particleNeighbours);
-            _computeShader.SetBuffer((int)Kernel.CalculateDensityDisplacement, "_ParticleNeighbourCount",
-                _particleNeighbourCount);
-
+          
+            
+            void SetBufferForAllKernels(string bufferName, ComputeBuffer buffer)
+            {
+                for (int i = 0; i < Enum.GetNames(typeof(Kernel)).Length; i++)
+                {
+                    _computeShader.SetBuffer(i, bufferName, buffer);
+                }
+            }
         }
 
         private void ReadFromBuffers(ParticleData data)

@@ -183,9 +183,15 @@ float2 ViscosityImpulse(int particle1, int particle2)
     const float sigma = 0.1;
     const float beta = 0.1;
 
-    float q = length(_Particles[particle1].Position - _Particles[particle2].Position) / _InteractionRadius;
+    float distance = length(_Particles[particle1].Position - _Particles[particle2].Position);
+
+    // Is there a better way? Add epsilon to position?
+    if (distance < 0.00001) return float2(0,0);
+    
+    float q = distance / _InteractionRadius;
     if (q >= 1) return float2(0,0);
     float2 r = normalize(_Particles[particle1].Position - _Particles[particle2].Position);
+    
     float u = dot(_Particles[particle1].Velocity - _Particles[particle2].Velocity, r);
     if (u <= 0) return float2(0,0);
     return _Time * (1 - q) * (sigma * u + beta * u * u) * r;
