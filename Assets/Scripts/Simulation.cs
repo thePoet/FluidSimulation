@@ -14,7 +14,7 @@ namespace FluidSimulation
         
         public ParticleDynamics.Settings settings;
         private ParticleData _particleData;
-        private IParticleDynamics _particleDynamics;
+        private ParticleDynamics _particleDynamics;
         private ParticleVisualization _particleVisualization;
         private Container _container;
 
@@ -52,8 +52,9 @@ namespace FluidSimulation
 
         private void OnDestroy()
         {
+            _particleDynamics.Dispose();
             // TODO: POISTA TÄMÄ KAUHISTUS
-           // (_particleDynamics as ParticleDynamicsAlternative).TemporaryRelease();
+            // (_particleDynamics as ParticleDynamicsAlternative).TemporaryRelease();
         }
 
         void Update()
@@ -110,10 +111,11 @@ namespace FluidSimulation
                //_particleVisualization.ColorParticle(particle.Id, Color.blue);
                 _particleVisualization.ColorParticle(particle.Id, particle.color);
             }
-/*
+
             if (_particleData.All().Length > 0)
             {
                 int i = Random.Range(0, _particleData.All().Length);
+             
                 _particleVisualization.ColorParticle(i, Color.red);
                 
               
@@ -124,7 +126,7 @@ namespace FluidSimulation
                     if (n!=i)
                         _particleVisualization.ColorParticle(n, Color.green);
                 }
-            }*/
+            }
         }
 
         private void Clear()

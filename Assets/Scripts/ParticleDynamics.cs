@@ -1,5 +1,6 @@
 using UnityEngine;
 using RikusGameDevToolbox.GeneralUse;
+using Unity.VisualScripting;
 using UnityEngine.Serialization;
 
 // Based on paper by Simon Clavet, Philippe Beaudoin, and Pierre Poulin
@@ -23,11 +24,13 @@ namespace FluidSimulation
             public float ViscosityBeta;
        
 
-            [FormerlySerializedAs("MaxNumbParticles")] public int MaxNumParticles;
+            public int MaxNumParticles;
             public Rect AreaBounds;
+            public int MaxNumParticlesInPartitioningCell;
 
             // TODO: MOVE:
             public Grid2D PartitioningGrid => new Grid2D(AreaBounds, cellSize: InteractionRadius);
+            public int MaxNumNeighbours;
         }
         
         private struct BoxEdge
@@ -54,6 +57,11 @@ namespace FluidSimulation
             _bounds = bounds;
 
             _computeShader = new FluidsComputeShader("FluidDynamicsComputeShader", settings);
+        }
+
+        public void Dispose()
+        {
+            _computeShader.Dispose();
         }
         
         public void Step(ParticleData particleData, float timeStep)
@@ -83,10 +91,10 @@ namespace FluidSimulation
 
             _computeShader.Step(timeStep, particleData);
             
-            particleData.UpdateNeighbours();
+            //particleData.UpdateNeighbours();
    
             
-            MaintainDensity(particleData, timeStep);
+           //MaintainDensity(particleData, timeStep);
  
             for (int i=0; i<particles.Length; i++)
                 particles[i].Position += CollisionImpulseFromBorders(particles[i]);
@@ -120,6 +128,8 @@ namespace FluidSimulation
                 
                 foreach (int j in neighbours)
                 {
+                    if (i==j) continue;
+                    
                     if (particles[j].Type == ParticleType.Solid)
                     {
                         CollisionToSolid(i, j);
@@ -141,6 +151,9 @@ namespace FluidSimulation
 
                 foreach (int j in neighbours)
                 {
+                    if (i==j) continue;
+
+                    
                     if (particles[j].Type == ParticleType.Solid) continue;
 
                     float distance = (particles[i].Position - particles[j].Position).magnitude;

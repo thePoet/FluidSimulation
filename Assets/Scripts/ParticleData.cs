@@ -63,6 +63,33 @@ namespace FluidSimulation
            particleNeighbourCount.GetData(_neighbourCount);
         }
         
+        // Temporary
+        public void WriteNeighboursToBuffer(ComputeBuffer particleNeighbours, ComputeBuffer particleNeighbourCount)
+        {
+
+            for (int i = 0; i < _numParticles; i++)
+            {
+                _neighbourCount[i] = 0;
+                
+                
+                foreach(int j in NeighbourIndices(i))
+                {
+                    if (j == i) continue;
+                    if (Vector2.Distance(_particles[i].Position, _particles[j].Position) < _neighbourRadius)
+                    {
+                      
+                        _neighbourIndices[i*_maxNumNeighbours + _neighbourCount[i]] = j;
+                        _neighbourCount[i]++;
+                    }
+                }
+            
+            }
+            particleNeighbours.SetData(_neighbourIndices);
+            particleNeighbourCount.SetData(_neighbourCount);
+            
+            
+        }
+        
         public ComputeBuffer CreateSpatialBuffer() => new ComputeBuffer(MaxNumberOfParticles, FluidParticle.Stride);
         public void WriteSpatialToBuffer(ComputeBuffer buffer) => buffer.SetData(_particles);
         public void ReadSpatialFromBuffer(ComputeBuffer buffer) => buffer.GetData(_particles);

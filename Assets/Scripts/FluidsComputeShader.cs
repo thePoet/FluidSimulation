@@ -16,16 +16,7 @@ namespace FluidSimulation
         private ComputeBuffer _particleNeighbourCount;
         private ComputeBuffer _statsBuffer;
       
-        // Kernel indices TODO Use findKernel
-        private const int ClearPartitioningKernel            = 0;
-        private const int FillPartitioningKernel             = 1;
-        private const int FindNeighboursKernel               = 2;
-        private const int CalculateViscosityKernel           = 3;
-        private const int ApplyViscosityKernel               = 4;
-        private const int ApplyVelocityKernel                = 5;
-        private const int CalculatePressuresKernel           = 6;
-        private const int CalculateDensityDisplacementKernel = 7;
-        private const int ApplyDensityDisplacementKernel     = 8;
+
 
         enum Kernel
         {
@@ -53,15 +44,18 @@ namespace FluidSimulation
             _settings = settings;
             
             CreateBuffers();
-            SetBuffets();
+            SetBuffers();
+            
+            _computeShader.SetInt("_MaxNumParticles", settings.MaxNumParticles);
+            _computeShader.SetInt("_MaxNumNeighbours", settings.MaxNumNeighbours);
+            
+            _computeShader.SetInt("_MaxNumParticlesPerCell", settings.MaxNumParticlesInPartitioningCell);
+            _computeShader.SetFloat("_InteractionRadius", _settings.InteractionRadius);
         }
 
-        private void SetBuffets()
-        {
-            _computeShader.SetBuffer((int)Kernel.ApplyVelocity, "_Particles", _particleBuffer);
-        }
+     
 
-        ~FluidsComputeShader()
+        public void Dispose()
         {
             ReleaseBuffers();
         }
@@ -71,9 +65,50 @@ namespace FluidSimulation
         {
             _computeShader.SetInt("_NumParticles", data.NumberOfParticles);
             _computeShader.SetFloat("_Time", deltaTime);
+           
             WriteToBuffers(data);
-            Execute(Kernel.ApplyVelocity, threadGroupsParticles);
+            Execute(Kernel.ApplyVelocity, threadGroupsForParticles);
             ReadFromBuffers(data);
+          
+            
+            data.UpdateNeighbours();
+            WriteToBuffers(data);
+            
+            
+            Execute(Kernel.CalculatePressures, threadGroupsForParticles);
+            Execute(Kernel.CalculateDensityDisplacement, threadGroupsForParticles);
+            Execute(Kernel.ApplyDensityDisplacement, threadGroupsForParticles);
+            ReadFromBuffers(data);
+
+      
+
+        }
+
+        
+        private void CreateBuffers()
+        {
+            _particleBuffer = new ComputeBuffer(_settings.MaxNumParticles, FluidParticle.Stride);
+            _particleNeighbours = new ComputeBuffer(_settings.MaxNumParticles * _settings.MaxNumNeighbours, sizeof(int));
+            _particleNeighbourCount = new ComputeBuffer(_settings.MaxNumParticles , sizeof(int));
+        }
+
+        private void SetBuffers()
+        {
+            _computeShader.SetBuffer((int)Kernel.ApplyVelocity, "_Particles", _particleBuffer);
+            _computeShader.SetBuffer((int)Kernel.CalculatePressures, "_Particles", _particleBuffer);
+            _computeShader.SetBuffer((int)Kernel.CalculateDensityDisplacement, "_Particles", _particleBuffer);
+            _computeShader.SetBuffer((int)Kernel.ApplyDensityDisplacement, "_Particles", _particleBuffer);
+
+
+
+            _computeShader.SetBuffer((int)Kernel.CalculatePressures, "_ParticleNeighbours", _particleNeighbours);
+            _computeShader.SetBuffer((int)Kernel.CalculatePressures, "_ParticleNeighbourCount",
+                _particleNeighbourCount);
+            _computeShader.SetBuffer((int)Kernel.CalculateDensityDisplacement, "_ParticleNeighbours",
+                _particleNeighbours);
+            _computeShader.SetBuffer((int)Kernel.CalculateDensityDisplacement, "_ParticleNeighbourCount",
+                _particleNeighbourCount);
+
         }
 
         private void ReadFromBuffers(ParticleData data)
@@ -84,21 +119,18 @@ namespace FluidSimulation
         private void WriteToBuffers(ParticleData data)
         {
             data.WriteParticlesToBuffer(_particleBuffer);
+            data.WriteNeighboursToBuffer(_particleNeighbours, _particleNeighbourCount);
         }
-
-        private void CreateBuffers()
-        {
-            _particleBuffer = new ComputeBuffer(_settings.MaxNumParticles, FluidParticle.Stride);
-        }
+        
         
         private void ReleaseBuffers()
         {
             _particleBuffer.Release();
-            /*   _cellParticleCount.Release();
-          _particlesInCells.Release();
+          //    _cellParticleCount.Release();
+          //_particlesInCells.Release();
           _particleNeighbours.Release();
           _particleNeighbourCount.Release();
-          _statsBuffer.Release();*/
+          //_statsBuffer.Release();
         }
         
         private void Execute(Kernel kernel, Vector3Int threadGroups)
@@ -106,7 +138,7 @@ namespace FluidSimulation
             _computeShader.Dispatch((int)kernel, threadGroups.x, threadGroups.y, threadGroups.z);
         }
         
-        private Vector3Int threadGroupsParticles => new Vector3Int(32, 16, 1);
-        private Vector3Int threadGroupsCells => new Vector3Int(32, 16, 1); //NOTE: This is not correct
+        private Vector3Int threadGroupsForParticles => new Vector3Int(32, 16, 1);
+        private Vector3Int threadGroupsForCells => new Vector3Int(32, 16, 1); //NOTE: This is not correct
     }
 }

@@ -393,6 +393,8 @@ MonoBehaviour:
       y: 0
       width: 300
       height: 200
+    MaxNumParticlesInPartitioningCell: 50
+    MaxNumNeighbours: 100
 --- !u!114 &1692431640
 MonoBehaviour:
   m_ObjectHideFlags: 0
