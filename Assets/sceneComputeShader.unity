@@ -184,7 +184,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 118.72428
+  orthographic size: 220
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -209,7 +209,7 @@ Transform:
   m_GameObject: {fileID: 363422005}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 149, y: 100.3, z: -10}
+  m_LocalPosition: {x: 362, y: 200, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -244,8 +244,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3375c9b1056d44704a34f7789ead9081, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  blobsPerFrame: 3
-  brushRadius: 6
+  blobsPerFrame: 10
+  brushRadius: 10
   maxSpeed: 0.1
   simulation: {fileID: 0}
 --- !u!4 &405270752
@@ -376,7 +376,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e0318b743faf4ffb9c28c6167a90b9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  particleDynamicCompute: {fileID: 7200000, guid: 427418cd92f914fbc92228599a7d7bd2, type: 3}
+  text: {fileID: 2101029934}
   settings:
     InteractionRadius: 15
     Gravity: 500
@@ -386,13 +386,13 @@ MonoBehaviour:
     ViscosityEnabled: 1
     ViscositySigma: 0.1
     ViscosityBeta: 0.1
-    MaxNumParticles: 10000
+    MaxNumParticles: 13000
     AreaBounds:
       serializedVersion: 2
       x: 0
       y: 0
-      width: 300
-      height: 200
+      width: 700
+      height: 400
     MaxNumParticlesInPartitioningCell: 50
     MaxNumNeighbours: 100
 --- !u!114 &1692431640
@@ -443,8 +443,8 @@ MonoBehaviour:
     serializedVersion: 2
     x: 0
     y: 0
-    width: 300
-    height: 200
+    width: 700
+    height: 400
 --- !u!4 &1889715700
 Transform:
   m_ObjectHideFlags: 0
@@ -504,9 +504,9 @@ LineRenderer:
   m_SortingOrder: 0
   m_Positions:
   - {x: 0, y: 0, z: 0}
-  - {x: 300, y: 0, z: 0}
-  - {x: 300, y: 200, z: 0}
-  - {x: 0, y: 200, z: 0}
+  - {x: 700, y: 0, z: 0}
+  - {x: 700, y: 400, z: 0}
+  - {x: 0, y: 400, z: 0}
   m_Parameters:
     serializedVersion: 3
     widthMultiplier: 1
@@ -631,8 +631,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 60
+  m_fontSizeBase: 60
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -734,7 +734,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 250.6, y: 185.76404}
+  m_AnchoredPosition: {x: -37.4, y: 402.2}
   m_SizeDelta: {x: 73.623, y: 24.6824}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1660057539 &9223372036854775807

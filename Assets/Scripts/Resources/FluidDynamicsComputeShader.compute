@@ -46,7 +46,7 @@ RWStructuredBuffer<int> _CellParticleCount; // Length: Number of cells
 RWStructuredBuffer<int> _ParticlesInCells; //Length:  Number of cells * MaxNumParticlesPerCell
 RWStructuredBuffer<int> _ParticleNeighbours; //Length: MaxNumParticles * MaxNumNeighbours
 RWStructuredBuffer<int> _ParticleNeighbourCount; //Length: MaxNumParticles 
-RWStructuredBuffer<float2> _ChangeBuffer; //Length: MaxNumParticles * MaxNumNeighbours
+//RWStructuredBuffer<float2> _ChangeBuffer; //Length: MaxNumParticles * MaxNumNeighbours
 RWStructuredBuffer<float> _Stats; //Length: 10 
 
 
@@ -127,7 +127,8 @@ void FillPartitioningCells (uint3 id : SV_DispatchThreadID)
         return;
     }
   
-    
+
+    //TODO: Maybe faster without interlocked by doing cell per thread?
     int previousCount = 0;
     InterlockedAdd(_CellParticleCount[cellIndex], 1, previousCount);
     if (previousCount >= _MaxNumParticlesPerCell)
@@ -136,8 +137,8 @@ void FillPartitioningCells (uint3 id : SV_DispatchThreadID)
         return;
     }
 
-    if (cellIndex%2==0)  _Particles[index].Color = float4(1,1,0,1);
-    if (cellIndex%2==1)  _Particles[index].Color = float4(1,0,1,1);
+  //  if (cellIndex%2==0)  _Particles[index].Color = float4(1,1,0,1);
+    //if (cellIndex%2==1)  _Particles[index].Color = float4(1,0,1,1);
   
     _ParticlesInCells[cellIndex * _MaxNumParticlesPerCell + previousCount] = index;
 

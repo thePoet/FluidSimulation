@@ -1,8 +1,5 @@
-using System;
-using System.Collections;
 using RikusGameDevToolbox.GeneralUse;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 
@@ -10,7 +7,9 @@ namespace FluidSimulation
 {
     public class Simulation : MonoBehaviour
     {
-        public ComputeShader particleDynamicCompute;
+        public TMPro.TextMeshPro text;
+        
+        
         
         public ParticleDynamics.Settings settings;
         private ParticleData _particleData;
@@ -60,6 +59,8 @@ namespace FluidSimulation
                 UpdateParticleVisualization();
             }
             ProcessUserInput();
+            
+            text.text = "Particles: " + _particleData.NumberOfParticles.ToString();
         }
         
         #endregion

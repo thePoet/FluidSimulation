@@ -1,7 +1,5 @@
 using UnityEngine;
-using RikusGameDevToolbox.GeneralUse;
-using Unity.VisualScripting;
-using UnityEngine.Serialization;
+
 
 // Based on paper by Simon Clavet, Philippe Beaudoin, and Pierre Poulin
 // https://www.academia.edu/452554/Particle-Based_Viscoelastic_Fluid_Simulation
