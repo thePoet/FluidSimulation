@@ -90,14 +90,14 @@ namespace FluidSimulation
             }*/
 
             _computeShader.Step(timeStep, particleData);
-            
+           
             //particleData.UpdateNeighbours();
    
             
            //MaintainDensity(particleData, timeStep);
  
             for (int i=0; i<particles.Length; i++)
-                particles[i].Position += CollisionImpulseFromBorders(particles[i]);
+                particles[i].Position += CollisionImpulseFromBorders(particles[i], Shrink(_bounds, 20f));
             
 
             for (int i=0; i<particles.Length; i++)
@@ -284,11 +284,11 @@ namespace FluidSimulation
         }
 
 
-        private Vector2 CollisionImpulseFromBorders(FluidParticle particle)
+        private Vector2 CollisionImpulseFromBorders(FluidParticle particle, Rect bounds)
         {
-            if (_bounds.Contains(particle.Position)) return Vector2.zero;
+            if (bounds.Contains(particle.Position)) return Vector2.zero;
 
-            (Vector2 collisionPosition, Vector2 collisionNormal) = CollisionToBoxFromInside(_bounds, particle.PreviousPosition, particle.Position);
+            (Vector2 collisionPosition, Vector2 collisionNormal) = CollisionToBoxFromInside(bounds, particle.PreviousPosition, particle.Position);
 
             Vector2 velocity = particle.Position - particle.PreviousPosition;
             
@@ -301,9 +301,9 @@ namespace FluidSimulation
             Vector2 impulse = -velocityNormal - tangentialFriction * velocityTangent;
             
             Vector2 endPosition = particle.Position + impulse;
-            if (!_bounds.Contains(endPosition))
+            if (!bounds.Contains(endPosition))
             {
-                endPosition = ClampToBox(endPosition, Shrink(_bounds, _bounds.width * 0.0001f));
+                endPosition = ClampToBox(endPosition, Shrink(bounds, bounds.width * 0.0001f));
                impulse = endPosition - particle.Position;
             }
             
@@ -315,10 +315,7 @@ namespace FluidSimulation
                     Mathf.Clamp(position.y, box.yMin, box.yMax));
             }
             
-            Rect Shrink(Rect rect, float amount)
-            {
-                return new Rect(rect.xMin + amount/2f, rect.yMin + amount/2f, rect.width - amount, rect.height - amount);
-            }
+          
 
             (Vector2 position, Vector2 normal) CollisionToBoxFromInside(Rect box, Vector2 startPosition, Vector2 attemptedPosition)
             {
@@ -349,7 +346,10 @@ namespace FluidSimulation
             }
         }
 
-    
+        Rect Shrink(Rect rect, float amount)
+        {
+            return new Rect(rect.xMin + amount/2f, rect.yMin + amount/2f, rect.width - amount, rect.height - amount);
+        }
         float Pow2 (float x) => x * x;
         float Pow3 (float x) => x * x * x;
 

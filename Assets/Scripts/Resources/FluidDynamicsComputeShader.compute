@@ -265,9 +265,15 @@ float2 DensityDisplacement(int particle1, int particle2)
     
     float pressure = _Particles[particle1].Pressure;
     float nearPressure = _Particles[particle1].NearPressure;
-            
+
+    float2 fromTo = _Particles[particle2].Position - _Particles[particle1].Position;
+
+    // Is there a better way? Add epsilon to position?
+    if (length(fromTo) < 0.000001) return float2(0,0); 
+
+    
     float2 d = _Time * _Time * (pressure * (1 - q) + nearPressure * (1 - q) * (1 - q)) *
-                normalize(_Particles[particle2].Position - _Particles[particle1].Position);
+                normalize(fromTo);
     
     return 0.5 * d;
 }
@@ -284,6 +290,7 @@ void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
     for (int j=0; j<_ParticleNeighbourCount[particleIndex]; j++)
     {
         int neighbourIndex = _ParticleNeighbours[particleIndex * _MaxNumNeighbours + j];
+        
         _Particles[particleIndex].Change -= DensityDisplacement(particleIndex, neighbourIndex);
         _Particles[particleIndex].Change += DensityDisplacement(neighbourIndex, particleIndex);
     }

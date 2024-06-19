@@ -74,12 +74,15 @@ namespace FluidSimulation
             data.UpdateNeighbours();
             WriteToBuffers(data);
             
-            
+            if (data.Check()!="") Debug.Log("A: " + data.Check());
             Execute(Kernel.CalculatePressures, threadGroupsForParticles);
             Execute(Kernel.CalculateDensityDisplacement, threadGroupsForParticles);
             Execute(Kernel.ApplyDensityDisplacement, threadGroupsForParticles);
+            
             ReadFromBuffers(data);
 
+            if (data.Check()!="") Debug.Log("B: " + data.Check());
+            
       
 
         }

@@ -28,27 +28,28 @@ namespace FluidSimulation
         
         
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
-        public ParticleData(int maxNumberOfParticles, int maxNumNeighbours, float neighbourRadius, Rect bounds)
+        public ParticleData(ParticleDynamics.Settings settings)
         {
-            MaxNumberOfParticles = maxNumberOfParticles;
-            _maxNumNeighbours = maxNumNeighbours;
-            _neighbourRadius = neighbourRadius;
-            _maxNumParticlesInSpatialCell = maxNumNeighbours * 2;
-            _bounds = bounds;
-            _particles = new FluidParticle[maxNumberOfParticles];
-            _neighbourSearch = new NeighbourSearch(neighbourRadius, maxNumberOfParticles, maxNumNeighbours);
-           
-           
-            Rect gridBounds = new Rect(bounds.min - Vector2.one * 2f * neighbourRadius, 
-                bounds.size + 4*Vector2.one * neighbourRadius);
+            MaxNumberOfParticles = settings.MaxNumParticles;
+            _maxNumNeighbours = settings.MaxNumNeighbours;
+            _neighbourRadius = settings.InteractionRadius;
+            _maxNumParticlesInSpatialCell = _maxNumNeighbours * 2;
+            _bounds = settings.AreaBounds;
             
-            var grid = new Grid2D(gridBounds, cellSize : neighbourRadius);
+            _particles = new FluidParticle[MaxNumberOfParticles];
+            _neighbourSearch = new NeighbourSearch(_neighbourRadius, MaxNumberOfParticles, _maxNumNeighbours);
+           
+           
+            Rect gridBounds = new Rect(_bounds.min - Vector2.one * 2f * _neighbourRadius, 
+                _bounds.size + 4f*Vector2.one * _neighbourRadius);
+            
+            var grid = new Grid2D(gridBounds, cellSize : _neighbourRadius);
             _partitioningGrid = new SpatialPartitioningGrid(grid,  maxNumParticlesInCell: 25);
             _neighbourGrid = new SpatialPartitioningGrid(grid,  maxNumParticlesInCell: 25*9);
             
             
-            _neighbourIndices = new int[maxNumberOfParticles * maxNumNeighbours];
-            _neighbourCount = new int[maxNumberOfParticles];
+            _neighbourIndices = new int[MaxNumberOfParticles * _maxNumNeighbours];
+            _neighbourCount = new int[MaxNumberOfParticles];
            
            
         }
@@ -80,6 +81,12 @@ namespace FluidSimulation
                       
                         _neighbourIndices[i*_maxNumNeighbours + _neighbourCount[i]] = j;
                         _neighbourCount[i]++;
+                        
+                        
+                        if (_neighbourCount[i] >= _maxNumNeighbours)
+                        {Debug.Log("Max number of neighbours exceeded!");
+                            break;
+                        }
                     }
                 }
             
@@ -119,6 +126,22 @@ namespace FluidSimulation
             return span.Slice(0, _numParticles);
         }
 
+        public string Check()
+        {
+            string result = "";
+            
+            for (int i=0; i<_numParticles; i++)
+            {
+                if (float.IsNaN(_particles[i].Position.x)) result += "pos nan at: " + i + " ";
+                if (float.IsNaN(_particles[i].Velocity.x)) result += "vel nan at: " + i + " ";
+                if (float.IsNaN(_particles[i].Change.x)) result += "change nan at: " + i + " " + _particles[i].PreviousPosition;
+                if (float.IsNaN(_particles[i].Pressure)) result += "pressure nan at: " + i + " ";
+                if (float.IsNaN(_particles[i].NearPressure)) result += "near pressure nan at: " + i + " ";
+               
+            }
+
+            return result;
+        }
 
         public Span<int> NeighbourIndicesTest(int particleIndex)
         {
@@ -137,6 +160,8 @@ namespace FluidSimulation
         
         public Span<int> NeighbourIndices(int particleIndex)
         {
+
+        
          //  return _neighbourSearch.NeighboursOf(particleIndex);
             return _neighbourGrid.GetParticlesInCell(_particles[particleIndex].Position);
         }

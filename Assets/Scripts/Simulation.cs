@@ -33,12 +33,7 @@ namespace FluidSimulation
 
             _particleDynamics =  new ParticleDynamics(settings, _container.Bounds);
 
-            _particleData = new ParticleData(
-                maxNumberOfParticles: 10000, 
-                maxNumNeighbours: 100, 
-                DefaultSettings.InteractionRadius, 
-                _container.Bounds
-            );
+            _particleData = new ParticleData(settings);
             
             // TODO: POISTA TÄMÄ KAUHISTUS
          //   (_particleDynamics as ParticleDynamicsAlternative).TemporaryInit(particleDynamicCompute, _particleData);

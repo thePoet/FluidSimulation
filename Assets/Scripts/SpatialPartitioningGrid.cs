@@ -27,7 +27,11 @@ public class SpatialPartitioningGrid
     /// <param name="offsetY">y offset for cell></param>
     public Span<int> GetParticlesInCell(Vector2 position)
     {
-        if (!_grid.IsInGrid(position)) return Span<int>.Empty;
+        if (!_grid.IsInGrid(position))
+        {
+            Debug.LogWarning("Position is not in the grid " + position );
+            return Span<int>.Empty;
+        }
         int cellIndex = _grid.CellIndex(position);
         return new Span<int>(_particleIndices, cellIndex * _maxNumParticlesInCell, _numParticlesInCell[cellIndex]);
     }
