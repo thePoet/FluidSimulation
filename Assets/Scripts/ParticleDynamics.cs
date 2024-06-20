@@ -17,7 +17,6 @@ namespace FluidSimulation
             public float RestDensity;
             public float Stiffness;
             public float NearStiffness;
-            public bool ViscosityEnabled;
             public float ViscositySigma;
             public float ViscosityBeta;
        
@@ -96,7 +95,7 @@ namespace FluidSimulation
         /// See section 4. in the Beaudoin et al. paper.
         /// </summary>
         private void MaintainDensity(ParticleData particleData,  float timeStep)
-        {
+        {/*
              var particles = particleData.All();
             
             for (int i=0; i<particles.Length; i++)
@@ -171,17 +170,7 @@ namespace FluidSimulation
                 
                 float solidRadius = 10f;
                 if (distance >= solidRadius) return;
-
-/*
-                Vector2 impactPoint = Math2d.LineIntersectionWithCircle
-                (
-                    linePointA: particles[indexFluid].Position,
-                    linePointB: particles[indexFluid].PreviousPosition,
-                    center: particles[indexSolid].Position,
-                    radius: solidRadius
-                );
-*/
-
+                
 
                 Vector2 deltaPosition = particles[indexFluid].Position - particles[indexFluid].PreviousPosition;
                 Vector2 closestPointOutsideSolid = particles[indexSolid].Position + solidToFluid.normalized * solidRadius;
@@ -191,15 +180,7 @@ namespace FluidSimulation
                     deltaPosition, // old velocity, projected on...
                     particles[indexSolid].Position - closestPointOutsideSolid // ...surface normal of solid circle
                 ).normalized;
-                              
                 
-                /*
-                Vector2 bounceDirection = Vector2.Reflect
-                (
-                    deltaPosition, // old velocity, projected on...
-                    particles[indexSolid].Position - impactPoint // ...surface normal of solid circle
-                ).normalized;
-*/
                 
                 float bounceFriction = -0.1f;
                 float bounceDistance = (closestPointOutsideSolid - particles[indexFluid].Position).magnitude * bounceFriction;
@@ -211,62 +192,17 @@ namespace FluidSimulation
                 particles[indexFluid].PreviousPosition = closestPointOutsideSolid - bounceDirection * bounceDistance;
                 particles[indexFluid].Position = closestPointOutsideSolid;
 
-                /*
-                   Vector2 impactPosition = particles[indexFluid].Position + solidToFluid.normalized * (5f - distance);
-                   particles[indexFluid].Position = impactPosition +
-
-                   particles[indexFluid].PreviousPosition = impactPosition;
-
-   */
-
+ 
             }
 
-         
+         */
         }
         
 
 
         
         
-        private void ApplyViscosity(ParticleData particleData,  float timeStep)
-        {
-            var particles = particleData.All();
-            
-            var interactionRadius = _settings.InteractionRadius;
-            var sigma = _settings.ViscositySigma;
-            var beta = _settings.ViscosityBeta;
-            
-            for (int i=0; i<particles.Length; i++) particles[i].Change = Vector2.zero;
-            
-            for (int i=0; i<particles.Length; i++)
-            {
-                if (particles[i].Type == ParticleType.Solid) continue;
-                
-                foreach (int j in particleData.NeighbourIndices(i))
-                {
-                //    if (i<=j) continue;
-                    
-                    if (particles[j].Type == ParticleType.Solid) continue;
-                
-                    float q = (particles[i].Position - particles[j].Position).magnitude / interactionRadius;
-                    if (q>=1f) continue;
-                    Vector2 r = (particles[i].Position - particles[j].Position).normalized;
-                    // Inward radial velocity
-                    float u = Vector2.Dot(particles[i].Velocity - particles[j].Velocity,  r);
-                
-                    if (u <= 0f) continue;
-                
-                    Vector2 impulse = timeStep * (1f - q) * (sigma * u + beta * Pow2(u)) * r;
-                    particles[i].Change -= impulse * 0.5f;
-                    //particles[j].Change += impulse * 0.5f;
-                }
-   
-            }
-            
-            
-            for (int i=0; i<particles.Length; i++) particles[i].Velocity += particles[i].Change;
-        }
-
+        
 
         private Vector2 CollisionImpulseFromBorders(FluidParticle particle, Rect bounds)
         {

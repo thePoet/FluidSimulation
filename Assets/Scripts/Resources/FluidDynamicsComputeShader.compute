@@ -14,33 +14,44 @@ struct Particle
     float2 Position;
     float2 PreviousPosition;
     float2 Velocity;
-    float2 Change;
+    int typeNumber;
+ //   float4 Color;
+};
+
+struct TempParticleData
+{
+    float2 PositionChange;
+    float2 VelocityChange;
+    float2 PreviousPosition;
     float Pressure;
     float NearPressure;
-    int typeNumber;
-    float4 Color;
 };
+            
+
+
 
 
 // Settings
 int _NumParticles;
 int _MaxNumParticles;
 int _MaxNumNeighbours;
+int _MaxNumParticlesPerCell;
+float _InteractionRadius;
+
 float _AreaMinX;
 float _AreaMinY;
 float _AreaMaxX;
 float _AreaMaxY;
-int _MaxNumParticlesPerCell;
-float _InteractionRadius;
+
 
 
 // Adjusted per frame
-float _Time;
+float _DeltaTime;
 
 
 
 RWStructuredBuffer<Particle> _Particles; //Length: MaxNumParticles
-
+RWStructuredBuffer<TempParticleData> _TempParticleData; 
 // Number of cells: ceil((AreaMaxX - AreaMinX) / InteractionRadius) * ceil((AreaMaxY - AreaMinY) / InteractionRadius)
 RWStructuredBuffer<int> _CellParticleCount; // Length: Number of cells
 RWStructuredBuffer<int> _ParticlesInCells; //Length:  Number of cells * MaxNumParticlesPerCell
@@ -123,7 +134,7 @@ void FillPartitioningCells (uint3 id : SV_DispatchThreadID)
         _Stats[8] = _Particles[index].Position.x;
         _Stats[9] = _Particles[index].Position.y;
         
-        _Particles[index].Color = float4(1,0,0,1);
+     //   _Particles[index].Color = float4(1,0,0,1);
         return;
     }
   
@@ -195,7 +206,7 @@ float2 ViscosityImpulse(int particle1, int particle2)
     
     float u = dot(_Particles[particle1].Velocity - _Particles[particle2].Velocity, r);
     if (u <= 0) return float2(0,0);
-    return _Time * (1 - q) * (sigma * u + beta * u * u) * r;
+    return _DeltaTime * (1 - q) * (sigma * u + beta * u * u) * r;
 }
 
 
@@ -205,13 +216,13 @@ void CalculateViscosity (uint3 id : SV_DispatchThreadID)
     int particleIndex = id.x * 128 + id.y;
     if (particleIndex >= _NumParticles) return;
 
-    _Particles[particleIndex].Change = float2(0,0);
+    _TempParticleData[particleIndex].VelocityChange = float2(0,0);
     
     for (int i=0; i<_ParticleNeighbourCount[particleIndex]; i++)
     {
         int neighbourIndex = _ParticleNeighbours[particleIndex * _MaxNumNeighbours + i];
         float2 impulse = ViscosityImpulse(particleIndex, neighbourIndex);
-        _Particles[particleIndex].Change += -impulse * 0.5;
+        _TempParticleData[particleIndex].VelocityChange += -impulse * 0.5;
    }
 }
 
@@ -222,7 +233,7 @@ void ApplyViscosity (uint3 id : SV_DispatchThreadID)
 {
     int particleIndex = id.x * 128 + id.y;
     if (particleIndex >= _NumParticles) return;
-    _Particles[particleIndex].Velocity += _Particles[particleIndex].Change;
+    _Particles[particleIndex].Velocity += _TempParticleData[particleIndex].VelocityChange;
 }
 
 [numthreads(8,8,1)]
@@ -232,7 +243,7 @@ void ApplyVelocity (uint3 id : SV_DispatchThreadID)
     if (particleIndex >= _NumParticles) return;
 
     _Particles[particleIndex].PreviousPosition = _Particles[particleIndex].Position;
-    _Particles[particleIndex].Position += _Particles[particleIndex].Velocity * _Time;
+    _Particles[particleIndex].Position += _Particles[particleIndex].Velocity * _DeltaTime;
 
 }
 
@@ -259,8 +270,8 @@ void CalculatePressures (uint3 id : SV_DispatchThreadID)
             nearDensity += (1-q)*(1-q)*(1-q);
         }
     }
-    _Particles[particleIndex].Pressure = stiffness * (density - restDensity);
-    _Particles[particleIndex].NearPressure = nearStiffness * nearDensity;
+    _TempParticleData[particleIndex].Pressure = stiffness * (density - restDensity);
+    _TempParticleData[particleIndex].NearPressure = nearStiffness * nearDensity;
 }
 
 float2 DensityDisplacement(int particle1, int particle2)
@@ -270,8 +281,8 @@ float2 DensityDisplacement(int particle1, int particle2)
     if (q>=1) return float2(0.0,0.0);
 
     
-    float pressure = _Particles[particle1].Pressure;
-    float nearPressure = _Particles[particle1].NearPressure;
+    float pressure = _TempParticleData[particle1].Pressure;
+    float nearPressure = _TempParticleData[particle1].NearPressure;
 
     float2 fromTo = _Particles[particle2].Position - _Particles[particle1].Position;
 
@@ -279,7 +290,7 @@ float2 DensityDisplacement(int particle1, int particle2)
     if (length(fromTo) < 0.000001) return float2(0,0); 
 
     
-    float2 d = _Time * _Time * (pressure * (1 - q) + nearPressure * (1 - q) * (1 - q)) *
+    float2 d = _DeltaTime * _DeltaTime * (pressure * (1 - q) + nearPressure * (1 - q) * (1 - q)) *
                 normalize(fromTo);
     
     return 0.5 * d;
@@ -292,14 +303,14 @@ void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
     int particleIndex = id.x * 128 + id.y;
     if (particleIndex >= _NumParticles) return;
 
-    _Particles[particleIndex].Change = float2(0,0);
+    _TempParticleData[particleIndex].PositionChange = float2(0,0);
 
     for (int j=0; j<_ParticleNeighbourCount[particleIndex]; j++)
     {
         int neighbourIndex = _ParticleNeighbours[particleIndex * _MaxNumNeighbours + j];
         
-        _Particles[particleIndex].Change -= DensityDisplacement(particleIndex, neighbourIndex);
-        _Particles[particleIndex].Change += DensityDisplacement(neighbourIndex, particleIndex);
+        _TempParticleData[particleIndex].PositionChange -= DensityDisplacement(particleIndex, neighbourIndex);
+        _TempParticleData[particleIndex].PositionChange += DensityDisplacement(neighbourIndex, particleIndex);
     }
     
 }
@@ -309,7 +320,7 @@ void ApplyDensityDisplacement (uint3 id : SV_DispatchThreadID)
 {
     int particleIndex = id.x * 128 + id.y;
     if (particleIndex >= _NumParticles) return;
-    _Particles[particleIndex].Position += _Particles[particleIndex].Change;
+    _Particles[particleIndex].Position += _TempParticleData[particleIndex].PositionChange;
 }
 
         

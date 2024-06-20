@@ -83,7 +83,7 @@ namespace FluidSimulation
                 Position = position,
                 Velocity = velocity,
                 Type = type,
-                color = Color.blue
+              //  color = Color.blue
             };
 
             int particleId = _particleData.Add(particle);
@@ -104,8 +104,8 @@ namespace FluidSimulation
             foreach (var particle in _particleData.All())
             {
                 _particleVisualization.UpdateParticle(particle.Id, particle.Position);
-               //_particleVisualization.ColorParticle(particle.Id, Color.blue);
-                _particleVisualization.ColorParticle(particle.Id, particle.color);
+               _particleVisualization.ColorParticle(particle.Id, Color.blue);
+               // _particleVisualization.ColorParticle(particle.Id, particle.color);
             }
 /*
             if (_particleData.All().Length > 0)
@@ -137,7 +137,7 @@ namespace FluidSimulation
             
             Random.InitState(123);
          
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < 4000; i++)
             {
                 SpawnParticle(RandomPosition(), Vector2.zero, ParticleType.Liquid);
             }
@@ -150,8 +150,8 @@ namespace FluidSimulation
             {
                 return new Vector2
                 (
-                    x: Random.Range(_container.Bounds.xMin, _container.Bounds.xMax),
-                    y: Random.Range(_container.Bounds.yMin, _container.Bounds.yMax)
+                    x: Random.Range(settings.AreaBounds.xMin, settings.AreaBounds.xMax),
+                    y: Random.Range(settings.AreaBounds.yMin, settings.AreaBounds.yMax)
                 );
             }
         }

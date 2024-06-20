@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.Collections;
 using UnityEngine;
 
 namespace FluidSimulation
@@ -55,47 +56,25 @@ namespace FluidSimulation
         }
 
         public ComputeBuffer CreateParticlesBuffer() => new ComputeBuffer(MaxNumberOfParticles, FluidParticle.Stride);
-        public void WriteParticlesToBuffer(ComputeBuffer buffer) => buffer.SetData(_particles);
-        public void ReadParticlesFromBuffer(ComputeBuffer buffer) => buffer.GetData(_particles);
+        public void WriteParticlesToBuffer(ComputeBuffer buffer)
+        {
+            // Faster(?) alternative to buffer.SetData(_particles):
+            NativeArray<FluidParticle> na = buffer.BeginWrite<FluidParticle>(0, MaxNumberOfParticles);
+            na.CopyFrom(_particles);
+            buffer.EndWrite<FluidParticle>(MaxNumberOfParticles);
+        }
+
+        public void ReadParticlesFromBuffer(ComputeBuffer buffer)
+        {
+            buffer.GetData(_particles);  
+        }
         
         public void ReadNeighboursFromBuffer(ComputeBuffer particleNeighbours, ComputeBuffer particleNeighbourCount)
         {
            particleNeighbours.GetData(_neighbourIndices);
            particleNeighbourCount.GetData(_neighbourCount);
         }
-        
-        // Temporary
-        public void WriteNeighboursToBuffer(ComputeBuffer particleNeighbours, ComputeBuffer particleNeighbourCount)
-        {
-
-            for (int i = 0; i < _numParticles; i++)
-            {
-                _neighbourCount[i] = 0;
-                
-                
-                foreach(int j in NeighbourIndices(i))
-                {
-                    if (j == i) continue;
-                    if (Vector2.Distance(_particles[i].Position, _particles[j].Position) < _neighbourRadius)
-                    {
-                      
-                        _neighbourIndices[i*_maxNumNeighbours + _neighbourCount[i]] = j;
-                        _neighbourCount[i]++;
-                        
-                        
-                        if (_neighbourCount[i] >= _maxNumNeighbours)
-                        {Debug.Log("Max number of neighbours exceeded!");
-                            break;
-                        }
-                    }
-                }
-            
-            }
-            particleNeighbours.SetData(_neighbourIndices);
-            particleNeighbourCount.SetData(_neighbourCount);
-            
-            
-        }
+ 
         
         public ComputeBuffer CreateSpatialBuffer() => new ComputeBuffer(MaxNumberOfParticles, FluidParticle.Stride);
         public void WriteSpatialToBuffer(ComputeBuffer buffer) => buffer.SetData(_particles);
@@ -134,10 +113,6 @@ namespace FluidSimulation
             {
                 if (float.IsNaN(_particles[i].Position.x)) result += "pos nan at: " + i + " ";
                 if (float.IsNaN(_particles[i].Velocity.x)) result += "vel nan at: " + i + " ";
-                if (float.IsNaN(_particles[i].Change.x)) result += "change nan at: " + i + " " + _particles[i].PreviousPosition;
-                if (float.IsNaN(_particles[i].Pressure)) result += "pressure nan at: " + i + " ";
-                if (float.IsNaN(_particles[i].NearPressure)) result += "near pressure nan at: " + i + " ";
-               
             }
 
             return result;
