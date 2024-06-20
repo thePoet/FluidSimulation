@@ -31,15 +31,16 @@ namespace FluidSimulation
 
         enum Kernel
         {
-            ClearPartitioning = 0,
-            FillPartitioning = 1,
-            FindNeighbours = 2,
-            CalculateViscosity = 3,
-            ApplyViscosity = 4,
-            ApplyVelocity = 5,
-            CalculatePressures = 6,
-            CalculateDensityDisplacement = 7,
-            ApplyDensityDisplacement = 8
+            ApplyGravity = 0,
+            ClearPartitioning = 1,
+            FillPartitioning = 2,
+            FindNeighbours = 3,
+            CalculateViscosity = 4,
+            ApplyViscosity = 5,
+            ApplyVelocity = 6,
+            CalculatePressures = 7,
+            CalculateDensityDisplacement = 8,
+            ApplyDensityDisplacement = 9
         }
 
         private readonly ParticleDynamics.Settings _settings;
@@ -80,7 +81,9 @@ namespace FluidSimulation
             WriteToBuffers(data);
             
             float t1 = Time.realtimeSinceStartup;
-         
+
+            Execute(Kernel.ApplyGravity, threadGroupsForParticles);
+
             Execute(Kernel.CalculateViscosity, threadGroupsForParticles);
             Execute(Kernel.ApplyViscosity, threadGroupsForParticles);
             Execute(Kernel.ApplyVelocity, threadGroupsForParticles);
@@ -120,6 +123,8 @@ namespace FluidSimulation
             _computeShader.SetFloat("_AreaMinY", settings.AreaBounds.yMin);
             _computeShader.SetFloat("_AreaMaxX", settings.AreaBounds.xMax);
             _computeShader.SetFloat("_AreaMaxY", settings.AreaBounds.yMax);
+            
+            _computeShader.SetFloat("_Gravity", settings.Gravity);
         }
         
         private void CreateBuffers()

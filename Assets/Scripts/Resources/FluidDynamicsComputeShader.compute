@@ -1,3 +1,8 @@
+// Compute shader for particle based fluid dynamics.
+// Based on paper by Simon Clavet, Philippe Beaudoin, and Pierre Poulin
+// https://www.academia.edu/452554/Particle-Based_Viscoelastic_Fluid_Simulation
+
+#pragma kernel ApplyGravity
 #pragma kernel ClearPartitioningCells
 #pragma kernel FillPartitioningCells
 #pragma kernel FindNeighbours
@@ -15,7 +20,6 @@ struct Particle
     float2 PreviousPosition;
     float2 Velocity;
     int typeNumber;
- //   float4 Color;
 };
 
 struct TempParticleData
@@ -26,9 +30,6 @@ struct TempParticleData
     float Pressure;
     float NearPressure;
 };
-            
-
-
 
 
 // Settings
@@ -37,6 +38,7 @@ int _MaxNumParticles;
 int _MaxNumNeighbours;
 int _MaxNumParticlesPerCell;
 float _InteractionRadius;
+float _Gravity;
 
 float _AreaMinX;
 float _AreaMinY;
@@ -83,8 +85,13 @@ int CellIndex(in float2 position)
     return coords.x + coords.y * ceil((_AreaMaxX-_AreaMinX)/_InteractionRadius);
     
 }
-
-
+/*
+bool IsInsídeArea(float2 position)
+{
+    return position.x >= _AreaMinX && position.x <= _AreaMaxX &&
+        position.y >= _AreaMinY && position.y <= _AreaMaxY;
+}
+*/
 
 float rand(in float2 uv)
 {
@@ -97,14 +104,18 @@ int numCells()
         ceil((_AreaMaxY-_AreaMinY)/_InteractionRadius);
 }
 
-/*
- *int indexFromId(uint3 id)
-{
-    return id.x + _CubesPerAxis * (id.y + _CubesPerAxis * id.z);
-}
-*/
 
-//TODO: Threadien lkm järkeväksi
+
+[numthreads(8,8,1)]
+void ApplyGravity (uint3 id : SV_DispatchThreadID)
+{
+    int particleIndex = id.x * 128 + id.y;
+    if (particleIndex >= _NumParticles) return;
+
+    _Particles[particleIndex].Velocity += float2(0.0, -_DeltaTime * _Gravity);
+}
+
+
 [numthreads(8,8,1)]
 void ClearPartitioningCells (uint3 id : SV_DispatchThreadID)
 {
@@ -119,7 +130,7 @@ void ClearPartitioningCells (uint3 id : SV_DispatchThreadID)
     }
 }
 
-//TODO: Threadien lkm järkeväksi
+
 [numthreads(8,8,1)]
 void FillPartitioningCells (uint3 id : SV_DispatchThreadID)
 {
