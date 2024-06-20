@@ -12,6 +12,7 @@
 #pragma kernel CalculatePressures
 #pragma kernel CalculateDensityDisplacement
 #pragma kernel ApplyDensityDisplacement
+#pragma kernel ConfineParticlesToArea
 
 struct Particle
 {
@@ -62,7 +63,69 @@ RWStructuredBuffer<int> _ParticleNeighbourCount; //Length: MaxNumParticles
 //RWStructuredBuffer<float2> _ChangeBuffer; //Length: MaxNumParticles * MaxNumNeighbours
 RWStructuredBuffer<float> _Stats; //Length: 10 
 
+// --------------------- UTILITY FUNCTIONS ---------------------
 
+float cross2d(float2 a, float2 b)
+{
+    return a.x * b.y - a.y * b.x;
+}
+
+ bool IntersectLineSegments2D(float2 p1start, float2 p1end, float2 p2start, float2 p2end, out float2 intersection)
+{
+        float2 p = p1start;
+        float2 r = p1end - p1start;
+        float2 q = p2start;
+        float2 s = p2end - p2start;
+        float2 qminusp = q - p;
+
+        if (abs(cross2d(r,s)) < 0.000001)
+        {
+            // Parallel lines
+            if (abs(cross2d(qminusp, r)) < 0.000001)
+            {
+                // Co-linear lines, could overlap
+                float rdotr = dot(r, r);
+                float sdotr = dot(s, r);
+                // this means lines are co-linear
+                // they may or may not be overlapping
+                float t0 = dot(qminusp, r / rdotr);
+                float t1 = t0 + sdotr / rdotr;
+                if (sdotr < 0)
+                {
+                    // lines were facing in different directions so t1 > t0, swap to simplify check
+                    float temp = t0;
+                    t0 = t1;
+                    t1 = temp;
+                }
+                if (t0 <= 1 && t1 >= 0)
+                {
+                    // Nice half-way point intersection
+                    float t = lerp(max(0, t0), min(1, t1), 0.5f);
+                    intersection = p + t * r;
+                    return true;
+                } 
+                // Co-linear but disjoint
+                intersection = float2(0,0);
+                return false;
+            } 
+            // Just parallel in different places, cannot intersect
+            intersection = float2(0,0);
+            return false;
+        }
+        // Not parallel, calculate t and u
+        float t = cross2d(qminusp, s) / cross2d(r, s);
+        float u = cross2d(qminusp, r) / cross2d(r, s);
+        if (t >= 0 && t <= 1 && u >= 0 && u <= 1)
+        {
+            intersection = p + t * r;
+            return true;
+        }
+        // Lines only cross outside segment range
+        intersection = float2(0, 0);
+        return false;
+}
+
+// ------------------------------------------------------------
 
 
 int2 CellCoordinates(in float2 position)
@@ -85,18 +148,13 @@ int CellIndex(in float2 position)
     return coords.x + coords.y * ceil((_AreaMaxX-_AreaMinX)/_InteractionRadius);
     
 }
-/*
-bool IsInsídeArea(float2 position)
-{
-    return position.x >= _AreaMinX && position.x <= _AreaMaxX &&
-        position.y >= _AreaMinY && position.y <= _AreaMaxY;
-}
-*/
 
-float rand(in float2 uv)
+bool IsInsideArea(float2 position)
 {
-    return (frac(sin(dot(uv, float2(12.9898, 78.233) * 2.0)) * 43758.5453)) * 2 - 1;
+    return position.x >= _AreaMinX && position.x <= _AreaMaxX && position.y >= _AreaMinY && position.y <= _AreaMaxY;
 }
+
+
 
 int numCells()
 {
@@ -203,8 +261,8 @@ void FindNeighbours (uint3 id : SV_DispatchThreadID)
 float2 ViscosityImpulse(int particle1, int particle2)
 {
     //   if (_Particles[neighbourIndex].typeNumber == 1) continue;
-    const float sigma = 0.1;
-    const float beta = 0.1;
+    const float sigma = 0.02;
+    const float beta = 0.02;
 
     float distance = length(_Particles[particle1].Position - _Particles[particle2].Position);
 
@@ -334,6 +392,91 @@ void ApplyDensityDisplacement (uint3 id : SV_DispatchThreadID)
     _Particles[particleIndex].Position += _TempParticleData[particleIndex].PositionChange;
 }
 
-        
+
+
+// ---------------------- ENFORCING BOUNDARIES ----------------------
+
+
+
+bool BoxLineIntersection(float2 minCorner, float2 maxCorner, float2 start, float2 end, out float2 intersection, out float2 normal)
+{
+    intersection = float2(0,0);
+    normal = float2(0,0);
+
+    if (IntersectLineSegments2D(start, end, float2(minCorner.x, minCorner.y), float2(maxCorner.x, minCorner.y), intersection))
+    {
+        normal = float2(0, 1);
+        return true;
+    }
+    if (IntersectLineSegments2D(start, end, float2(minCorner.x, maxCorner.y), float2(maxCorner.x, maxCorner.y), intersection))
+    {
+        normal = float2(0, -1);
+        return true;
+    }
+    if (IntersectLineSegments2D(start, end, float2(minCorner.x, minCorner.y), float2(minCorner.x, maxCorner.y), intersection))
+    {
+        normal = float2(1, 0);
+        return true;
+    }
+    if (IntersectLineSegments2D(start, end, float2(maxCorner.x, minCorner.y), float2(maxCorner.x, maxCorner.y), intersection))
+    {
+        normal = float2(-1, 0);
+        return true;
+    }
+    return false;
+}
+
+bool IsInsideBox(float2 position, float2 minCorner, float2 maxCorner)
+{
+    return position.x >= minCorner.x && position.x <= maxCorner.x &&
+        position.y >= minCorner.y && position.y <= maxCorner.y;
+}
+
+float2 ClampToBox(float2 position, float2 minCorner, float2 maxCorner)
+{
+    if (position.x < minCorner.x) position.x = minCorner.x;
+    if (position.x > maxCorner.x) position.x = maxCorner.x;
+    if (position.y < minCorner.y) position.y = minCorner.y;
+    if (position.y > maxCorner.y) position.y = maxCorner.y;
+    return position;
+}
+
+[numthreads(8,8,1)]
+void ConfineParticlesToArea (uint3 id : SV_DispatchThreadID)
+{
+    int i = id.x * 128 + id.y;
+    if (i >= _NumParticles) return;
+
+    float margin = 20;
+    float2 minCorner = float2(_AreaMinX + margin, _AreaMinY + margin);
+    float2 maxCorner = float2(_AreaMaxX - margin, _AreaMaxY - margin);
+
+    if (IsInsideBox(_Particles[i].Position, minCorner, maxCorner)) return;
+
+    
+    float2 intersection;
+    float2 normal;
+    BoxLineIntersection(minCorner, maxCorner, _Particles[i].PreviousPosition, _Particles[i].Position, intersection, normal);
+
+    float2 velocity = _Particles[i].Position - _Particles[i].PreviousPosition;
+    float2 velocityNormal = dot(velocity, normal) * normal;
+    float2 velocityTangent = velocity - velocityNormal;
+
+    float tangentialFriction = 0.5f;
+            
+    float2 impulse = -velocityNormal - tangentialFriction * velocityTangent;
+            
+    float2 endPosition = _Particles[i].Position + impulse;
+
+    if (!IsInsideBox(endPosition, minCorner, maxCorner))
+    {
+        endPosition = ClampToBox(endPosition, minCorner, maxCorner);
+    }
+ 
+            
+    _Particles[i].Position = endPosition;
+
+
+}
 
 

@@ -40,7 +40,8 @@ namespace FluidSimulation
             ApplyVelocity = 6,
             CalculatePressures = 7,
             CalculateDensityDisplacement = 8,
-            ApplyDensityDisplacement = 9
+            ApplyDensityDisplacement = 9,
+            ConfineParticlesToArea = 10
         }
 
         private readonly ParticleDynamics.Settings _settings;
@@ -71,8 +72,6 @@ namespace FluidSimulation
 
         public void Step(float deltaTime, ParticleData data)
         {
-           
-
             _computeShader.SetInt("_NumParticles", data.NumberOfParticles);
             _computeShader.SetFloat("_DeltaTime", deltaTime);
             
@@ -88,8 +87,6 @@ namespace FluidSimulation
             Execute(Kernel.ApplyViscosity, threadGroupsForParticles);
             Execute(Kernel.ApplyVelocity, threadGroupsForParticles);
 
-            
-            
             Execute(Kernel.ClearPartitioning, threadGroupsForCells);
             Execute(Kernel.FillPartitioning, threadGroupsForParticles);
             Execute(Kernel.FindNeighbours, threadGroupsForParticles);
@@ -102,13 +99,15 @@ namespace FluidSimulation
                 Execute(Kernel.ApplyDensityDisplacement, threadGroupsForParticles);
             }
 
+            Execute(Kernel.ConfineParticlesToArea, threadGroupsForParticles);
+            
             float t4 = Time.realtimeSinceStartup;
             
             ReadFromBuffers(data);
             
             float t5 = Time.realtimeSinceStartup;
 
-            Debug.Log("Simulation " + 1000f * (t4 - t1) + " ms. Read/Write: " + 1000f * (t5 - t4 + t1 - t0));
+//            Debug.Log("Simulation " + 1000f * (t4 - t1) + " ms. Read/Write: " + 1000f * (t5 - t4 + t1 - t0));
         }
 
         private void SetShaderVariables(ParticleDynamics.Settings settings)
