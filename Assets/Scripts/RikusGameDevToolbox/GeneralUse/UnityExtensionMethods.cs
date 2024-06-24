@@ -90,18 +90,12 @@ namespace RikusGameDevToolbox.GeneralUse
         {
             return new Vector3(v.x, v.y, v.z + value);
         }
-
-
+        
         public static Vector3Int ToVector3Int(this Vector3 v)
         {
             return new Vector3Int(Mathf.RoundToInt(v.x), Mathf.RoundToInt(v.y), Mathf.RoundToInt(v.z));
         }
-
-
-
-
-
-
+        
         public static void CopyLocalValuesFrom(this Transform t, Transform other)
         {
             t.localPosition = other.localPosition;

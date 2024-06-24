@@ -1,95 +1,78 @@
 using System;
 using FluidSimulation;
 using UnityEngine;
+using RikusGameDevToolbox.GeneralUse;
 
-public class SpatialPartitioningGrid
+public class SpatialPartitioningGrid<T>
 {
-
-    private readonly int[] _particleIndices;
-    private readonly int[] _numParticlesInCell;
-    private readonly int _maxNumParticlesInCell;
+    private readonly T[] _entities;
+    private readonly int[] _numEntitiesInSquare;
+    private readonly int _maxNumEntitiesInSquare;
     private readonly Grid2D _grid;
     
-    public SpatialPartitioningGrid(Grid2D grid, int maxNumParticlesInCell)
+    public SpatialPartitioningGrid(Grid2D grid, int maxNumEntitiesInSquare)
     {
         _grid = grid;
-        _maxNumParticlesInCell = maxNumParticlesInCell;
-        _particleIndices = new int[grid.NumberOfCells * maxNumParticlesInCell];
-        _numParticlesInCell = new int[grid.NumberOfCells];
+        _maxNumEntitiesInSquare = maxNumEntitiesInSquare;
+        _entities = new T[grid.NumberOfSquares * maxNumEntitiesInSquare];
+        _numEntitiesInSquare = new int[grid.NumberOfSquares];
 
         Clear();
     }
 
     /// <summary>
-    /// Return the indices of the particles in the same cell as the given position
+    /// Return the indices of the entities in the same square as the given position
     /// </summary>
     /// <param name="offsetX">x offset for cell</param>
     /// <param name="offsetY">y offset for cell></param>
-    public Span<int> GetParticlesInCell(Vector2 position)
+    public Span<T> SquareContents(Vector2 position)
     {
         if (!_grid.IsInGrid(position))
         {
             Debug.LogWarning("Position is not in the grid " + position );
-            return Span<int>.Empty;
+            return Span<T>.Empty;
         }
-        int cellIndex = _grid.CellIndex(position);
-        return new Span<int>(_particleIndices, cellIndex * _maxNumParticlesInCell, _numParticlesInCell[cellIndex]);
+        int cellIndex = _grid.SquareIndex(position);
+        return new Span<T>(_entities, cellIndex * _maxNumEntitiesInSquare, _numEntitiesInSquare[cellIndex]);
     }
-
-
-
-   
 
     public void Clear()
     {
-        for (int i = 0; i < _numParticlesInCell.Length; i++)
+        for (int i = 0; i < _numEntitiesInSquare.Length; i++)
         {
-            _numParticlesInCell[i] = 0;
+            _numEntitiesInSquare[i] = 0;
         }
     }
 
-    public void AddParticles(Span<FluidParticle> particles, bool addToNeighbourCellsAlso = false)
+    public void Add(Span<T> entities, Func<T, Vector2> position)
     {
-        for (int i = 0; i < particles.Length; i++)
+        for (int i = 0; i < entities.Length; i++)
         {
-            if (!addToNeighbourCellsAlso)
-            {
-                AddParticle(i, particles[i].Position);
-            }
-            else
-            {
-                for (int x=-1; x<=1; x++)
-                {
-                    for (int y=-1; y<=1; y++)
-                    {
-                        Vector2 adjustedPosition = particles[i].Position + new Vector2(x, y) * _grid.CellSize;
-                        AddParticle(i, adjustedPosition, ignoreIfOutsideGrid:true);
-                    }
-                }
-            }
+            Add(entities[i], position(entities[i]));
         }
-        
-        void AddParticle(int index, Vector2 position, bool ignoreIfOutsideGrid=false)
+    }
+  
+    
+    
+    public void Add(T entity, Vector2 position, bool ignoreIfOutsideGrid=false)
+    {
+        if (!_grid.IsInGrid(position))
         {
-            if (!_grid.IsInGrid(position))
-            {
-                if (!ignoreIfOutsideGrid) Debug.LogWarning("Particle is not in the grid");
-                return;
-            }
-
-            int cellIndex = _grid.CellIndex(position);
-
-            if (_numParticlesInCell[cellIndex] >= _maxNumParticlesInCell)
-            {
-                Debug.LogWarning("Too many particles in cell");
-                return;
-            }
-
-            int hash = cellIndex * _maxNumParticlesInCell + _numParticlesInCell[cellIndex];
-            _particleIndices[hash] = index;
-            _numParticlesInCell[cellIndex]++;
+            if (!ignoreIfOutsideGrid) Debug.LogWarning("Entity is outside the grid");
+            return;
         }
-        
+
+        int cellIndex = _grid.SquareIndex(position);
+
+        if (_numEntitiesInSquare[cellIndex] >= _maxNumEntitiesInSquare)
+        {
+            Debug.LogWarning("Too many entities in square");
+            return;
+        }
+
+        int hash = cellIndex * _maxNumEntitiesInSquare + _numEntitiesInSquare[cellIndex];
+        _entities[hash] = entity;
+        _numEntitiesInSquare[cellIndex]++;
     }
     
    

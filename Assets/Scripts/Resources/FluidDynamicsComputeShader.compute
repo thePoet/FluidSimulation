@@ -13,12 +13,12 @@
 #pragma kernel CalculateDensityDisplacement
 #pragma kernel ApplyDensityDisplacement
 #pragma kernel ConfineParticlesToArea
+#pragma kernel CalculateVelocityBasedOnMovement
 
 struct Particle
 {
     int id;
     float2 Position;
-    float2 PreviousPosition;
     float2 Velocity;
     int typeNumber;
 };
@@ -46,9 +46,6 @@ float _AreaMinY;
 float _AreaMaxX;
 float _AreaMaxY;
 
-
-
-// Adjusted per frame
 float _DeltaTime;
 
 
@@ -125,7 +122,25 @@ float cross2d(float2 a, float2 b)
         return false;
 }
 
-// ------------------------------------------------------------
+
+// Distance between particles compared to interaction radius 0..1
+float QDistance(int particle1, int particle2)
+{
+    return length(_Particles[particle1].Position - _Particles[particle2].Position) / _InteractionRadius;
+}
+
+// --------------------- GRAVITY------------------------------------------ ---------------------
+[numthreads(8,8,1)]
+void ApplyGravity (uint3 id : SV_DispatchThreadID)
+{
+    int particleIndex = id.x * 128 + id.y;
+    if (particleIndex >= _NumParticles) return;
+
+    _Particles[particleIndex].Velocity += float2(0.0, -_DeltaTime * _Gravity);
+}
+
+// ------------- SPATIAL PARTITIONING ----------------------------------------------------------------
+
 
 
 int2 CellCoordinates(in float2 position)
@@ -156,7 +171,7 @@ bool IsInsideArea(float2 position)
 
 
 
-int numCells()
+int NumCells()
 {
     return ceil((_AreaMaxX-_AreaMinX)/_InteractionRadius) *
         ceil((_AreaMaxY-_AreaMinY)/_InteractionRadius);
@@ -164,21 +179,13 @@ int numCells()
 
 
 
-[numthreads(8,8,1)]
-void ApplyGravity (uint3 id : SV_DispatchThreadID)
-{
-    int particleIndex = id.x * 128 + id.y;
-    if (particleIndex >= _NumParticles) return;
-
-    _Particles[particleIndex].Velocity += float2(0.0, -_DeltaTime * _Gravity);
-}
 
 
 [numthreads(8,8,1)]
 void ClearPartitioningCells (uint3 id : SV_DispatchThreadID)
 {
     int index = id.x * 128 + id.y;
-    if (index >= numCells()) return;
+    if (index >= NumCells()) return;
     _CellParticleCount[index] = 0;
 
     if (index==0)
@@ -224,6 +231,9 @@ void FillPartitioningCells (uint3 id : SV_DispatchThreadID)
 
 }
 
+// ----------------- Neighbour Finding -----------------
+
+
 [numthreads(8,8,1)]
 void FindNeighbours (uint3 id : SV_DispatchThreadID)
 {
@@ -266,10 +276,8 @@ float2 ViscosityImpulse(int particle1, int particle2)
 
     float distance = length(_Particles[particle1].Position - _Particles[particle2].Position);
 
-    // Is there a better way? Add epsilon to position?
-    if (distance < 0.00001) return float2(0,0);
-    
-    float q = distance / _InteractionRadius;
+    float q = QDistance(particle1, particle2);
+    if (q<0.000001) return float2(0,0);
     if (q >= 1) return float2(0,0);
     float2 r = normalize(_Particles[particle1].Position - _Particles[particle2].Position);
     
@@ -311,7 +319,7 @@ void ApplyVelocity (uint3 id : SV_DispatchThreadID)
     int particleIndex = id.x * 128 + id.y;
     if (particleIndex >= _NumParticles) return;
 
-    _Particles[particleIndex].PreviousPosition = _Particles[particleIndex].Position;
+    _TempParticleData[particleIndex].PreviousPosition = _Particles[particleIndex].Position;
     _Particles[particleIndex].Position += _Particles[particleIndex].Velocity * _DeltaTime;
 
 }
@@ -332,7 +340,7 @@ void CalculatePressures (uint3 id : SV_DispatchThreadID)
     for (int i=0; i<_ParticleNeighbourCount[particleIndex]; i++)
     {
         int neighbourIndex = _ParticleNeighbours[particleIndex * _MaxNumNeighbours + i];
-        float q = length(_Particles[particleIndex].Position - _Particles[neighbourIndex].Position) / _InteractionRadius;
+        float q = QDistance(particleIndex, neighbourIndex);
         if (q<1)
         {
             density += (1-q)*(1-q);
@@ -345,10 +353,9 @@ void CalculatePressures (uint3 id : SV_DispatchThreadID)
 
 float2 DensityDisplacement(int particle1, int particle2)
 {
-    float q = length(_Particles[particle1].Position - _Particles[particle2].Position) / _InteractionRadius;
+    float q = QDistance(particle1, particle2);
 
     if (q>=1) return float2(0.0,0.0);
-
     
     float pressure = _TempParticleData[particle1].Pressure;
     float nearPressure = _TempParticleData[particle1].NearPressure;
@@ -456,9 +463,9 @@ void ConfineParticlesToArea (uint3 id : SV_DispatchThreadID)
     
     float2 intersection;
     float2 normal;
-    BoxLineIntersection(minCorner, maxCorner, _Particles[i].PreviousPosition, _Particles[i].Position, intersection, normal);
+    BoxLineIntersection(minCorner, maxCorner, _TempParticleData[i].PreviousPosition, _Particles[i].Position, intersection, normal);
 
-    float2 velocity = _Particles[i].Position - _Particles[i].PreviousPosition;
+    float2 velocity = _Particles[i].Position - _TempParticleData[i].PreviousPosition;
     float2 velocityNormal = dot(velocity, normal) * normal;
     float2 velocityTangent = velocity - velocityNormal;
 
@@ -479,4 +486,48 @@ void ConfineParticlesToArea (uint3 id : SV_DispatchThreadID)
 
 }
 
+[numthreads(8,8,1)]
+void CalculateVelocityBasedOnMovement(uint3 id : SV_DispatchThreadID)
+{
+    int i = id.x * 128 + id.y;
+    if (i >= _NumParticles) return;
 
+    _Particles[i].Velocity = (_Particles[i].Position - _TempParticleData[i].PreviousPosition) / _DeltaTime;
+}
+
+/*
+            
+            void CollisionToSolid(int indexFluid, int indexSolid) 
+            {
+                var particles = particleData.All();
+                Vector2 solidToFluid = particles[indexFluid].Position - particles[indexSolid].Position;
+                float distance = solidToFluid.magnitude;
+                
+                float solidRadius = 10f;
+                if (distance >= solidRadius) return;
+                
+
+                Vector2 deltaPosition = particles[indexFluid].Position - particles[indexFluid].PreviousPosition;
+                Vector2 closestPointOutsideSolid = particles[indexSolid].Position + solidToFluid.normalized * solidRadius;
+                
+                Vector2 bounceDirection = Vector2.Reflect
+                (
+                    deltaPosition, // old velocity, projected on...
+                    particles[indexSolid].Position - closestPointOutsideSolid // ...surface normal of solid circle
+                ).normalized;
+                
+                
+                float bounceFriction = -0.1f;
+                float bounceDistance = (closestPointOutsideSolid - particles[indexFluid].Position).magnitude * bounceFriction;
+                
+                
+                // The main method of the simulation calcultates velocity from the difference between current and
+                // previous position, so changing particle velocity would do not good. Instead we change the previous
+                // position to indirectly induce the wanted velocity.
+                particles[indexFluid].PreviousPosition = closestPointOutsideSolid - bounceDirection * bounceDistance;
+                particles[indexFluid].Position = closestPointOutsideSolid;
+
+ 
+            }
+
+         */

@@ -2,7 +2,13 @@
 using UnityEngine;
 
 public class ElasticityAndPlasticity : MonoBehaviour
-{/*
+{
+    // Elasticity and plasticity done with spring forces from the paper:
+    // https://www.academia.edu/452554/Particle-Based_Viscoelastic_Fluid_Simulation
+    // The code is inefficient, but could be done with compute shader.
+    
+    
+    /*
         
 
 

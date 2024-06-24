@@ -1,5 +1,5 @@
 using UnityEngine;
-
+using RikusGameDevToolbox.GeneralUse;
 
 // Based on paper by Simon Clavet, Philippe Beaudoin, and Pierre Poulin
 // https://www.academia.edu/452554/Particle-Based_Viscoelastic_Fluid_Simulation
@@ -25,22 +25,11 @@ namespace FluidSimulation
             public int MaxNumParticlesInPartitioningCell;
 
             // TODO: MOVE:
-            public Grid2D PartitioningGrid => new Grid2D(AreaBounds, cellSize: InteractionRadius);
+            public Grid2D PartitioningGrid => new Grid2D(AreaBounds, squareSize: InteractionRadius);
             public int MaxNumNeighbours;
         }
         
-        private struct BoxEdge
-        {
-            public BoxEdge(Vector2 start, Vector2 end, Vector2 normal)
-            {
-                this.Start = start;
-                this.End = end;
-                this.Normal = normal;
-            }
-            public readonly Vector2 Start;
-            public readonly Vector2 End;
-            public readonly Vector2 Normal;
-        }
+  
      
         private FluidsComputeShader _computeShader;
         private Rect _bounds;
@@ -59,124 +48,15 @@ namespace FluidSimulation
         {
             _computeShader.Dispose();
         }
-        
         public void Step(ParticleData particleData, float timeStep)
         {
-            var particles = particleData.All();
-            
             _computeShader.Step(timeStep, particleData);
-            
-            for (int i=0; i<particles.Length; i++)
-                particles[i].Velocity = (particles[i].Position - particles[i].PreviousPosition) / timeStep;
         }
 
         #endregion
         #region ------------------------------------------ PRIVATE METHODS ----------------------------------------------
         
-  
-        private void MaintainDensity(ParticleData particleData,  float timeStep)
-        {/*
-             var particles = particleData.All();
-            
-            for (int i=0; i<particles.Length; i++)
-            {
-                if (particles[i].Type == ParticleType.Solid) continue;
-                
-                float density = 0f;
-                float nearDensity = 0f;
-                
-                var neighbours = particleData.NeighbourIndices(i);
-                
-                foreach (int j in neighbours)
-                {
-                    if (i==j) continue;
-                    
-                    if (particles[j].Type == ParticleType.Solid)
-                    {
-                        CollisionToSolid(i, j);
-                        continue;
-                    }
-                    
-                    float distance = (particles[i].Position - particles[j].Position).magnitude;
-                    float q = distance / _settings.InteractionRadius;
-                    if (q < 1f)
-                    {
-                        density += Pow2(1f - q);
-                        nearDensity += Pow3(1f - q);
-                    }
-                }
 
-                float pressure = _settings.Stiffness * (density - _settings.RestDensity);
-                float nearPressure = _settings.NearStiffness * nearDensity;
-                Vector2 displacement = Vector2.zero;
-
-                foreach (int j in neighbours)
-                {
-                    if (i==j) continue;
-
-                    
-                    if (particles[j].Type == ParticleType.Solid) continue;
-
-                    float distance = (particles[i].Position - particles[j].Position).magnitude;
-                    float q = distance / _settings.InteractionRadius;
-                    if (q < 1f)
-                    {
-                        Vector2 d = Pow2(timeStep) * (pressure * (1f - q) + nearPressure * Pow2(1f - q)) *
-                                    (particles[j].Position - particles[i].Position).normalized;
-                        
-                        if (particles[j].Type == ParticleType.Liquid)
-                            particles[j].Position += 0.5f * d;
-                        displacement -= 0.5f * d;
-                    }
-                }
-      
-                //particles[i].Position += displacement;
-                particles[i].Change = displacement;
-
-     
-            }
-            for (int i=0; i<particles.Length; i++)
-            {
-                if (particles[i].Type == ParticleType.Solid) continue;
-                particles[i].Position += particles[i].Change;
-            }
-        
-            
-            void CollisionToSolid(int indexFluid, int indexSolid) 
-            {
-                var particles = particleData.All();
-                Vector2 solidToFluid = particles[indexFluid].Position - particles[indexSolid].Position;
-                float distance = solidToFluid.magnitude;
-                
-                float solidRadius = 10f;
-                if (distance >= solidRadius) return;
-                
-
-                Vector2 deltaPosition = particles[indexFluid].Position - particles[indexFluid].PreviousPosition;
-                Vector2 closestPointOutsideSolid = particles[indexSolid].Position + solidToFluid.normalized * solidRadius;
-                
-                Vector2 bounceDirection = Vector2.Reflect
-                (
-                    deltaPosition, // old velocity, projected on...
-                    particles[indexSolid].Position - closestPointOutsideSolid // ...surface normal of solid circle
-                ).normalized;
-                
-                
-                float bounceFriction = -0.1f;
-                float bounceDistance = (closestPointOutsideSolid - particles[indexFluid].Position).magnitude * bounceFriction;
-                
-                
-                // The main method of the simulation calcultates velocity from the difference between current and
-                // previous position, so changing particle velocity would do not good. Instead we change the previous
-                // position to indirectly induce the wanted velocity.
-                particles[indexFluid].PreviousPosition = closestPointOutsideSolid - bounceDirection * bounceDistance;
-                particles[indexFluid].Position = closestPointOutsideSolid;
-
- 
-            }
-
-         */
-        }
         #endregion
       
     }

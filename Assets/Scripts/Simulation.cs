@@ -101,12 +101,14 @@ namespace FluidSimulation
 
         private void UpdateParticleVisualization()
         {
+            float t = Time.realtimeSinceStartup;
             foreach (var particle in _particleData.All())
             {
                 _particleVisualization.UpdateParticle(particle.Id, particle.Position);
                _particleVisualization.ColorParticle(particle.Id, Color.blue);
                // _particleVisualization.ColorParticle(particle.Id, particle.color);
             }
+            Debug.Log(1000f*(Time.realtimeSinceStartup-t));
 /*
             if (_particleData.All().Length > 0)
             {

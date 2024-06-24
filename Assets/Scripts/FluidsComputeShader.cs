@@ -1,4 +1,3 @@
-
 using System;
 using UnityEngine;
 
@@ -41,7 +40,8 @@ namespace FluidSimulation
             CalculatePressures = 7,
             CalculateDensityDisplacement = 8,
             ApplyDensityDisplacement = 9,
-            ConfineParticlesToArea = 10
+            ConfineParticlesToArea = 10,
+            CalculateVelocityBasedOnMovement = 11
         }
 
         private readonly ParticleDynamics.Settings _settings;
@@ -100,6 +100,7 @@ namespace FluidSimulation
             }
 
             Execute(Kernel.ConfineParticlesToArea, threadGroupsForParticles);
+            Execute(Kernel.CalculateVelocityBasedOnMovement, threadGroupsForParticles);
             
             float t4 = Time.realtimeSinceStartup;
             
@@ -134,7 +135,7 @@ namespace FluidSimulation
             _particleNeighbours = new ComputeBuffer(_settings.MaxNumParticles * _settings.MaxNumNeighbours, sizeof(int));
             _particleNeighbourCount = new ComputeBuffer(_settings.MaxNumParticles , sizeof(int));
 
-            int numCells = _settings.PartitioningGrid.NumberOfCells;
+            int numCells = _settings.PartitioningGrid.NumberOfSquares;
             _cellParticleCount = new ComputeBuffer(numCells, sizeof(int));
             _particlesInCells = new ComputeBuffer(_settings.MaxNumParticlesInPartitioningCell*numCells, sizeof(int));
 
@@ -168,7 +169,6 @@ namespace FluidSimulation
         private void WriteToBuffers(ParticleData data)
         {
             data.WriteParticlesToBuffer(_particleBuffer);
-         //   data.WriteNeighboursToBuffer(_particleNeighbours, _particleNeighbourCount);
         }
         
         
