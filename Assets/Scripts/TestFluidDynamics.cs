@@ -5,20 +5,63 @@ using Random = UnityEngine.Random;
 
 namespace FluidSimulation
 {
-    public class Simulation : MonoBehaviour
+    public enum FluidSubstance
+    {
+        Liquid,
+        Solid
+    }
+    
+    public class TestFluidDynamics : MonoBehaviour
     {
         public TMPro.TextMeshPro text;
         
-        
-        
-        public ParticleDynamics.Settings settings;
+     
+    
         private ParticleData _particleData;
-        private ParticleDynamics _particleDynamics;
+        private FluidDynamics _fluidDynamics;
         private ParticleVisualization _particleVisualization;
         private Container _container;
 
         private bool _isPaused;
+        
+        private FluidDynamics.Settings Settings => new()
+        {
+            InteractionRadius = 15f,
+            Gravity = 500f,
+            MaxNumParticles = 13000,
+            AreaBounds = new Rect(Vector2.zero, new Vector2(700f, 400f)),
+            MaxNumParticlesInPartitioningCell = 50,
+            MaxNumNeighbours = 50
+        };
 
+        private Fluid[] Fluids => new[]
+        {
+            new Fluid()
+            {
+                IsSolid = 0,
+                Stiffness = 750f,
+                NearStiffness = 1500f,
+                RestDensity = 5f,
+                ViscositySigma = 0.03f,
+                ViscosityBeta = 0.03f,
+                GravityScale = 1f
+            },
+            new Fluid()
+            {
+                IsSolid = 0,
+                Stiffness = 75f,
+                NearStiffness = 150f,
+                RestDensity = 5f,
+                ViscositySigma = 0.00f,
+                ViscosityBeta = 0.00f,
+                GravityScale = 0.1f
+            }
+        };
+
+   
+        
+            
+            
         #region ------------------------------------------- UNITY METHODS -----------------------------------------------
         private void Awake()
         {
@@ -29,13 +72,8 @@ namespace FluidSimulation
             if (_particleVisualization == null) Debug.LogError("No visualization found in the scene.");
             if (_container == null) Debug.LogError("No container found in the scene.");
 
-
-            _particleDynamics =  new ParticleDynamics(settings, _container.Bounds);
-
-            _particleData = new ParticleData(settings);
-            
-            // TODO: POISTA TÄMÄ KAUHISTUS
-         //   (_particleDynamics as ParticleDynamicsAlternative).TemporaryInit(particleDynamicCompute, _particleData);
+            _fluidDynamics =  new FluidDynamics(Settings, Fluids);
+            _particleData = new ParticleData(Settings);
             
             void SetMaxFrameRate(int frameRate)
             {
@@ -44,18 +82,18 @@ namespace FluidSimulation
             }
         }
 
+
+
         private void OnDestroy()
         {
-            _particleDynamics.Dispose();
-            // TODO: POISTA TÄMÄ KAUHISTUS
-            // (_particleDynamics as ParticleDynamicsAlternative).TemporaryRelease();
+            _fluidDynamics.Dispose();
         }
 
         void Update()
         {
             if (!_isPaused)
             {
-                _particleDynamics.Step(_particleData, 0.015f);
+                _fluidDynamics.Step(_particleData, 0.015f);
                 UpdateParticleVisualization();
             }
             ProcessUserInput();
@@ -76,18 +114,20 @@ namespace FluidSimulation
             if (Input.GetKeyDown(KeyCode.T)) RunPerformanceTest();
         }
 
-        public int SpawnParticle(Vector2 position, Vector2 velocity, ParticleType type)
+        public int SpawnParticle(Vector2 position, Vector2 velocity, FluidSubstance substance)
         {
             var particle = new FluidParticle()
             {
                 Position = position,
                 Velocity = velocity,
-                Type = type,
-              //  color = Color.blue
+                FluidIndex = FluidIndex(substance)
             };
 
+          
+            
+            
             int particleId = _particleData.Add(particle);
-            _particleVisualization.AddParticle(particleId, type);
+            _particleVisualization.AddParticle(particleId, substance);
 
             return particleId;
         }
@@ -98,6 +138,7 @@ namespace FluidSimulation
         }
 
       
+        
 
         private void UpdateParticleVisualization()
         {
@@ -108,29 +149,23 @@ namespace FluidSimulation
                _particleVisualization.ColorParticle(particle.Id, Color.blue);
                // _particleVisualization.ColorParticle(particle.Id, particle.color);
             }
-            Debug.Log(1000f*(Time.realtimeSinceStartup-t));
-/*
-            if (_particleData.All().Length > 0)
-            {
-                int i = Random.Range(0, _particleData.All().Length);
-             
-                _particleVisualization.ColorParticle(i, Color.red);
-                
-              
-                
-                foreach (var n in _particleData.NeighbourIndicesTest(i))
-                {
-                    
-                    if (n!=i)
-                        _particleVisualization.ColorParticle(n, Color.green);
-                }
-            }*/
+
         }
 
         private void Clear()
         {
             _particleData.Clear();
             _particleVisualization.Clear();
+        }
+        
+        private int FluidIndex(FluidSubstance substance) 
+        {
+            return substance switch
+            {
+                FluidSubstance.Liquid => 0,
+                FluidSubstance.Solid => 1,
+                _ => throw new System.ArgumentOutOfRangeException(nameof(substance), substance, null)
+            };
         }
 
         private void RunPerformanceTest()
@@ -141,46 +176,24 @@ namespace FluidSimulation
          
             for (int i = 0; i < 4000; i++)
             {
-                SpawnParticle(RandomPosition(), Vector2.zero, ParticleType.Liquid);
+                SpawnParticle(RandomPosition(), Vector2.zero, FluidSubstance.Liquid);
             }
 
             Timer timer = new Timer();
-            for (int i = 0; i < 60; i++) _particleDynamics.Step(_particleData, 0.015f);
+            for (int i = 0; i < 60; i++) _fluidDynamics.Step(_particleData, 0.015f);
             Debug.Log("Performance test took " + timer.Time * 1000f + " ms.");
             
             Vector2 RandomPosition()
             {
                 return new Vector2
                 (
-                    x: Random.Range(settings.AreaBounds.xMin, settings.AreaBounds.xMax),
-                    y: Random.Range(settings.AreaBounds.yMin, settings.AreaBounds.yMax)
+                    x: Random.Range(Settings.AreaBounds.xMin, Settings.AreaBounds.xMax),
+                    y: Random.Range(Settings.AreaBounds.yMin, Settings.AreaBounds.yMax)
                 );
             }
         }
 
-        ParticleDynamics.Settings DefaultSettings => new ParticleDynamics.Settings
-        {
-            InteractionRadius = 15f,
-            Gravity = 500,
-            RestDensity = 5,
-            Stiffness = 750,
-            NearStiffness = 1500,
-            ViscositySigma = 0f,
-            ViscosityBeta = 0.05f,
-            
-        };
-        
-        ParticleDynamics.Settings PoopSettings => new ParticleDynamics.Settings
-        {
-            InteractionRadius = 15f,
-            Gravity = 500,
-            RestDensity = 5,
-            Stiffness = 750,
-            NearStiffness = 1500,
-            ViscositySigma = 0f,
-            ViscosityBeta = 0.4f,
-         
-        };
+
         
         #endregion
     }

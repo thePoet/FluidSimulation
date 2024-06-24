@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 namespace FluidSimulation
@@ -9,29 +10,32 @@ namespace FluidSimulation
         public float brushRadius = 10f;
         public float maxSpeed = 10f;
 
-        public Simulation simulation;
+        [FormerlySerializedAs("simulation")] public TestFluidDynamics testFluidDynamics;
 
         private void Start()
         {
-            simulation = FindObjectOfType<Simulation>();
-            if (simulation == null) Debug.LogError("No Simulation found in the scene.");
+            testFluidDynamics = FindObjectOfType<TestFluidDynamics>();
+            if (testFluidDynamics == null) Debug.LogError("No TestFluidDynamics found in the scene.");
         }
 
         void Update()
         {
-            if (simulation == null) return;
+            if (testFluidDynamics == null) return;
             
             if (LeftMouseButton)
             {
                 for (int i=0; i<blobsPerFrame; i++)
                 {
-                  simulation.SpawnParticle(MousePosition + RandomOffset, Velocity, ParticleType.Liquid);
+                  testFluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, FluidSubstance.Liquid);
                 }
             }
 
             if (RightMouseButton)
             {
-                simulation.SpawnParticle(MousePosition + RandomOffset*0.25f, Velocity, ParticleType.Solid);
+                for (int i=0; i<blobsPerFrame; i++)
+                {
+                    testFluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, FluidSubstance.Solid);
+                }
             }
         }
 

@@ -20,7 +20,7 @@ struct Particle
     int id;
     float2 Position;
     float2 Velocity;
-    int typeNumber;
+    int fluidIdx;
 };
 
 struct TempParticleData
@@ -32,6 +32,16 @@ struct TempParticleData
     float NearPressure;
 };
 
+struct Fluid
+{
+    int IsSolid;
+    float Stiffness;
+    float NearStiffness;
+    float RestDensity;
+    float ViscositySigma;
+    float ViscosityBeta;
+    float GravityScale;
+};
 
 // Settings
 int _NumParticles;
@@ -59,6 +69,8 @@ RWStructuredBuffer<int> _ParticleNeighbours; //Length: MaxNumParticles * MaxNumN
 RWStructuredBuffer<int> _ParticleNeighbourCount; //Length: MaxNumParticles 
 //RWStructuredBuffer<float2> _ChangeBuffer; //Length: MaxNumParticles * MaxNumNeighbours
 RWStructuredBuffer<float> _Stats; //Length: 10 
+RWStructuredBuffer<Fluid> _Fluids; 
+
 
 // --------------------- UTILITY FUNCTIONS ---------------------
 
@@ -136,7 +148,7 @@ void ApplyGravity (uint3 id : SV_DispatchThreadID)
     int particleIndex = id.x * 128 + id.y;
     if (particleIndex >= _NumParticles) return;
 
-    _Particles[particleIndex].Velocity += float2(0.0, -_DeltaTime * _Gravity);
+    _Particles[particleIndex].Velocity += float2(0.0, -_DeltaTime * _Gravity * _Fluids[_Particles[particleIndex].fluidIdx].GravityScale);
 }
 
 // ------------- SPATIAL PARTITIONING ----------------------------------------------------------------
@@ -210,12 +222,10 @@ void FillPartitioningCells (uint3 id : SV_DispatchThreadID)
         _Stats[8] = _Particles[index].Position.x;
         _Stats[9] = _Particles[index].Position.y;
         
-     //   _Particles[index].Color = float4(1,0,0,1);
         return;
     }
   
-
-    //TODO: Maybe faster without interlocked by doing cell per thread?
+    
     int previousCount = 0;
     InterlockedAdd(_CellParticleCount[cellIndex], 1, previousCount);
     if (previousCount >= _MaxNumParticlesPerCell)
@@ -224,8 +234,6 @@ void FillPartitioningCells (uint3 id : SV_DispatchThreadID)
         return;
     }
 
-  //  if (cellIndex%2==0)  _Particles[index].Color = float4(1,1,0,1);
-    //if (cellIndex%2==1)  _Particles[index].Color = float4(1,0,1,1);
   
     _ParticlesInCells[cellIndex * _MaxNumParticlesPerCell + previousCount] = index;
 
@@ -270,9 +278,9 @@ void FindNeighbours (uint3 id : SV_DispatchThreadID)
 
 float2 ViscosityImpulse(int particle1, int particle2)
 {
-    //   if (_Particles[neighbourIndex].typeNumber == 1) continue;
-    const float sigma = 0.02;
-    const float beta = 0.02;
+    int fluidIdx = _Particles[particle1].fluidIdx;
+    float sigma = _Fluids[fluidIdx].ViscositySigma;
+    float beta = _Fluids[fluidIdx].ViscosityBeta;
 
     float distance = length(_Particles[particle1].Position - _Particles[particle2].Position);
 
@@ -330,9 +338,12 @@ void CalculatePressures (uint3 id : SV_DispatchThreadID)
     int particleIndex = id.x * 128 + id.y;
     if (particleIndex >= _NumParticles) return;
 
-    const float restDensity = 5;
-    const float stiffness = 750;
-    const float nearStiffness = 1500;
+    int fluidIndex = _Particles[particleIndex].fluidIdx;
+
+    
+    const float restDensity = _Fluids[fluidIndex].RestDensity;
+    const float stiffness = _Fluids[fluidIndex].Stiffness;
+    const float nearStiffness = _Fluids[fluidIndex].NearStiffness;
 
     float density = 0;
     float nearDensity = 0;

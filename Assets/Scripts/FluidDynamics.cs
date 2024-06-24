@@ -7,19 +7,13 @@ using RikusGameDevToolbox.GeneralUse;
 namespace FluidSimulation
 {
     
-    public class ParticleDynamics : IParticleDynamics
+    public class FluidDynamics 
     {
-        [System.Serializable]
-        public class Settings
+      
+        public struct Settings
         {
             public float InteractionRadius;
             public float Gravity;
-            public float RestDensity;
-            public float Stiffness;
-            public float NearStiffness;
-            public float ViscositySigma;
-            public float ViscosityBeta;
-       
             public int MaxNumParticles;
             public Rect AreaBounds;
             public int MaxNumParticlesInPartitioningCell;
@@ -28,22 +22,17 @@ namespace FluidSimulation
             public Grid2D PartitioningGrid => new Grid2D(AreaBounds, squareSize: InteractionRadius);
             public int MaxNumNeighbours;
         }
-        
-  
+
+      
      
         private FluidsComputeShader _computeShader;
-        private Rect _bounds;
-        private readonly Settings _settings;
-
+        
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
-        public ParticleDynamics(Settings settings, Rect bounds)
+        public FluidDynamics(Settings settings, Fluid[] fluids)
         {
-            _settings = settings;
-            _bounds = bounds;
-
-            _computeShader = new FluidsComputeShader("FluidDynamicsComputeShader", settings);
+            _computeShader = new FluidsComputeShader("FluidDynamicsComputeShader", settings, fluids);
         }
-
+   
         public void Dispose()
         {
             _computeShader.Dispose();
@@ -54,10 +43,7 @@ namespace FluidSimulation
         }
 
         #endregion
-        #region ------------------------------------------ PRIVATE METHODS ----------------------------------------------
-        
-
-        #endregion
+    
       
     }
 }

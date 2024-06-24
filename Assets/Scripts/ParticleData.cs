@@ -29,7 +29,7 @@ namespace FluidSimulation
         
         
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
-        public ParticleData(ParticleDynamics.Settings settings)
+        public ParticleData(FluidDynamics.Settings settings)
         {
             MaxNumberOfParticles = settings.MaxNumParticles;
             _maxNumNeighbours = settings.MaxNumNeighbours;
@@ -69,18 +69,8 @@ namespace FluidSimulation
             buffer.GetData(_particles);  
         }
         
-        public void ReadNeighboursFromBuffer(ComputeBuffer particleNeighbours, ComputeBuffer particleNeighbourCount)
-        {
-           particleNeighbours.GetData(_neighbourIndices);
-           particleNeighbourCount.GetData(_neighbourCount);
-        }
- 
-        
-        public ComputeBuffer CreateSpatialBuffer() => new ComputeBuffer(MaxNumberOfParticles, FluidParticle.Stride);
-        public void WriteSpatialToBuffer(ComputeBuffer buffer) => buffer.SetData(_particles);
-        public void ReadSpatialFromBuffer(ComputeBuffer buffer) => buffer.GetData(_particles);
-
-
+   
+    
         // Returns id number of the added particle
         public int Add(FluidParticle particle)
         {
@@ -104,8 +94,6 @@ namespace FluidSimulation
             return span.Slice(0, _numParticles);
         }
         
-        
-
         public void UpdateNeighbours()
         {
            _partitioningGrid.Clear();
@@ -114,17 +102,12 @@ namespace FluidSimulation
                _partitioningGrid.Add(i, _particles[i].Position);
            }
         }
-
-
-   
-
+        
         public void Clear()
         {
             _numParticles = 0;
             _partitioningGrid.Clear();
- 
         }
-        
         
         public int NumberOfParticles => _numParticles;
         
