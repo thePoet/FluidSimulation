@@ -26,7 +26,7 @@ namespace FluidSimulation
             {
                 for (int i=0; i<blobsPerFrame; i++)
                 {
-                  testFluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, FluidSubstance.Liquid);
+                  testFluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, FluidSubstance.SomeLiquid);
                 }
             }
 
@@ -34,7 +34,7 @@ namespace FluidSimulation
             {
                 for (int i=0; i<blobsPerFrame; i++)
                 {
-                    testFluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, FluidSubstance.Solid);
+                    testFluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, FluidSubstance.SomeSolid);
                 }
             }
         }

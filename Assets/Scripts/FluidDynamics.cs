@@ -10,7 +10,7 @@ namespace FluidSimulation
     public class FluidDynamics 
     {
       
-        public struct Settings
+        public struct SimulationSettings
         {
             public float InteractionRadius;
             public float Gravity;
@@ -28,9 +28,9 @@ namespace FluidSimulation
         private FluidsComputeShader _computeShader;
         
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
-        public FluidDynamics(Settings settings, Fluid[] fluids)
+        public FluidDynamics(SimulationSettings simulationSettings, Fluid[] fluids)
         {
-            _computeShader = new FluidsComputeShader("FluidDynamicsComputeShader", settings, fluids);
+            _computeShader = new FluidsComputeShader("FluidDynamicsComputeShader", simulationSettings, fluids);
         }
    
         public void Dispose()

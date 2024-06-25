@@ -29,13 +29,13 @@ namespace FluidSimulation
         
         
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
-        public ParticleData(FluidDynamics.Settings settings)
+        public ParticleData(FluidDynamics.SimulationSettings simulationSettings)
         {
-            MaxNumberOfParticles = settings.MaxNumParticles;
-            _maxNumNeighbours = settings.MaxNumNeighbours;
-            _neighbourRadius = settings.InteractionRadius;
+            MaxNumberOfParticles = simulationSettings.MaxNumParticles;
+            _maxNumNeighbours = simulationSettings.MaxNumNeighbours;
+            _neighbourRadius = simulationSettings.InteractionRadius;
             _maxNumParticlesInSpatialCell = _maxNumNeighbours * 2;
-            _bounds = settings.AreaBounds;
+            _bounds = simulationSettings.AreaBounds;
             
             _particles = new FluidParticle[MaxNumberOfParticles];
             _neighbourSearch = new NeighbourSearch(_neighbourRadius, MaxNumberOfParticles, _maxNumNeighbours);

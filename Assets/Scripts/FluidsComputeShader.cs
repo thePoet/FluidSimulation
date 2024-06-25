@@ -45,10 +45,10 @@ namespace FluidSimulation
             CalculateVelocityBasedOnMovement = 11
         }
 
-        private readonly FluidDynamics.Settings _settings;
+        private readonly FluidDynamics.SimulationSettings _simulationSettings;
         private readonly Fluid[] _fluids;
         
-        public FluidsComputeShader(string shaderFileName, FluidDynamics.Settings settings, Fluid[] fluids)  
+        public FluidsComputeShader(string shaderFileName, FluidDynamics.SimulationSettings simulationSettings, Fluid[] fluids)  
         {
             _computeShader = Resources.Load(shaderFileName) as ComputeShader;
             if (_computeShader == null)
@@ -56,12 +56,12 @@ namespace FluidSimulation
                 throw new Exception("Could not load compute shader: " + shaderFileName);
             }
             
-            _settings = settings;
+            _simulationSettings = simulationSettings;
             _fluids = fluids;
             
             CreateBuffers();
             SetBuffers();
-            SetShaderVariables(settings);
+            SetShaderVariables(simulationSettings);
         }
 
 
@@ -114,33 +114,33 @@ namespace FluidSimulation
 //            Debug.Log("TestFluidDynamics " + 1000f * (t4 - t1) + " ms. Read/Write: " + 1000f * (t5 - t4 + t1 - t0));
         }
 
-        private void SetShaderVariables(FluidDynamics.Settings settings)
+        private void SetShaderVariables(FluidDynamics.SimulationSettings simulationSettings)
         {
-            _computeShader.SetInt("_MaxNumParticles", settings.MaxNumParticles);
-            _computeShader.SetInt("_MaxNumNeighbours", settings.MaxNumNeighbours);
+            _computeShader.SetInt("_MaxNumParticles", simulationSettings.MaxNumParticles);
+            _computeShader.SetInt("_MaxNumNeighbours", simulationSettings.MaxNumNeighbours);
             
-            _computeShader.SetInt("_MaxNumParticlesPerCell", settings.MaxNumParticlesInPartitioningCell);
-            _computeShader.SetFloat("_InteractionRadius", _settings.InteractionRadius);
+            _computeShader.SetInt("_MaxNumParticlesPerCell", simulationSettings.MaxNumParticlesInPartitioningCell);
+            _computeShader.SetFloat("_InteractionRadius", _simulationSettings.InteractionRadius);
             
-            _computeShader.SetFloat("_AreaMinX", settings.AreaBounds.xMin);
-            _computeShader.SetFloat("_AreaMinY", settings.AreaBounds.yMin);
-            _computeShader.SetFloat("_AreaMaxX", settings.AreaBounds.xMax);
-            _computeShader.SetFloat("_AreaMaxY", settings.AreaBounds.yMax);
+            _computeShader.SetFloat("_AreaMinX", simulationSettings.AreaBounds.xMin);
+            _computeShader.SetFloat("_AreaMinY", simulationSettings.AreaBounds.yMin);
+            _computeShader.SetFloat("_AreaMaxX", simulationSettings.AreaBounds.xMax);
+            _computeShader.SetFloat("_AreaMaxY", simulationSettings.AreaBounds.yMax);
             
-            _computeShader.SetFloat("_Gravity", settings.Gravity);
+            _computeShader.SetFloat("_Gravity", simulationSettings.Gravity);
         }
         
         private void CreateBuffers()
         {
-            _particleBuffer = new ComputeBuffer(_settings.MaxNumParticles, FluidParticle.Stride, ComputeBufferType.Default, ComputeBufferMode.SubUpdates);
-            _tempParticleData = new ComputeBuffer(_settings.MaxNumParticles, TempParticleData.Stride);
+            _particleBuffer = new ComputeBuffer(_simulationSettings.MaxNumParticles, FluidParticle.Stride, ComputeBufferType.Default, ComputeBufferMode.SubUpdates);
+            _tempParticleData = new ComputeBuffer(_simulationSettings.MaxNumParticles, TempParticleData.Stride);
             
-            _particleNeighbours = new ComputeBuffer(_settings.MaxNumParticles * _settings.MaxNumNeighbours, sizeof(int));
-            _particleNeighbourCount = new ComputeBuffer(_settings.MaxNumParticles , sizeof(int));
+            _particleNeighbours = new ComputeBuffer(_simulationSettings.MaxNumParticles * _simulationSettings.MaxNumNeighbours, sizeof(int));
+            _particleNeighbourCount = new ComputeBuffer(_simulationSettings.MaxNumParticles , sizeof(int));
 
-            int numCells = _settings.PartitioningGrid.NumberOfSquares;
+            int numCells = _simulationSettings.PartitioningGrid.NumberOfSquares;
             _cellParticleCount = new ComputeBuffer(numCells, sizeof(int));
-            _particlesInCells = new ComputeBuffer(_settings.MaxNumParticlesInPartitioningCell*numCells, sizeof(int));
+            _particlesInCells = new ComputeBuffer(_simulationSettings.MaxNumParticlesInPartitioningCell*numCells, sizeof(int));
             
             _fluidsBuffer = new ComputeBuffer(_fluids.Length, Fluid.Stride);
             _fluidsBuffer.SetData(_fluids);

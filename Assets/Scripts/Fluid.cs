@@ -2,7 +2,7 @@
 
 public struct Fluid
 {
-    public int IsSolid;
+    public int StateIndex;
     public float Stiffness;
     public float NearStiffness;
     public float RestDensity;
@@ -11,4 +11,18 @@ public struct Fluid
     public float GravityScale;
             
     public static int Stride => sizeof(int) + 6 * sizeof(float);
+    
+ 
+    public State State
+    {
+        get => (State) StateIndex;
+        set => StateIndex = (int) value;
+    }
+}
+
+public enum State
+{
+    Liquid,
+    Gas,
+    Solid,
 }

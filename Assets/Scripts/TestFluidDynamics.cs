@@ -7,8 +7,8 @@ namespace FluidSimulation
 {
     public enum FluidSubstance
     {
-        Liquid,
-        Solid
+        SomeLiquid,
+        SomeSolid
     }
     
     public class TestFluidDynamics : MonoBehaviour
@@ -24,7 +24,7 @@ namespace FluidSimulation
 
         private bool _isPaused;
         
-        private FluidDynamics.Settings Settings => new()
+        private FluidDynamics.SimulationSettings SimulationSettings => new()
         {
             InteractionRadius = 15f,
             Gravity = 500f,
@@ -38,23 +38,23 @@ namespace FluidSimulation
         {
             new Fluid()
             {
-                IsSolid = 0,
+                State = State.Liquid,
                 Stiffness = 750f,
                 NearStiffness = 1500f,
                 RestDensity = 5f,
-                ViscositySigma = 0.03f,
-                ViscosityBeta = 0.03f,
+                ViscositySigma = 0.05f,
+                ViscosityBeta = 0.05f,
                 GravityScale = 1f
             },
             new Fluid()
             {
-                IsSolid = 0,
+                State = State.Gas,
                 Stiffness = 75f,
                 NearStiffness = 150f,
-                RestDensity = 5f,
-                ViscositySigma = 0.00f,
-                ViscosityBeta = 0.00f,
-                GravityScale = 0.1f
+                RestDensity = 0.5f,
+                ViscositySigma = 0.01f,
+                ViscosityBeta = 0.01f,
+                GravityScale = -0.05f
             }
         };
 
@@ -72,8 +72,8 @@ namespace FluidSimulation
             if (_particleVisualization == null) Debug.LogError("No visualization found in the scene.");
             if (_container == null) Debug.LogError("No container found in the scene.");
 
-            _fluidDynamics =  new FluidDynamics(Settings, Fluids);
-            _particleData = new ParticleData(Settings);
+            _fluidDynamics =  new FluidDynamics(SimulationSettings, Fluids);
+            _particleData = new ParticleData(SimulationSettings);
             
             void SetMaxFrameRate(int frameRate)
             {
@@ -162,8 +162,8 @@ namespace FluidSimulation
         {
             return substance switch
             {
-                FluidSubstance.Liquid => 0,
-                FluidSubstance.Solid => 1,
+                FluidSubstance.SomeLiquid => 0,
+                FluidSubstance.SomeSolid => 1,
                 _ => throw new System.ArgumentOutOfRangeException(nameof(substance), substance, null)
             };
         }
@@ -176,7 +176,7 @@ namespace FluidSimulation
          
             for (int i = 0; i < 4000; i++)
             {
-                SpawnParticle(RandomPosition(), Vector2.zero, FluidSubstance.Liquid);
+                SpawnParticle(RandomPosition(), Vector2.zero, FluidSubstance.SomeLiquid);
             }
 
             Timer timer = new Timer();
@@ -187,8 +187,8 @@ namespace FluidSimulation
             {
                 return new Vector2
                 (
-                    x: Random.Range(Settings.AreaBounds.xMin, Settings.AreaBounds.xMax),
-                    y: Random.Range(Settings.AreaBounds.yMin, Settings.AreaBounds.yMax)
+                    x: Random.Range(SimulationSettings.AreaBounds.xMin, SimulationSettings.AreaBounds.xMax),
+                    y: Random.Range(SimulationSettings.AreaBounds.yMin, SimulationSettings.AreaBounds.yMax)
                 );
             }
         }

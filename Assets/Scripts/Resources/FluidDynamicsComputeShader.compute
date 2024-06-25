@@ -34,7 +34,7 @@ struct TempParticleData
 
 struct Fluid
 {
-    int IsSolid;
+    int State; // 0 = liquid, 1 = gas, 2 = solid
     float Stiffness;
     float NearStiffness;
     float RestDensity;
@@ -140,6 +140,22 @@ float QDistance(int particle1, int particle2)
 {
     return length(_Particles[particle1].Position - _Particles[particle2].Position) / _InteractionRadius;
 }
+
+bool IsLiquid(int particleIdx)
+{
+    return _Fluids[_Particles[particleIdx].fluidIdx].State == 0;
+}
+
+bool IsGas(int particleIdx)
+{
+    return _Fluids[_Particles[particleIdx].fluidIdx].State == 1;
+}
+
+bool IsSolid(int particleIdx)
+{
+    return _Fluids[_Particles[particleIdx].fluidIdx].State == 2;
+}
+
 
 // --------------------- GRAVITY------------------------------------------ ---------------------
 [numthreads(8,8,1)]
@@ -275,9 +291,17 @@ void FindNeighbours (uint3 id : SV_DispatchThreadID)
     _ParticleNeighbourCount[particleIndex] = count;
 }
 
+bool IsInDifferentState(int particle1, int particle2)
+{
+    return _Fluids[_Particles[particle1].fluidIdx].State != _Fluids[_Particles[particle2].fluidIdx].State;
+}
+
 
 float2 ViscosityImpulse(int particle1, int particle2)
 {
+    if (IsInDifferentState(particle1, particle2)) return float2(0,0);
+
+    
     int fluidIdx = _Particles[particle1].fluidIdx;
     float sigma = _Fluids[fluidIdx].ViscositySigma;
     float beta = _Fluids[fluidIdx].ViscosityBeta;
@@ -379,6 +403,12 @@ float2 DensityDisplacement(int particle1, int particle2)
     
     float2 d = _DeltaTime * _DeltaTime * (pressure * (1 - q) + nearPressure * (1 - q) * (1 - q)) *
                 normalize(fromTo);
+
+    if (IsLiquid(particle1) && IsGas(particle2))
+    {
+        d *= 0.01;
+    }
+   
     
     return 0.5 * d;
 }

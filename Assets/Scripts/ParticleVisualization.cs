@@ -31,8 +31,8 @@ namespace FluidSimulation
 
             GameObject PrefabFor(FluidSubstance substance) => substance switch
             {
-                FluidSubstance.Liquid => liquidParticlePrefab,
-                FluidSubstance.Solid => solidParticlePrefab,
+                FluidSubstance.SomeLiquid => liquidParticlePrefab,
+                FluidSubstance.SomeSolid => solidParticlePrefab,
                 _ => throw new ArgumentOutOfRangeException(nameof(substance), substance, null)
             };
 
