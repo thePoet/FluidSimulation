@@ -45,10 +45,10 @@ namespace FluidSimulation
             CalculateVelocityBasedOnMovement = 11
         }
 
-        private readonly FluidDynamics.SimulationSettings _simulationSettings;
+        private readonly SimulationSettings _simulationSettings;
         private readonly Fluid[] _fluids;
         
-        public FluidsComputeShader(string shaderFileName, FluidDynamics.SimulationSettings simulationSettings, Fluid[] fluids)  
+        public FluidsComputeShader(string shaderFileName, SimulationSettings simulationSettings, Fluid[] fluids)  
         {
             _computeShader = Resources.Load(shaderFileName) as ComputeShader;
             if (_computeShader == null)
@@ -78,11 +78,7 @@ namespace FluidSimulation
             _computeShader.SetInt("_NumParticles", data.NumberOfParticles);
             _computeShader.SetFloat("_DeltaTime", deltaTime);
             
-            float t0 = Time.realtimeSinceStartup;
-            
             WriteToBuffers(data);
-            
-            float t1 = Time.realtimeSinceStartup;
 
             Execute(Kernel.ApplyGravity, threadGroupsForParticles);
 
@@ -99,7 +95,7 @@ namespace FluidSimulation
             Execute(Kernel.FindNeighbours, threadGroupsForParticles);
             
            
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < _simulationSettings.NumDensityDisplacementRounds; i++)
             {
                 Execute(Kernel.CalculatePressures, threadGroupsForParticles);
                 Execute(Kernel.CalculateDensityDisplacement, threadGroupsForParticles);
@@ -109,16 +105,10 @@ namespace FluidSimulation
             Execute(Kernel.ConfineParticlesToArea, threadGroupsForParticles);
             Execute(Kernel.CalculateVelocityBasedOnMovement, threadGroupsForParticles);
             
-            float t4 = Time.realtimeSinceStartup;
-            
             ReadFromBuffers(data);
-            
-            float t5 = Time.realtimeSinceStartup;
-
-//            Debug.Log("TestFluidDynamics " + 1000f * (t4 - t1) + " ms. Read/Write: " + 1000f * (t5 - t4 + t1 - t0));
         }
 
-        private void SetShaderVariables(FluidDynamics.SimulationSettings simulationSettings)
+        private void SetShaderVariables(SimulationSettings simulationSettings)
         {
             _computeShader.SetInt("_MaxNumParticles", simulationSettings.MaxNumParticles);
             _computeShader.SetInt("_MaxNumNeighbours", simulationSettings.MaxNumNeighbours);
@@ -204,6 +194,6 @@ namespace FluidSimulation
         }
         
         private Vector3Int threadGroupsForParticles => new Vector3Int(32, 16, 1);
-        private Vector3Int threadGroupsForCells => new Vector3Int(32, 16, 1); //NOTE: This is not correct
+        private Vector3Int threadGroupsForCells => new Vector3Int(32, 16, 1); //NOTE: This is too many
     }
 }

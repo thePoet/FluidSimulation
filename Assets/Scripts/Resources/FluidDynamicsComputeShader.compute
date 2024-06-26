@@ -320,7 +320,7 @@ float2 ViscosityImpulse(int particle1, int particle2)
     if (u <= 0) return float2(0,0);
 
    float differentStatesFactor = IsInDifferentState(particle1, particle2) ? 0.1 : 1;
-    
+
     return _DeltaTime * (1 - q) * (sigma * u + beta * u * u) * r * differentStatesFactor;
 }
 

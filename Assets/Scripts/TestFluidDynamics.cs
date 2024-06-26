@@ -17,19 +17,19 @@ namespace FluidSimulation
         
      
     
-        private ParticleData _particleData;
         private FluidDynamics _fluidDynamics;
         private ParticleVisualization _particleVisualization;
         private Container _container;
 
         private bool _isPaused;
         
-        private FluidDynamics.SimulationSettings SimulationSettings => new()
+        private SimulationSettings SimulationSettings => new()
         {
             InteractionRadius = 15f,
             Gravity = 1200f,
             MaxNumParticles = 13000,
             IsViscosityEnabled = true,
+            NumDensityDisplacementRounds = 2,
             AreaBounds = new Rect(Vector2.zero, new Vector2(700f, 400f)),
             MaxNumParticlesInPartitioningCell = 50,
             MaxNumNeighbours = 50
@@ -37,7 +37,7 @@ namespace FluidSimulation
 
         private Fluid[] Fluids => new[]
         {
-            new Fluid()
+            new Fluid
             {
                 State = State.Liquid,
                 Stiffness = 750f,
@@ -48,7 +48,7 @@ namespace FluidSimulation
                 GravityScale = 1f,
                 Mass = 1f
             },
-            new Fluid()
+            new Fluid
             {
                 State = State.Gas,
                 Stiffness = 200f,
@@ -58,7 +58,6 @@ namespace FluidSimulation
                 ViscosityBeta = 0.05f,
                 GravityScale = 0.0f,
                 Mass = 0.05f
-                
             }
         };
 
@@ -77,7 +76,6 @@ namespace FluidSimulation
             if (_container == null) Debug.LogError("No container found in the scene.");
 
             _fluidDynamics =  new FluidDynamics(SimulationSettings, Fluids);
-            _particleData = new ParticleData(SimulationSettings);
             
             void SetMaxFrameRate(int frameRate)
             {
@@ -90,19 +88,19 @@ namespace FluidSimulation
 
         private void OnDestroy()
         {
-            _fluidDynamics.Dispose();
+            _fluidDynamics.EndSimulation();
         }
 
         void Update()
         {
             if (!_isPaused)
             {
-                _fluidDynamics.Step(_particleData, 0.015f);
+                _fluidDynamics.Step(0.015f);
                 UpdateParticleVisualization();
             }
             ProcessUserInput();
-            
-            text.text = "Particles: " + _particleData.NumberOfParticles.ToString();
+
+            text.text = "Particles: " + _fluidDynamics.Particles.Length;
         }
         
         #endregion
@@ -113,9 +111,8 @@ namespace FluidSimulation
         {
             if (Input.GetKeyDown(KeyCode.C)) Clear();
             if (Input.GetKeyDown(KeyCode.Q)) Application.Quit();
-            if (Input.GetKeyDown(KeyCode.N)) Debug.Log("Number of particles: " + _particleData.NumberOfParticles);
             if (Input.GetKeyDown(KeyCode.Space)) _isPaused = !_isPaused;
-            if (Input.GetKeyDown(KeyCode.T)) RunPerformanceTest();
+            //if (Input.GetKeyDown(KeyCode.T)) RunPerformanceTest();
         }
 
         public int SpawnParticle(Vector2 position, Vector2 velocity, FluidSubstance substance)
@@ -130,16 +127,12 @@ namespace FluidSimulation
           
             
             
-            int particleId = _particleData.Add(particle);
+            int particleId = _fluidDynamics.AddParticle(particle);
             _particleVisualization.AddParticle(particleId, substance);
 
             return particleId;
         }
         
-        public void MoveParticle(int particleId, Vector2 newPosition)
-        {
-            _particleData.All()[particleId].Position = newPosition;
-        }
 
       
         
@@ -147,7 +140,7 @@ namespace FluidSimulation
         private void UpdateParticleVisualization()
         {
             float t = Time.realtimeSinceStartup;
-            foreach (var particle in _particleData.All())
+            foreach (var particle in _fluidDynamics.Particles)
             {
                 _particleVisualization.UpdateParticle(particle.Id, particle.Position);
                _particleVisualization.ColorParticle(particle.Id, Color.blue);
@@ -158,7 +151,7 @@ namespace FluidSimulation
 
         private void Clear()
         {
-            _particleData.Clear();
+            _fluidDynamics.Clear();
             _particleVisualization.Clear();
         }
         
@@ -171,7 +164,7 @@ namespace FluidSimulation
                 _ => throw new System.ArgumentOutOfRangeException(nameof(substance), substance, null)
             };
         }
-
+/*
         private void RunPerformanceTest()
         {
             Clear();
@@ -196,7 +189,7 @@ namespace FluidSimulation
                 );
             }
         }
-
+*/
 
         
         #endregion

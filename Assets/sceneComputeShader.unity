@@ -246,8 +246,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   blobsPerFrame: 10
   brushRadius: 10
-  maxSpeed: 0.1
-  simulation: {fileID: 0}
+  maxSpeed: 0.01
+  testFluidDynamics: {fileID: 0}
 --- !u!4 &405270752
 Transform:
   m_ObjectHideFlags: 0
@@ -377,24 +377,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   text: {fileID: 2101029934}
-  settings:
-    InteractionRadius: 15
-    Gravity: 500
-    RestDensity: 5
-    Stiffness: 750
-    NearStiffness: 1500
-    ViscosityEnabled: 1
-    ViscositySigma: 0.1
-    ViscosityBeta: 0.1
-    MaxNumParticles: 13000
-    AreaBounds:
-      serializedVersion: 2
-      x: 0
-      y: 0
-      width: 700
-      height: 400
-    MaxNumParticlesInPartitioningCell: 50
-    MaxNumNeighbours: 100
 --- !u!114 &1692431640
 MonoBehaviour:
   m_ObjectHideFlags: 0

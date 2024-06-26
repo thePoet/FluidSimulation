@@ -29,7 +29,7 @@ namespace FluidSimulation
         
         
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
-        public ParticleData(FluidDynamics.SimulationSettings simulationSettings)
+        public ParticleData(SimulationSettings simulationSettings)
         {
             MaxNumberOfParticles = simulationSettings.MaxNumParticles;
             _maxNumNeighbours = simulationSettings.MaxNumNeighbours;
