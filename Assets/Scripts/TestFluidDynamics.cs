@@ -27,8 +27,9 @@ namespace FluidSimulation
         private FluidDynamics.SimulationSettings SimulationSettings => new()
         {
             InteractionRadius = 15f,
-            Gravity = 500f,
+            Gravity = 1200f,
             MaxNumParticles = 13000,
+            IsViscosityEnabled = true,
             AreaBounds = new Rect(Vector2.zero, new Vector2(700f, 400f)),
             MaxNumParticlesInPartitioningCell = 50,
             MaxNumNeighbours = 50
@@ -44,17 +45,20 @@ namespace FluidSimulation
                 RestDensity = 5f,
                 ViscositySigma = 0.05f,
                 ViscosityBeta = 0.05f,
-                GravityScale = 1f
+                GravityScale = 1f,
+                Mass = 1f
             },
             new Fluid()
             {
                 State = State.Gas,
-                Stiffness = 75f,
-                NearStiffness = 150f,
+                Stiffness = 200f,
+                NearStiffness = 400f,
                 RestDensity = 0.5f,
-                ViscositySigma = 0.01f,
-                ViscosityBeta = 0.01f,
-                GravityScale = -0.05f
+                ViscositySigma = 0.05f,
+                ViscosityBeta = 0.05f,
+                GravityScale = 0.0f,
+                Mass = 0.05f
+                
             }
         };
 

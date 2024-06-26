@@ -17,6 +17,7 @@ namespace FluidSimulation
             public int MaxNumParticles;
             public Rect AreaBounds;
             public int MaxNumParticlesInPartitioningCell;
+            public bool IsViscosityEnabled;
 
             // TODO: MOVE:
             public Grid2D PartitioningGrid => new Grid2D(AreaBounds, squareSize: InteractionRadius);

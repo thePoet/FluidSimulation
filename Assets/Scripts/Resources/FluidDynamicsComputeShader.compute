@@ -41,6 +41,7 @@ struct Fluid
     float ViscositySigma;
     float ViscosityBeta;
     float GravityScale;
+    float Mass;
 };
 
 // Settings
@@ -156,6 +157,11 @@ bool IsSolid(int particleIdx)
     return _Fluids[_Particles[particleIdx].fluidIdx].State == 2;
 }
 
+Fluid FluidOf(int particleIdx)
+{
+    return _Fluids[_Particles[particleIdx].fluidIdx];
+}
+
 
 // --------------------- GRAVITY------------------------------------------ ---------------------
 [numthreads(8,8,1)]
@@ -164,7 +170,7 @@ void ApplyGravity (uint3 id : SV_DispatchThreadID)
     int particleIndex = id.x * 128 + id.y;
     if (particleIndex >= _NumParticles) return;
 
-    _Particles[particleIndex].Velocity += float2(0.0, -_DeltaTime * _Gravity * _Fluids[_Particles[particleIndex].fluidIdx].GravityScale);
+    _Particles[particleIndex].Velocity += float2(0.0, -_DeltaTime * _Gravity * FluidOf(particleIndex).GravityScale);
 }
 
 // ------------- SPATIAL PARTITIONING ----------------------------------------------------------------
@@ -186,10 +192,8 @@ int CellIndex(in float2 position)
     {
         return -1;
     }
-
     int2 coords = CellCoordinates(position);
     return coords.x + coords.y * ceil((_AreaMaxX-_AreaMinX)/_InteractionRadius);
-    
 }
 
 bool IsInsideArea(float2 position)
@@ -299,7 +303,6 @@ bool IsInDifferentState(int particle1, int particle2)
 
 float2 ViscosityImpulse(int particle1, int particle2)
 {
-    if (IsInDifferentState(particle1, particle2)) return float2(0,0);
 
     
     int fluidIdx = _Particles[particle1].fluidIdx;
@@ -315,7 +318,10 @@ float2 ViscosityImpulse(int particle1, int particle2)
     
     float u = dot(_Particles[particle1].Velocity - _Particles[particle2].Velocity, r);
     if (u <= 0) return float2(0,0);
-    return _DeltaTime * (1 - q) * (sigma * u + beta * u * u) * r;
+
+   float differentStatesFactor = IsInDifferentState(particle1, particle2) ? 0.1 : 1;
+    
+    return _DeltaTime * (1 - q) * (sigma * u + beta * u * u) * r * differentStatesFactor;
 }
 
 
@@ -404,11 +410,7 @@ float2 DensityDisplacement(int particle1, int particle2)
     float2 d = _DeltaTime * _DeltaTime * (pressure * (1 - q) + nearPressure * (1 - q) * (1 - q)) *
                 normalize(fromTo);
 
-    if (IsLiquid(particle1) && IsGas(particle2))
-    {
-        d *= 0.01;
-    }
-   
+    d = d * FluidOf(particle2).Mass / FluidOf(particle1).Mass;
     
     return 0.5 * d;
 }
@@ -419,7 +421,7 @@ void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
 {
     int particleIndex = id.x * 128 + id.y;
     if (particleIndex >= _NumParticles) return;
-
+    
     _TempParticleData[particleIndex].PositionChange = float2(0,0);
 
     for (int j=0; j<_ParticleNeighbourCount[particleIndex]; j++)

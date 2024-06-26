@@ -86,8 +86,12 @@ namespace FluidSimulation
 
             Execute(Kernel.ApplyGravity, threadGroupsForParticles);
 
-            Execute(Kernel.CalculateViscosity, threadGroupsForParticles);
-            Execute(Kernel.ApplyViscosity, threadGroupsForParticles);
+            if (_simulationSettings.IsViscosityEnabled)
+            {
+                Execute(Kernel.CalculateViscosity, threadGroupsForParticles);
+                Execute(Kernel.ApplyViscosity, threadGroupsForParticles);
+            }
+
             Execute(Kernel.ApplyVelocity, threadGroupsForParticles);
 
             Execute(Kernel.ClearPartitioning, threadGroupsForCells);

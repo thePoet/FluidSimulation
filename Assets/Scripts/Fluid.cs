@@ -9,8 +9,9 @@ public struct Fluid
     public float ViscositySigma;
     public float ViscosityBeta;
     public float GravityScale;
+    public float Mass;
             
-    public static int Stride => sizeof(int) + 6 * sizeof(float);
+    public static int Stride => sizeof(int) + 7 * sizeof(float);
     
  
     public State State
