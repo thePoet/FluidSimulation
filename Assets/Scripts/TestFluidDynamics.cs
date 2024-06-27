@@ -124,15 +124,20 @@ namespace FluidSimulation
                 FluidIndex = FluidIndex(substance)
             };
 
-          
-            
-            
             int particleId = _fluidDynamics.AddParticle(particle);
             _particleVisualization.AddParticle(particleId, substance);
 
             return particleId;
         }
-        
+
+        public void MoveParticles(Vector2 position, float radius, Vector2 deltaVelocity)
+        {
+            
+            foreach (var particleIdx in _fluidDynamics.ParticlesInsideCircle(position, radius))
+            {
+                _fluidDynamics.Particles[particleIdx].Velocity += deltaVelocity;
+            }
+        }
 
       
         

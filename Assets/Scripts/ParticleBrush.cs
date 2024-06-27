@@ -32,15 +32,17 @@ namespace FluidSimulation
 
             if (RightMouseButton)
             {
+                /*
                 for (int i=0; i<blobsPerFrame; i++)
                 {
                     testFluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, FluidSubstance.SomeSolid);
-                }
+                }*/
+                testFluidDynamics.MoveParticles(MousePosition, 15f, Vector2.up*1000f);
             }
         }
 
         bool LeftMouseButton => Input.GetMouseButton(0);
-        bool RightMouseButton => Input.GetMouseButton(1);
+        bool RightMouseButton => Input.GetMouseButtonDown(1);
        
         Vector2 RandomOffset => Random.insideUnitCircle * brushRadius;
         

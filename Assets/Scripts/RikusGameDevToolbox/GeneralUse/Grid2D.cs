@@ -64,6 +64,30 @@ namespace RikusGameDevToolbox.GeneralUse
             return new Vector2Int(cellIndex % SizeSquares.x, cellIndex / SizeSquares.x);
         }
 
+        public int[] SquareIndicesInRect(Rect rect)
+        {
+            Vector2Int minCorner = SquareCoordinates(rect.min);
+            Vector2Int maxCorner = SquareCoordinates(rect.max);
+            
+            minCorner.Clamp(Vector2Int.zero, SizeSquares - Vector2Int.one);
+            maxCorner.Clamp(Vector2Int.zero, SizeSquares - Vector2Int.one);
+            
+       
+            int numSquares = (maxCorner.x - minCorner.x + 1) * (maxCorner.y - minCorner.y + 1);
+            var result = new int[numSquares];
+            int i = 0;
+            for (int x = minCorner.x; x<=maxCorner.x; x++)
+            {
+                for (int y=minCorner.y; y<=maxCorner.y; y++)
+                {
+                    result[i] = SquareIndex(new Vector2Int(x, y));
+                    i++;
+                }
+            }
+
+            return result;
+        }
+
         public bool IsInGrid(Vector2 position)
         {
 
@@ -84,17 +108,21 @@ namespace RikusGameDevToolbox.GeneralUse
 
         public int SquareIndex(Vector2 position)
         {
-            Vector2Int cell = SquareCoordinates(position);
-            return cell.x + cell.y * SizeSquares.x;
+           return SquareIndex( SquareCoordinates(position));
+        }
+        
+        public int SquareIndex(Vector2Int squareCoordinates)
+        {
+            return squareCoordinates.x + squareCoordinates.y * SizeSquares.x;
         }
 
-        private static Vector2Int SizeInSquares(Vector2 cornerMin, Vector2 cornerMax, float cellSize)
+        private static Vector2Int SizeInSquares(Vector2 cornerMin, Vector2 cornerMax, float squareSize)
         {
             Assert.IsTrue(cornerMin.x < cornerMax.x && cornerMin.y < cornerMax.y, "Invalid corners");
 
             return new Vector2Int(
-                Mathf.CeilToInt((cornerMax.x - cornerMin.x) / cellSize),
-                Mathf.CeilToInt((cornerMax.y - cornerMin.y) / cellSize)
+                Mathf.CeilToInt((cornerMax.x - cornerMin.x) / squareSize),
+                Mathf.CeilToInt((cornerMax.y - cornerMin.y) / squareSize)
             );
         }
 

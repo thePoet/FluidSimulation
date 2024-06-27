@@ -73,12 +73,12 @@ namespace FluidSimulation
         }
 
 
-        public void Step(float deltaTime, ParticleData data)
+        public void Step(float deltaTime, FluidParticle[] particles, int numParticles)
         {
-            _computeShader.SetInt("_NumParticles", data.NumberOfParticles);
+            _computeShader.SetInt("_NumParticles", numParticles);
             _computeShader.SetFloat("_DeltaTime", deltaTime);
             
-            WriteToBuffers(data);
+            WriteToBuffers(particles);
 
             Execute(Kernel.ApplyGravity, threadGroupsForParticles);
 
@@ -105,7 +105,7 @@ namespace FluidSimulation
             Execute(Kernel.ConfineParticlesToArea, threadGroupsForParticles);
             Execute(Kernel.CalculateVelocityBasedOnMovement, threadGroupsForParticles);
             
-            ReadFromBuffers(data);
+            ReadFromBuffers(particles);
         }
 
         private void SetShaderVariables(SimulationSettings simulationSettings)
@@ -165,14 +165,21 @@ namespace FluidSimulation
             }
         }
 
-        private void ReadFromBuffers(ParticleData data)
+        private void ReadFromBuffers(FluidParticle[] particles)
         {
-            data.ReadParticlesFromBuffer(_particleBuffer);
+            _particleBuffer.GetData(particles);  
         }
 
-        private void WriteToBuffers(ParticleData data)
+        private void WriteToBuffers(FluidParticle[] particles)
         {
-            data.WriteParticlesToBuffer(_particleBuffer);
+            _particleBuffer.SetData(particles);
+            
+            /*
+             faster way?
+            NativeArray<FluidParticle> na = _particleBuffer.BeginWrite<FluidParticle>(0, _simulationSettings.MaxNumParticles);
+            na.CopyFrom(particles);
+            _particleBuffer.EndWrite<FluidParticle>(_simulationSettings.MaxNumParticles);
+            */
         }
         
         
