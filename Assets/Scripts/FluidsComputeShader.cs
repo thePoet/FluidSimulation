@@ -75,37 +75,41 @@ namespace FluidSimulation
 
         public void Step(float deltaTime, FluidParticle[] particles, int numParticles)
         {
+            float time = Time.realtimeSinceStartup;
+            
             _computeShader.SetInt("_NumParticles", numParticles);
-            _computeShader.SetFloat("_DeltaTime", deltaTime);
+            _computeShader.SetFloat("_DeltaTime", deltaTime/_simulationSettings.NumSubSteps);
             
             WriteToBuffers(particles);
 
-            Execute(Kernel.ApplyGravity, threadGroupsForParticles);
-
-            if (_simulationSettings.IsViscosityEnabled)
+            for (int s = 0; s < _simulationSettings.NumSubSteps; s++)
             {
-                Execute(Kernel.CalculateViscosity, threadGroupsForParticles);
-                Execute(Kernel.ApplyViscosity, threadGroupsForParticles);
-            }
+                Execute(Kernel.ApplyGravity, threadGroupsForParticles);
 
-            Execute(Kernel.ApplyVelocity, threadGroupsForParticles);
+                if (_simulationSettings.IsViscosityEnabled)
+                {
+                    Execute(Kernel.CalculateViscosity, threadGroupsForParticles);
+                    Execute(Kernel.ApplyViscosity, threadGroupsForParticles);
+                }
 
-            Execute(Kernel.ClearPartitioning, threadGroupsForCells);
-            Execute(Kernel.FillPartitioning, threadGroupsForParticles);
-            Execute(Kernel.FindNeighbours, threadGroupsForParticles);
-            
-           
-            for (int i = 0; i < _simulationSettings.NumDensityDisplacementRounds; i++)
-            {
+                Execute(Kernel.ApplyVelocity, threadGroupsForParticles);
+
+                Execute(Kernel.ClearPartitioning, threadGroupsForCells);
+                Execute(Kernel.FillPartitioning, threadGroupsForParticles);
+                Execute(Kernel.FindNeighbours, threadGroupsForParticles);
+
                 Execute(Kernel.CalculatePressures, threadGroupsForParticles);
                 Execute(Kernel.CalculateDensityDisplacement, threadGroupsForParticles);
                 Execute(Kernel.ApplyDensityDisplacement, threadGroupsForParticles);
+           
+                Execute(Kernel.ConfineParticlesToArea, threadGroupsForParticles);
+                Execute(Kernel.CalculateVelocityBasedOnMovement, threadGroupsForParticles);
             }
 
-            Execute(Kernel.ConfineParticlesToArea, threadGroupsForParticles);
-            Execute(Kernel.CalculateVelocityBasedOnMovement, threadGroupsForParticles);
-            
             ReadFromBuffers(particles);
+
+            Debug.Log("Sim step with read/write took " + 1000f * (Time.realtimeSinceStartup - time) + " ms.");
+
         }
 
         private void SetShaderVariables(SimulationSettings simulationSettings)

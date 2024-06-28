@@ -29,7 +29,7 @@ namespace FluidSimulation
             Gravity = 1200f,
             MaxNumParticles = 13000,
             IsViscosityEnabled = true,
-            NumDensityDisplacementRounds = 2,
+            NumSubSteps = 3,
             AreaBounds = new Rect(Vector2.zero, new Vector2(700f, 400f)),
             MaxNumParticlesInPartitioningCell = 50,
             MaxNumNeighbours = 50
@@ -130,12 +130,11 @@ namespace FluidSimulation
             return particleId;
         }
 
-        public void MoveParticles(Vector2 position, float radius, Vector2 deltaVelocity)
+        public void SetParticleVelocities(Vector2 position, float radius, Vector2 velocity)
         {
-            
             foreach (var particleIdx in _fluidDynamics.ParticlesInsideCircle(position, radius))
             {
-                _fluidDynamics.Particles[particleIdx].Velocity += deltaVelocity;
+                _fluidDynamics.Particles[particleIdx].Velocity = velocity;
             }
         }
 

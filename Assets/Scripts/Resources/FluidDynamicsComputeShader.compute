@@ -503,7 +503,28 @@ void ConfineParticlesToArea (uint3 id : SV_DispatchThreadID)
 
     if (IsInsideBox(_Particles[i].Position, minCorner, maxCorner)) return;
 
+    // ----
+    float softness = 0.5;
     
+    if (_Particles[i].Position.x < minCorner.x)
+    {
+        _Particles[i].Position.x = lerp(_Particles[i].Position.x, minCorner.x, softness);
+    }
+    if (_Particles[i].Position.x > maxCorner.x)
+    {
+        _Particles[i].Position.x = lerp(_Particles[i].Position.x, maxCorner.x, softness);
+    }
+    if (_Particles[i].Position.y < minCorner.y)
+    {
+        _Particles[i].Position.y = lerp(_Particles[i].Position.y, minCorner.y, softness);
+    }
+    if (_Particles[i].Position.y > maxCorner.y)
+    {
+        _Particles[i].Position.y = lerp(_Particles[i].Position.y, maxCorner.y, softness);
+    }
+
+    
+    /*
     float2 intersection;
     float2 normal;
     BoxLineIntersection(minCorner, maxCorner, _TempParticleData[i].PreviousPosition, _Particles[i].Position, intersection, normal);
@@ -525,7 +546,7 @@ void ConfineParticlesToArea (uint3 id : SV_DispatchThreadID)
  
             
     _Particles[i].Position = endPosition;
-
+*/
 
 }
 

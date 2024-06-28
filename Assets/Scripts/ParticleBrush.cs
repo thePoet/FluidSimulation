@@ -9,9 +9,11 @@ namespace FluidSimulation
         public int blobsPerFrame = 1;
         public float brushRadius = 10f;
         public float maxSpeed = 10f;
-
-        [FormerlySerializedAs("simulation")] public TestFluidDynamics testFluidDynamics;
-
+        public TestFluidDynamics testFluidDynamics;
+        
+        private Vector2 _previousMousePosition;
+        private FluidSubstance _currentSubstance = FluidSubstance.SomeLiquid;
+        
         private void Start()
         {
             testFluidDynamics = FindObjectOfType<TestFluidDynamics>();
@@ -26,23 +28,25 @@ namespace FluidSimulation
             {
                 for (int i=0; i<blobsPerFrame; i++)
                 {
-                  testFluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, FluidSubstance.SomeLiquid);
+                  testFluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, _currentSubstance);
                 }
             }
 
             if (RightMouseButton)
             {
-                /*
-                for (int i=0; i<blobsPerFrame; i++)
-                {
-                    testFluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, FluidSubstance.SomeSolid);
-                }*/
-                testFluidDynamics.MoveParticles(MousePosition, 15f, Vector2.up*1000f);
+                Vector2 deltaMousePosition = MousePosition - _previousMousePosition;
+                testFluidDynamics.SetParticleVelocities(MousePosition, 15f, deltaMousePosition/Time.deltaTime);
             }
+            
+            if (Input.GetKey(KeyCode.Alpha1)) _currentSubstance = FluidSubstance.SomeLiquid;
+            if (Input.GetKey(KeyCode.Alpha2)) _currentSubstance = FluidSubstance.SomeSolid;
+
+
+            _previousMousePosition = MousePosition;
         }
 
         bool LeftMouseButton => Input.GetMouseButton(0);
-        bool RightMouseButton => Input.GetMouseButtonDown(1);
+        bool RightMouseButton => Input.GetMouseButton(1);
        
         Vector2 RandomOffset => Random.insideUnitCircle * brushRadius;
         
