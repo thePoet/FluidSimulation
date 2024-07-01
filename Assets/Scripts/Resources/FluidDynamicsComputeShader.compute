@@ -51,6 +51,7 @@ int _MaxNumNeighbours;
 int _MaxNumParticlesPerCell;
 float _InteractionRadius;
 float _Gravity;
+float _Drag;
 
 float _AreaMinX;
 float _AreaMinY;
@@ -384,8 +385,8 @@ void CalculatePressures (uint3 id : SV_DispatchThreadID)
         float q = QDistance(particleIndex, neighbourIndex);
         if (q<1)
         {
-            density += (1-q)*(1-q);
-            nearDensity += (1-q)*(1-q)*(1-q);
+            density += (1-q) * (1-q);
+            nearDensity += (1-q) * (1-q) * (1-q);   
         }
     }
     _TempParticleData[particleIndex].Pressure = stiffness * (density - restDensity);
@@ -498,33 +499,38 @@ void ConfineParticlesToArea (uint3 id : SV_DispatchThreadID)
     if (i >= _NumParticles) return;
 
     float margin = 20;
-    float2 minCorner = float2(_AreaMinX + margin, _AreaMinY + margin);
-    float2 maxCorner = float2(_AreaMaxX - margin, _AreaMaxY - margin);
+    
+    float2 minCornerSoft = float2(_AreaMinX + margin, _AreaMinY + margin);
+    float2 maxCornerSoft = float2(_AreaMaxX - margin, _AreaMaxY - margin);
 
-    if (IsInsideBox(_Particles[i].Position, minCorner, maxCorner)) return;
+    if (IsInsideBox(_Particles[i].Position, minCornerSoft, maxCornerSoft)) return;
 
     // ----
     float softness = 0.5;
-    
-    if (_Particles[i].Position.x < minCorner.x)
-    {
-        _Particles[i].Position.x = lerp(_Particles[i].Position.x, minCorner.x, softness);
-    }
-    if (_Particles[i].Position.x > maxCorner.x)
-    {
-        _Particles[i].Position.x = lerp(_Particles[i].Position.x, maxCorner.x, softness);
-    }
-    if (_Particles[i].Position.y < minCorner.y)
-    {
-        _Particles[i].Position.y = lerp(_Particles[i].Position.y, minCorner.y, softness);
-    }
-    if (_Particles[i].Position.y > maxCorner.y)
-    {
-        _Particles[i].Position.y = lerp(_Particles[i].Position.y, maxCorner.y, softness);
-    }
 
+    _Particles[i].Position = ClampToBox(_Particles[i].Position, float2(_AreaMinX,_AreaMinY), float2(_AreaMaxX,_AreaMaxY));
     
-    /*
+    if (_Particles[i].Position.x < minCornerSoft.x)
+    {
+        _Particles[i].Position.x = lerp(_Particles[i].Position.x, minCornerSoft.x, softness);
+    }
+    if (_Particles[i].Position.x > maxCornerSoft.x)
+    {
+        _Particles[i].Position.x = lerp(_Particles[i].Position.x, maxCornerSoft.x, softness);
+    }
+    if (_Particles[i].Position.y < minCornerSoft.y)
+    {
+        _Particles[i].Position.y = lerp(_Particles[i].Position.y, minCornerSoft.y, softness);
+    }
+    if (_Particles[i].Position.y > maxCornerSoft.y)
+    {
+        _Particles[i].Position.y = lerp(_Particles[i].Position.y, maxCornerSoft.y, softness);
+    }
+/*
+    
+    float2 minCorner = float2(_AreaMinX + margin, _AreaMinY + margin);
+    float2 maxCorner = float2(_AreaMaxX - margin, _AreaMaxY - margin);
+
     float2 intersection;
     float2 normal;
     BoxLineIntersection(minCorner, maxCorner, _TempParticleData[i].PreviousPosition, _Particles[i].Position, intersection, normal);
@@ -549,7 +555,7 @@ void ConfineParticlesToArea (uint3 id : SV_DispatchThreadID)
 */
 
 }
-
+    
 [numthreads(8,8,1)]
 void CalculateVelocityBasedOnMovement(uint3 id : SV_DispatchThreadID)
 {
@@ -557,6 +563,11 @@ void CalculateVelocityBasedOnMovement(uint3 id : SV_DispatchThreadID)
     if (i >= _NumParticles) return;
 
     _Particles[i].Velocity = (_Particles[i].Position - _TempParticleData[i].PreviousPosition) / _DeltaTime;
+
+    // Apply Drag
+    if (length(_Particles[i].Velocity) < 0.0001) return;
+    float drag = length(_Particles[i].Velocity) * length(_Particles[i].Velocity) * _Drag * _DeltaTime;
+    _Particles[i].Velocity -= normalize(_Particles[i].Velocity) * drag;
 }
 
 /*

@@ -1,6 +1,4 @@
-using RikusGameDevToolbox.GeneralUse;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 
 namespace FluidSimulation
@@ -25,8 +23,9 @@ namespace FluidSimulation
         
         private SimulationSettings SimulationSettings => new()
         {
-            InteractionRadius = 15f,
+            InteractionRadius = 20f,
             Gravity = 1200f,
+            Drag = 0.0f,
             MaxNumParticles = 13000,
             IsViscosityEnabled = true,
             NumSubSteps = 3,
@@ -51,13 +50,13 @@ namespace FluidSimulation
             new Fluid
             {
                 State = State.Gas,
-                Stiffness = 200f,
-                NearStiffness = 400f,
-                RestDensity = 0.5f,
-                ViscositySigma = 0.05f,
-                ViscosityBeta = 0.05f,
+                Stiffness = 300f,
+                NearStiffness = 600f,
+                RestDensity = 0.25f,
+                ViscositySigma = 0.15f,
+                ViscosityBeta = 0.15f,
                 GravityScale = 0.0f,
-                Mass = 0.05f
+                Mass = 0.01f
             }
         };
 

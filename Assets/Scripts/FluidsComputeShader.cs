@@ -108,7 +108,7 @@ namespace FluidSimulation
 
             ReadFromBuffers(particles);
 
-            Debug.Log("Sim step with read/write took " + 1000f * (Time.realtimeSinceStartup - time) + " ms.");
+           // Debug.Log("Sim step with read/write took " + 1000f * (Time.realtimeSinceStartup - time) + " ms.");
 
         }
 
@@ -126,6 +126,7 @@ namespace FluidSimulation
             _computeShader.SetFloat("_AreaMaxY", simulationSettings.AreaBounds.yMax);
             
             _computeShader.SetFloat("_Gravity", simulationSettings.Gravity);
+            _computeShader.SetFloat("_Drag", simulationSettings.Drag);
         }
         
         private void CreateBuffers()

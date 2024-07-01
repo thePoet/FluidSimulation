@@ -7,6 +7,7 @@ namespace FluidSimulation
     {
         public float InteractionRadius;
         public float Gravity;
+        public float Drag;
         public int MaxNumParticles;
         public Rect AreaBounds;
         public int MaxNumParticlesInPartitioningCell;
@@ -15,6 +16,7 @@ namespace FluidSimulation
 
         // TODO: MOVE:
         public Grid2D PartitioningGrid => new Grid2D(AreaBounds, squareSize: InteractionRadius);
+    
 
         public int MaxNumNeighbours;
     }
