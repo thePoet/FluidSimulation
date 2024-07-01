@@ -60,6 +60,10 @@ float _AreaMaxY;
 
 float _DeltaTime;
 
+// Error flags
+
+const int ERROR_CELL_OVERFLOW = 0;
+const int ERROR_OUTSIDE_AREA = 1;
 
 
 RWStructuredBuffer<Particle> _Particles; //Length: MaxNumParticles
@@ -170,7 +174,7 @@ void ApplyGravity (uint3 id : SV_DispatchThreadID)
 {
     int particleIndex = id.x * 128 + id.y;
     if (particleIndex >= _NumParticles) return;
-
+    if (IsSolid(particleIndex)) return;
     _Particles[particleIndex].Velocity += float2(0.0, -_DeltaTime * _Gravity * FluidOf(particleIndex).GravityScale);
 }
 
@@ -221,6 +225,7 @@ void ClearPartitioningCells (uint3 id : SV_DispatchThreadID)
     if (index >= NumCells()) return;
     _CellParticleCount[index] = 0;
 
+    // Set error flags to zero
     if (index==0)
     {
         for (int i=0; i<10; i++)
@@ -239,10 +244,7 @@ void FillPartitioningCells (uint3 id : SV_DispatchThreadID)
 
     if (cellIndex==-1)
     {
-        _Stats[1] += 1;
-        _Stats[8] = _Particles[index].Position.x;
-        _Stats[9] = _Particles[index].Position.y;
-        
+        _Stats[ERROR_OUTSIDE_AREA] += 1;
         return;
     }
   
@@ -251,7 +253,7 @@ void FillPartitioningCells (uint3 id : SV_DispatchThreadID)
     InterlockedAdd(_CellParticleCount[cellIndex], 1, previousCount);
     if (previousCount >= _MaxNumParticlesPerCell)
     {
-        _Stats[0] += 1;
+        _Stats[ERROR_CELL_OVERFLOW] += 1;
         return;
     }
 
@@ -304,6 +306,8 @@ bool IsInDifferentState(int particle1, int particle2)
 
 float2 ViscosityImpulse(int particle1, int particle2)
 {
+    if (IsSolid(particle1)) return float2(0,0);
+
 
     
     int fluidIdx = _Particles[particle1].fluidIdx;
@@ -357,6 +361,7 @@ void ApplyVelocity (uint3 id : SV_DispatchThreadID)
 {
     int particleIndex = id.x * 128 + id.y;
     if (particleIndex >= _NumParticles) return;
+    if (IsSolid(particleIndex)) return;
 
     _TempParticleData[particleIndex].PreviousPosition = _Particles[particleIndex].Position;
     _Particles[particleIndex].Position += _Particles[particleIndex].Velocity * _DeltaTime;
@@ -424,6 +429,7 @@ void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
     if (particleIndex >= _NumParticles) return;
     
     _TempParticleData[particleIndex].PositionChange = float2(0,0);
+    if (IsSolid(particleIndex)) return;
 
     for (int j=0; j<_ParticleNeighbourCount[particleIndex]; j++)
     {
@@ -440,6 +446,8 @@ void ApplyDensityDisplacement (uint3 id : SV_DispatchThreadID)
 {
     int particleIndex = id.x * 128 + id.y;
     if (particleIndex >= _NumParticles) return;
+    if (IsSolid(particleIndex)) return;
+    
     _Particles[particleIndex].Position += _TempParticleData[particleIndex].PositionChange;
 }
 
@@ -497,6 +505,7 @@ void ConfineParticlesToArea (uint3 id : SV_DispatchThreadID)
 {
     int i = id.x * 128 + id.y;
     if (i >= _NumParticles) return;
+    if (IsSolid(i)) return;
 
     float margin = 20;
     
@@ -561,6 +570,7 @@ void CalculateVelocityBasedOnMovement(uint3 id : SV_DispatchThreadID)
 {
     int i = id.x * 128 + id.y;
     if (i >= _NumParticles) return;
+    if (IsSolid(i)) return;
 
     _Particles[i].Velocity = (_Particles[i].Position - _TempParticleData[i].PreviousPosition) / _DeltaTime;
 

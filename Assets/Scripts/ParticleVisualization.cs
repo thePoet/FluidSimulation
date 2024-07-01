@@ -8,6 +8,7 @@ namespace FluidSimulation
     public class ParticleVisualization : MonoBehaviour
     {
         public GameObject liquidParticlePrefab;
+        public GameObject gasParticlePrefab;
         public GameObject solidParticlePrefab;
 
         private Dictionary<int, GameObject> _particles;
@@ -32,6 +33,7 @@ namespace FluidSimulation
             GameObject PrefabFor(FluidSubstance substance) => substance switch
             {
                 FluidSubstance.SomeLiquid => liquidParticlePrefab,
+                FluidSubstance.SomeGas => gasParticlePrefab,
                 FluidSubstance.SomeSolid => solidParticlePrefab,
                 _ => throw new ArgumentOutOfRangeException(nameof(substance), substance, null)
             };

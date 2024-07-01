@@ -6,15 +6,14 @@ namespace FluidSimulation
     public enum FluidSubstance
     {
         SomeLiquid,
+        SomeGas,
         SomeSolid
     }
     
     public class TestFluidDynamics : MonoBehaviour
     {
         public TMPro.TextMeshPro text;
-        
-     
-    
+
         private FluidDynamics _fluidDynamics;
         private ParticleVisualization _particleVisualization;
         private Container _container;
@@ -57,6 +56,17 @@ namespace FluidSimulation
                 ViscosityBeta = 0.15f,
                 GravityScale = 0.0f,
                 Mass = 0.01f
+            },
+            new Fluid
+            {
+                State = State.Solid,
+                Stiffness = 1f,
+                NearStiffness = 1f,
+                RestDensity = 1f,
+                ViscositySigma = 0f,
+                ViscosityBeta = 0f,
+                GravityScale = 0.0f,
+                Mass = 1f
             }
         };
 
@@ -163,7 +173,8 @@ namespace FluidSimulation
             return substance switch
             {
                 FluidSubstance.SomeLiquid => 0,
-                FluidSubstance.SomeSolid => 1,
+                FluidSubstance.SomeGas => 1,
+                FluidSubstance.SomeSolid => 2,
                 _ => throw new System.ArgumentOutOfRangeException(nameof(substance), substance, null)
             };
         }

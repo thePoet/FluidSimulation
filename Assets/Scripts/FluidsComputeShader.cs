@@ -105,12 +105,25 @@ namespace FluidSimulation
                 Execute(Kernel.ConfineParticlesToArea, threadGroupsForParticles);
                 Execute(Kernel.CalculateVelocityBasedOnMovement, threadGroupsForParticles);
             }
+            
 
             ReadFromBuffers(particles);
+            CheckErrorFlags();
+            
+            
 
            // Debug.Log("Sim step with read/write took " + 1000f * (Time.realtimeSinceStartup - time) + " ms.");
 
         }
+
+        private void CheckErrorFlags()
+        {
+            int[] errorFlags = new int[10];
+            _statsBuffer.GetData(errorFlags);
+            string prefix = "FluidsComputeShader Warning: ";
+            if (errorFlags[0] > 0) Debug.LogWarning(prefix + "Too many particles in a cell");
+        }
+    
 
         private void SetShaderVariables(SimulationSettings simulationSettings)
         {

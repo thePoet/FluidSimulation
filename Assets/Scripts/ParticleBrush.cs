@@ -6,7 +6,7 @@ namespace FluidSimulation
 {
     public class ParticleBrush : MonoBehaviour
     {
-        public int blobsPerFrame = 1;
+        [FormerlySerializedAs("blobsPerFrame")] public int particlesPerFrame = 1;
         public float brushRadius = 10f;
         public float maxSpeed = 10f;
         public TestFluidDynamics testFluidDynamics;
@@ -26,7 +26,9 @@ namespace FluidSimulation
             
             if (LeftMouseButton)
             {
-                for (int i=0; i<blobsPerFrame; i++)
+                int amount = particlesPerFrame;
+                if (_currentSubstance == FluidSubstance.SomeSolid) amount = 1;
+                for (int i=0; i < amount; i++)
                 {
                   testFluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, _currentSubstance);
                 }
@@ -39,7 +41,8 @@ namespace FluidSimulation
             }
             
             if (Input.GetKey(KeyCode.Alpha1)) _currentSubstance = FluidSubstance.SomeLiquid;
-            if (Input.GetKey(KeyCode.Alpha2)) _currentSubstance = FluidSubstance.SomeSolid;
+            if (Input.GetKey(KeyCode.Alpha2)) _currentSubstance = FluidSubstance.SomeGas;
+            if (Input.GetKey(KeyCode.Alpha3)) _currentSubstance = FluidSubstance.SomeSolid;
 
 
             _previousMousePosition = MousePosition;
