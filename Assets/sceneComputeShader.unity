@@ -244,7 +244,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3375c9b1056d44704a34f7789ead9081, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  blobsPerFrame: 10
+  particlesPerFrame: 10
   brushRadius: 10
   maxSpeed: 0.01
   testFluidDynamics: {fileID: 0}
@@ -390,7 +390,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   liquidParticlePrefab: {fileID: 6458512588980554973, guid: d1e1075ba890b44649bb3f6bf34f11cc, type: 3}
-  solidParticlePrefab: {fileID: 6458512588980554973, guid: fb3fc17e1fc064d47bf5c85a1afa5670, type: 3}
+  gasParticlePrefab: {fileID: 6458512588980554973, guid: c516d1afe1ff6400fbf5c3c83c70401e, type: 3}
+  solidParticlePrefab: {fileID: 6458512588980554973, guid: 63fcc66fda85b442d903c8d2a0780aef, type: 3}
 --- !u!1 &1889715698
 GameObject:
   m_ObjectHideFlags: 0

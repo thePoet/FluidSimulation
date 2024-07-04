@@ -18,7 +18,10 @@ namespace FluidSimulation
         {
             testFluidDynamics = FindObjectOfType<TestFluidDynamics>();
             if (testFluidDynamics == null) Debug.LogError("No TestFluidDynamics found in the scene.");
+            
+            
         }
+
 
         void Update()
         {

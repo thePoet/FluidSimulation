@@ -118,10 +118,13 @@ namespace FluidSimulation
 
         private void CheckErrorFlags()
         {
-            int[] errorFlags = new int[10];
+            float[] errorFlags = new float[10];
             _statsBuffer.GetData(errorFlags);
             string prefix = "FluidsComputeShader Warning: ";
             if (errorFlags[0] > 0) Debug.LogWarning(prefix + "Too many particles in a cell");
+         //   string s = "";
+         //   for (int i=0; i<10; i++) s+= errorFlags[i] + " ";
+         //   Debug.Log(s);
         }
     
 

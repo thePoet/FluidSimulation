@@ -1,4 +1,5 @@
 using UnityEngine;
+using Random = System.Random;
 
 
 namespace FluidSimulation
@@ -66,7 +67,7 @@ namespace FluidSimulation
                 ViscositySigma = 0f,
                 ViscosityBeta = 0f,
                 GravityScale = 0.0f,
-                Mass = 1f
+                Mass = 3f
             }
         };
 
@@ -93,6 +94,11 @@ namespace FluidSimulation
             }
         }
 
+        private void Start()
+        {
+        
+            CreateWalls();
+        }
 
 
         private void OnDestroy()
@@ -147,7 +153,28 @@ namespace FluidSimulation
             }
         }
 
-      
+        private void CreateWalls()
+        {
+
+            Rect area = SimulationSettings.AreaBounds;
+            float d = 2f;
+            float depth = 5f;
+            float margin = 35f;
+            
+            
+            for (float x = area.min.x+margin; x < area.max.x-margin; x+=d)
+            {
+                float offset = UnityEngine.Random.Range(0f, depth);
+                SpawnParticle(new Vector2(x, area.min.y+margin+offset), Vector2.zero, FluidSubstance.SomeSolid);
+                SpawnParticle(new Vector2(x, area.max.y-margin-offset), Vector2.zero, FluidSubstance.SomeSolid);
+            }
+            for (float y = area.min.y+margin; y < area.max.y-margin; y+=d)
+            {
+                float offset = UnityEngine.Random.Range(0f, depth);
+                SpawnParticle(new Vector2(area.min.x+margin+offset, y), Vector2.zero, FluidSubstance.SomeSolid);
+                SpawnParticle(new Vector2(area.max.x-margin-offset, y), Vector2.zero, FluidSubstance.SomeSolid);
+            }
+        }
         
 
         private void UpdateParticleVisualization()

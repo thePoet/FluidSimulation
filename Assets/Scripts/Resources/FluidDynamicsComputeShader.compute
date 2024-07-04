@@ -60,11 +60,12 @@ float _AreaMaxY;
 
 float _DeltaTime;
 
+float _Time = 0;
 // Error flags
 
 const int ERROR_CELL_OVERFLOW = 0;
 const int ERROR_OUTSIDE_AREA = 1;
-
+const int ERROR_MAX_DENSITY_DISPLACEMENT = 2;
 
 RWStructuredBuffer<Particle> _Particles; //Length: MaxNumParticles
 RWStructuredBuffer<TempParticleData> _TempParticleData; 
@@ -83,6 +84,16 @@ RWStructuredBuffer<Fluid> _Fluids;
 float cross2d(float2 a, float2 b)
 {
     return a.x * b.y - a.y * b.x;
+}
+
+float2 CapMagnitude(float2 v, float maxMagnitude)
+{
+    float l = length(v);
+    if (l > maxMagnitude)
+    {
+        return normalize(v)*maxMagnitude;
+    }
+    return v;
 }
 
  bool IntersectLineSegments2D(float2 p1start, float2 p1end, float2 p2start, float2 p2end, out float2 intersection)
@@ -167,12 +178,24 @@ Fluid FluidOf(int particleIdx)
     return _Fluids[_Particles[particleIdx].fluidIdx];
 }
 
+float RandomFloat(in float2 uv)
+{
+    float2 noise = (frac(sin(dot(uv ,float2(12.9898,78.233)*2.0)) * 43758.5453));
+    return abs(noise.x + noise.y) * 0.5;
+}
+
+float2 RandomFloat2(in float2 uv)
+{
+    return float2(RandomFloat(uv), RandomFloat(float2(uv.y, uv.x)));
+}
 
 // --------------------- GRAVITY------------------------------------------ ---------------------
 [numthreads(8,8,1)]
 void ApplyGravity (uint3 id : SV_DispatchThreadID)
 {
     int particleIndex = id.x * 128 + id.y;
+    if (particleIndex==0) _Time += _DeltaTime;
+    
     if (particleIndex >= _NumParticles) return;
     if (IsSolid(particleIndex)) return;
     _Particles[particleIndex].Velocity += float2(0.0, -_DeltaTime * _Gravity * FluidOf(particleIndex).GravityScale);
@@ -307,14 +330,12 @@ bool IsInDifferentState(int particle1, int particle2)
 float2 ViscosityImpulse(int particle1, int particle2)
 {
     if (IsSolid(particle1)) return float2(0,0);
-
-
     
     int fluidIdx = _Particles[particle1].fluidIdx;
     float sigma = _Fluids[fluidIdx].ViscositySigma;
     float beta = _Fluids[fluidIdx].ViscosityBeta;
 
-    float distance = length(_Particles[particle1].Position - _Particles[particle2].Position);
+   // float distance = length(_Particles[particle1].Position - _Particles[particle2].Position);
 
     float q = QDistance(particle1, particle2);
     if (q<0.000001) return float2(0,0);
@@ -324,9 +345,12 @@ float2 ViscosityImpulse(int particle1, int particle2)
     float u = dot(_Particles[particle1].Velocity - _Particles[particle2].Velocity, r);
     if (u <= 0) return float2(0,0);
 
-   float differentStatesFactor = IsInDifferentState(particle1, particle2) ? 0.1 : 1;
+   //float differentStatesFactor = IsInDifferentState(particle1, particle2) ? 0.1 : 1;
 
-    return _DeltaTime * (1 - q) * (sigma * u + beta * u * u) * r * differentStatesFactor;
+    float factor = 1;
+    if (IsSolid(particle2)) factor = 10;
+    
+    return _DeltaTime * (1 - q) * (sigma * u + beta * u * u) * r * factor;
 }
 
 
@@ -409,8 +433,11 @@ float2 DensityDisplacement(int particle1, int particle2)
 
     float2 fromTo = _Particles[particle2].Position - _Particles[particle1].Position;
 
-    // Is there a better way? Add epsilon to position?
-    if (length(fromTo) < 0.000001) return float2(0,0); 
+    // If particles are on top of each other, return a random displacement
+    if (length(fromTo) < 0.000001)
+    {
+        return  RandomFloat2(float2(particle1, _Time)) * 0.001f;
+    }
 
     
     float2 d = _DeltaTime * _DeltaTime * (pressure * (1 - q) + nearPressure * (1 - q) * (1 - q)) *
@@ -441,14 +468,33 @@ void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
     
 }
 
+
+
 [numthreads(8,8,1)]
 void ApplyDensityDisplacement (uint3 id : SV_DispatchThreadID)
 {
     int particleIndex = id.x * 128 + id.y;
+
+/*
+    if (particleIndex == 0)
+    {
+        float maxDisplacement = 0;
+        float l=0;
+        for (int i=0; i<_NumParticles; i++)
+        {
+            l = length(_TempParticleData[i].PositionChange);
+            if (l>maxDisplacement)
+                maxDisplacement = l;
+        }
+     
+        _Stats[ERROR_MAX_DENSITY_DISPLACEMENT] = maxDisplacement;
+
+    }*/
     if (particleIndex >= _NumParticles) return;
     if (IsSolid(particleIndex)) return;
-    
-    _Particles[particleIndex].Position += _TempParticleData[particleIndex].PositionChange;
+
+    float2 posChange = CapMagnitude(_TempParticleData[particleIndex].PositionChange, 2);
+    _Particles[particleIndex].Position += posChange;
 }
 
 
@@ -507,7 +553,7 @@ void ConfineParticlesToArea (uint3 id : SV_DispatchThreadID)
     if (i >= _NumParticles) return;
     if (IsSolid(i)) return;
 
-    float margin = 20;
+    float margin = 40;
     
     float2 minCornerSoft = float2(_AreaMinX + margin, _AreaMinY + margin);
     float2 maxCornerSoft = float2(_AreaMaxX - margin, _AreaMaxY - margin);
@@ -517,7 +563,7 @@ void ConfineParticlesToArea (uint3 id : SV_DispatchThreadID)
     // ----
     float softness = 0.5;
 
-    _Particles[i].Position = ClampToBox(_Particles[i].Position, float2(_AreaMinX,_AreaMinY), float2(_AreaMaxX,_AreaMaxY));
+    _Particles[i].Position = ClampToBox(_Particles[i].Position, float2(_AreaMinX+0.1,_AreaMinY+0.1), float2(_AreaMaxX-0.1,_AreaMaxY-0.1));
     
     if (_Particles[i].Position.x < minCornerSoft.x)
     {
