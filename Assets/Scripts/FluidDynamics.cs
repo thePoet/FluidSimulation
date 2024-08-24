@@ -1,13 +1,14 @@
 using System;
 using UnityEngine;
-using RikusGameDevToolbox.GeneralUse;
+
 
 
 namespace FluidSimulation
 {
     
-    public class FluidDynamics 
+    public class FluidDynamics
     {
+        public ComputeShader ComputeShader;
         public int NumParticles { get; private set; }
 
         private FluidsComputeShader _computeShader;
@@ -39,8 +40,6 @@ namespace FluidSimulation
             _computeShader.Step(timeStep, _particles, NumParticles);
             UpdateSpatialPartitioningGrid();
         }
-
-  
 
         public Span<FluidParticle> Particles => _particles.AsSpan().Slice(0, NumParticles);
         

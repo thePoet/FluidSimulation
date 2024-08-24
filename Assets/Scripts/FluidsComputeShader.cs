@@ -26,9 +26,7 @@ namespace FluidSimulation
         private ComputeBuffer _particleNeighbourCount;
         private ComputeBuffer _fluidsBuffer;
         private ComputeBuffer _statsBuffer;
-      
-
-
+        
         enum Kernel
         {
             ApplyGravity = 0,
@@ -40,9 +38,10 @@ namespace FluidSimulation
             ApplyVelocity = 6,
             CalculatePressures = 7,
             CalculateDensityDisplacement = 8,
-            ApplyDensityDisplacement = 9,
-            ConfineParticlesToArea = 10,
-            CalculateVelocityBasedOnMovement = 11
+            CalculateCollisionDisplacement = 9,
+            ApplyDisplacement = 10,
+            ConfineParticlesToArea = 11,
+            CalculateVelocityBasedOnMovement = 12
         }
 
         private readonly SimulationSettings _simulationSettings;
@@ -64,9 +63,7 @@ namespace FluidSimulation
             SetShaderVariables(simulationSettings);
         }
 
-
-
-
+        
         public void Dispose()
         {
             ReleaseBuffers();
@@ -84,23 +81,40 @@ namespace FluidSimulation
 
             for (int s = 0; s < _simulationSettings.NumSubSteps; s++)
             {
+                
+                //adjust velocity
                 Execute(Kernel.ApplyGravity, threadGroupsForParticles);
 
                 if (_simulationSettings.IsViscosityEnabled)
                 {
-                    Execute(Kernel.CalculateViscosity, threadGroupsForParticles);
-                    Execute(Kernel.ApplyViscosity, threadGroupsForParticles);
+                    //adjust velocityChange
+               //     Execute(Kernel.CalculateViscosity, threadGroupsForParticles);
+               // velocity += velocityChange 
+               //    Execute(Kernel.ApplyViscosity, threadGroupsForParticles);
                 }
 
-                Execute(Kernel.ApplyVelocity, threadGroupsForParticles);
+                
 
+                // Save PreviousPosition
+                // positionChange = velocity * deltaTime
+                // adjust positionChange with collisions
+                // adjust Position with PositionChange
+                Execute(Kernel.ApplyVelocity, threadGroupsForParticles); //->ApplyDisplacement
+
+                
+                //   Partitioning based on Position
                 Execute(Kernel.ClearPartitioning, threadGroupsForCells);
                 Execute(Kernel.FillPartitioning, threadGroupsForParticles);
                 Execute(Kernel.FindNeighbours, threadGroupsForParticles);
 
+                
+                
+                Execute(Kernel.ConfineParticlesToArea, threadGroupsForParticles);
+                
                 Execute(Kernel.CalculatePressures, threadGroupsForParticles);
                 Execute(Kernel.CalculateDensityDisplacement, threadGroupsForParticles);
-                Execute(Kernel.ApplyDensityDisplacement, threadGroupsForParticles);
+                Execute(Kernel.CalculateCollisionDisplacement, threadGroupsForParticles);
+                Execute(Kernel.ApplyDisplacement, threadGroupsForParticles);
            
                 Execute(Kernel.ConfineParticlesToArea, threadGroupsForParticles);
                 Execute(Kernel.CalculateVelocityBasedOnMovement, threadGroupsForParticles);
@@ -194,13 +208,6 @@ namespace FluidSimulation
         private void WriteToBuffers(FluidParticle[] particles)
         {
             _particleBuffer.SetData(particles);
-            
-            /*
-             faster way?
-            NativeArray<FluidParticle> na = _particleBuffer.BeginWrite<FluidParticle>(0, _simulationSettings.MaxNumParticles);
-            na.CopyFrom(particles);
-            _particleBuffer.EndWrite<FluidParticle>(_simulationSettings.MaxNumParticles);
-            */
         }
         
         

@@ -70,10 +70,8 @@ public static class LineUtil
     /// <param name="p1end">End point of the first line</param>
     /// <param name="p2start">Start point of the second line</param>
     /// <param name="p2end">End point of the second line</param>
-    /// <param name="intersection">If there is an intersection, this will be populated with the point</param>
-    /// <returns>True if the lines intersect, false otherwise.</returns>
-    public static bool IntersectLineSegments2D(Vector2 p1start, Vector2 p1end, Vector2 p2start, Vector2 p2end,
-        out Vector2 intersection) 
+    /// <returns>Intersection point if the lines intersect, null otherwise.</returns>
+    public static Vector2? IntersectLineSegments2D(Vector2 p1start, Vector2 p1end, Vector2 p2start, Vector2 p2end) 
     {
         var p = p1start;
         var r = p1end - p1start;
@@ -105,18 +103,14 @@ public static class LineUtil
                 {
                     // Nice half-way point intersection
                     float a = Mathf.Lerp(Mathf.Max(0, t0), Mathf.Min(1, t1), 0.5f);
-                    intersection = p + a * r;
-                    return true;
+                    return p + a * r;
+                    
                 }
-
                 // Co-linear but disjoint
-                intersection = Vector2.zero;
-                return false;
+                return null;
             }
-
             // Just parallel in different places, cannot intersect
-            intersection = Vector2.zero;
-            return false;
+            return null;
         }
 
         // Not parallel, calculate t and u
@@ -124,13 +118,11 @@ public static class LineUtil
         float u = CrossProduct2D(qminusp, r) / cross_rs;
         if (t >= 0 && t <= 1 && u >= 0 && u <= 1)
         {
-            intersection = p + t * r;
-            return true;
+            return p + t * r;
         }
 
         // Lines only cross outside segment range
-        intersection = Vector2.zero;
-        return false;
+        return null;
         
         void Swap<T>(ref T lhs, ref T rhs) 
         {
