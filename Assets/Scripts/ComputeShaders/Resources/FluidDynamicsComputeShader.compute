@@ -2,23 +2,27 @@
 // Based on paper by Simon Clavet, Philippe Beaudoin, and Pierre Poulin
 // https://www.academia.edu/452554/Particle-Based_Viscoelastic_Fluid_Simulation
 
-
-
-#pragma kernel ApplyGravity
-#pragma kernel ClearPartitioningCells
-#pragma kernel FillPartitioningCells
-#pragma kernel FindNeighbours
-#pragma kernel CalculateViscosity
-#pragma kernel ApplyViscosity
-#pragma kernel ApplyVelocity
-#pragma kernel CalculatePressures
-#pragma kernel CalculateDensityDisplacement
-#pragma kernel CalculateCollisionDisplacement
-#pragma kernel ApplyDisplacement
-#pragma kernel ConfineParticlesToArea
-#pragma kernel CalculateVelocityBasedOnMovement
-
 #include "FluidDynamicsCommon.hlsl"
+
+// The computation phases:
+
+#pragma kernel ApplyGravity                         // Adjusts _Particles[n].Velocity based on gravity
+#pragma kernel ClearPartitioningCells               // Spatial partitioning 1
+#pragma kernel FillPartitioningCells                // Spatial partitioning 2
+#pragma kernel FindNeighbours                       // Spatial partitioning 3
+#pragma kernel CalculateViscosity                   // calculates viscosity to _TempParticleData[n].VelocityChange
+#pragma kernel ApplyViscosity                       // _TempParticleData[n].VelocityChange -> _Particles[n].Velocity
+#pragma kernel ApplyVelocity                        //  _Particles[n].Position -> _TempParticleData[n].PreviousPosition
+                                                    // Adjust _Particles[n].Position based on _Particles[n].Velocity,
+                                                    // and check for collisions.
+#pragma kernel CalculatePressures                   //  calculate _TempParticleData[n].Pressure and .NearPressure
+#pragma kernel CalculateDensityDisplacement         //  calculate _TempParticleData[n].PositionChange based on pressures
+#pragma kernel CalculateCollisionDisplacement       // Adjust _TempParticleData[n].PositionChange by solid collisions 
+#pragma kernel ApplyDisplacement                    // Apply _TempParticleData[n].PositionChange to _Particles[n].Position
+#pragma kernel ConfineParticlesToArea
+#pragma kernel CalculateVelocityBasedOnMovement.    // _Particles[n].Velocity = (_Particles[n].Position - _TempParticleData[n].PreviousPosition) / _DeltaTime;
+
+
 
 struct Particle
 {
@@ -57,6 +61,8 @@ int _MaxNumParticlesPerCell;
 float _InteractionRadius;
 float _Gravity;
 float _Drag;
+float _SolidRadius;
+float _MaxDisplacement;
 
 float _AreaMinX;
 float _AreaMinY;
@@ -68,9 +74,10 @@ float _DeltaTime;
 float _Time = 0;
 // Error flags
 
-const int ERROR_CELL_OVERFLOW = 0;
-const int ERROR_OUTSIDE_AREA = 1;
-const int ERROR_MAX_DENSITY_DISPLACEMENT = 2;
+static const int ERROR_CELL_OVERFLOW = 0;
+static const int ERROR_OUTSIDE_AREA = 1;
+static const int ERROR_MAX_DENSITY_DISPLACEMENT = 2;
+static const int WARNING_INSIDE_SOLID = 3;
 
 RWStructuredBuffer<Particle> _Particles; //Length: MaxNumParticles
 RWStructuredBuffer<TempParticleData> _TempParticleData; 
@@ -112,6 +119,8 @@ bool IsSolid(int particleIdx)
     return FluidOf(particleIdx).State == 2;
 }
 
+// ---------------------------------
+
 
 
 
@@ -121,22 +130,20 @@ void TestSolidCollisions(in int particleIdx, in float2 start, in float2 goal, ou
 {
     reached = goal;
     float2 collisionPoint;
-    const float solidRadius=10;   //Miksi lakkaa toimimasta jos 20?????????
     
+     
     for (int j=0; j<_ParticleNeighbourCount[particleIdx]; j++)
     {
         int neighbourIndex = _ParticleNeighbours[particleIdx * _MaxNumNeighbours + j];
         if (!IsSolid(neighbourIndex) ) continue;
 
-/*
-        if (length(_Particles[neighbourIndex].Position - start) < solidRadius) 
-        {
-           
-        }*/
+        if (length(start - _Particles[neighbourIndex].Position) < _SolidRadius)
+            _Stats[WARNING_INSIDE_SOLID] += 1;
         
-        if (LineSegmentCircleIntersection(_Particles[neighbourIndex].Position, solidRadius, start, reached, collisionPoint))
+        
+        if (LineSegmentCircleIntersection(_Particles[neighbourIndex].Position, _SolidRadius, start, reached, collisionPoint))
         {
-            reached = collisionPoint-0.0001*normalize(reached-start);
+            reached = collisionPoint - 0.001 * normalize(reached-start);
         }
     }
 
@@ -168,13 +175,14 @@ int2 CellCoordinates(in float2 position)
 
 int CellIndex(in float2 position)
 {
-    if (position.x < _AreaMinX || position.x > _AreaMaxX || 
-    position.y < _AreaMinY || position.y > _AreaMaxY)
+    int index = -1;
+    
+    if (position.x >= _AreaMinX && position.x <= _AreaMaxX && position.y >= _AreaMinY && position.y <= _AreaMaxY)
     {
-        return -1;
+        int2 coords = CellCoordinates(position);
+        index = coords.x + coords.y * ceil((_AreaMaxX-_AreaMinX)/_InteractionRadius);
     }
-    int2 coords = CellCoordinates(position);
-    return coords.x + coords.y * ceil((_AreaMaxX-_AreaMinX)/_InteractionRadius);
+    return index;
 }
 
 bool IsInsideArea(float2 position)
@@ -282,28 +290,26 @@ bool IsInDifferentState(int particle1, int particle2)
 
 float2 ViscosityImpulse(int particle1, int particle2)
 {
-    if (IsSolid(particle1) || IsSolid(particle2) ) return float2(0,0);
+    float2 impulse = float2(0,0);
     
-    int fluidIdx = _Particles[particle1].fluidIdx;
-    float sigma = _Fluids[fluidIdx].ViscositySigma;
-    float beta = _Fluids[fluidIdx].ViscosityBeta;
+    if (!IsSolid(particle1) && !IsSolid(particle2) )
+    {
+        int fluidIdx = _Particles[particle1].fluidIdx;
+        float sigma = _Fluids[fluidIdx].ViscositySigma;
+        float beta = _Fluids[fluidIdx].ViscosityBeta;
 
-   // float distance = length(_Particles[particle1].Position - _Particles[particle2].Position);
 
-    float q = QDistance(particle1, particle2);
-    if (q<0.000001) return float2(0,0);
-    if (q >= 1) return float2(0,0);
-    float2 r = normalize(_Particles[particle1].Position - _Particles[particle2].Position);
-    
-    float u = dot(_Particles[particle1].Velocity - _Particles[particle2].Velocity, r);
-    if (u <= 0) return float2(0,0);
+        float q = QDistance(particle1, particle2);
 
-   //float differentStatesFactor = IsInDifferentState(particle1, particle2) ? 0.1 : 1;
+        if (q>0.000001 && q < 1)
+        {
+            float2 r = normalize(_Particles[particle1].Position - _Particles[particle2].Position);
+            float u = dot(_Particles[particle1].Velocity - _Particles[particle2].Velocity, r);
+            if (u > 0)  impulse =  _DeltaTime * (1 - q) * (sigma * u + beta * u * u) * r;
+        }
+    }
 
-    float factor = 1;
-
-    
-    return _DeltaTime * (1 - q) * (sigma * u + beta * u * u) * r * factor;
+    return impulse;
 }
 
 
@@ -343,16 +349,17 @@ void ApplyVelocity (uint3 id : SV_DispatchThreadID)
 
 
 //----
-    _TempParticleData[particleIdx].PositionChange = _Particles[particleIdx].Velocity * _DeltaTime;
+   // _TempParticleData[particleIdx].PositionChange = CapMagnitude(_Particles[particleIdx].Velocity * _DeltaTime, _MaxDisplacement);
     
     float2 reached;
     TestSolidCollisions(particleIdx, _Particles[particleIdx].Position, 
-        _Particles[particleIdx].Position + _TempParticleData[particleIdx].PositionChange,
+        _Particles[particleIdx].Position + CapMagnitude(_Particles[particleIdx].Velocity * _DeltaTime, _MaxDisplacement),
         reached);
 
-    _TempParticleData[particleIdx].PositionChange = reached - _Particles[particleIdx].Position;
+    //_TempParticleData[particleIdx].PositionChange = reached - _Particles[particleIdx].Position;
 //---
-    _Particles[particleIdx].Position += _TempParticleData[particleIdx].PositionChange;
+    //_Particles[particleIdx].Position += _TempParticleData[particleIdx].PositionChange;
+    _Particles[particleIdx].Position = reached;
 //    _Particles[particleIdx].Position += _Particles[particleIdx].Velocity * _DeltaTime;
 }
 
@@ -390,27 +397,27 @@ void CalculatePressures (uint3 id : SV_DispatchThreadID)
 float2 DensityDisplacement(int particle1, int particle2)
 {
     float q = QDistance(particle1, particle2);
-
-    if (q>=1) return float2(0.0,0.0);
-    
-    float pressure = _TempParticleData[particle1].Pressure;
-    float nearPressure = _TempParticleData[particle1].NearPressure;
-
     float2 fromTo = _Particles[particle2].Position - _Particles[particle1].Position;
 
-    // If particles are on top of each other, return a random displacement
+    float2 displacement = float2(0.0,0.0);
+
     if (length(fromTo) < 0.000001)
     {
-        return  RandomFloat2(float2(particle1, _Time)) * 0.001f;
+        displacement =  RandomFloat2(float2(particle1, _Time)) * 0.001f;
     }
-
+    else if (q<1)
+    {
+        float pressure = _TempParticleData[particle1].Pressure;
+        float nearPressure = _TempParticleData[particle1].NearPressure;
     
-    float2 d = _DeltaTime * _DeltaTime * (pressure * (1 - q) + nearPressure * (1 - q) * (1 - q)) *
-                normalize(fromTo);
+        float2 d = _DeltaTime * _DeltaTime * (pressure * (1 - q) + nearPressure * (1 - q) * (1 - q)) *
+                    normalize(fromTo);
 
-    d = d * FluidOf(particle2).Mass / FluidOf(particle1).Mass;
+        d = d * FluidOf(particle2).Mass / FluidOf(particle1).Mass;
     
-    return 0.5 * d;
+        displacement =  0.5 * d;
+    }
+    return displacement;
 }
 
 
@@ -446,6 +453,8 @@ void CalculateCollisionDisplacement (uint3 id : SV_DispatchThreadID)
     if (IsSolid(particleIdx)) return;
 
     float2 reached;
+
+    // Adjust the PositionChanges magnitude so that we don't end up inside solids
     TestSolidCollisions(particleIdx, _Particles[particleIdx].Position, 
         _Particles[particleIdx].Position + _TempParticleData[particleIdx].PositionChange,
         reached);
@@ -495,7 +504,7 @@ void ApplyDisplacement (uint3 id : SV_DispatchThreadID)
     if (particleIndex >= _NumParticles) return;
     if (IsSolid(particleIndex)) return;
 
-    float2 posChange = CapMagnitude(_TempParticleData[particleIndex].PositionChange, 2);
+    float2 posChange = CapMagnitude(_TempParticleData[particleIndex].PositionChange, _MaxDisplacement);
     _Particles[particleIndex].Position += posChange;
 }
 
@@ -505,48 +514,7 @@ void ApplyDisplacement (uint3 id : SV_DispatchThreadID)
 
 
 
-bool BoxLineIntersection(float2 minCorner, float2 maxCorner, float2 start, float2 end, out float2 intersection, out float2 normal)
-{
-    intersection = float2(0,0);
-    normal = float2(0,0);
 
-    if (IntersectLineSegments2D(start, end, float2(minCorner.x, minCorner.y), float2(maxCorner.x, minCorner.y), intersection))
-    {
-        normal = float2(0, 1);
-        return true;
-    }
-    if (IntersectLineSegments2D(start, end, float2(minCorner.x, maxCorner.y), float2(maxCorner.x, maxCorner.y), intersection))
-    {
-        normal = float2(0, -1);
-        return true;
-    }
-    if (IntersectLineSegments2D(start, end, float2(minCorner.x, minCorner.y), float2(minCorner.x, maxCorner.y), intersection))
-    {
-        normal = float2(1, 0);
-        return true;
-    }
-    if (IntersectLineSegments2D(start, end, float2(maxCorner.x, minCorner.y), float2(maxCorner.x, maxCorner.y), intersection))
-    {
-        normal = float2(-1, 0);
-        return true;
-    }
-    return false;
-}
-
-bool IsInsideBox(float2 position, float2 minCorner, float2 maxCorner)
-{
-    return position.x >= minCorner.x && position.x <= maxCorner.x &&
-        position.y >= minCorner.y && position.y <= maxCorner.y;
-}
-
-float2 ClampToBox(float2 position, float2 minCorner, float2 maxCorner)
-{
-    if (position.x < minCorner.x) position.x = minCorner.x;
-    if (position.x > maxCorner.x) position.x = maxCorner.x;
-    if (position.y < minCorner.y) position.y = minCorner.y;
-    if (position.y > maxCorner.y) position.y = maxCorner.y;
-    return position;
-}
 
 [numthreads(8,8,1)]
 void ConfineParticlesToArea (uint3 id : SV_DispatchThreadID)

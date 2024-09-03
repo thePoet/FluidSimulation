@@ -18,12 +18,12 @@ float2 RandomFloat2(in float2 uv)
 }
 
 // Return the vector capped to a magnitude (length)
-float2 CapMagnitude(float2 v, float maxMagnitude)
+float2 CapMagnitude(in float2 v, in float maxMagnitude)
 {
     float l = length(v);
     if (l > maxMagnitude)
     {
-        return normalize(v)*maxMagnitude;
+        v = normalize(v) * maxMagnitude;
     }
     return v;
 }
@@ -96,15 +96,22 @@ float2 NearestPointOnLine(in float2 a, in float2 b, in float2 c)
 // If true, intersectionA and intersectionB will contain the two intersection points
 bool LineCircleIntersection(in float2 circleCenter, in float radius, in float2 linePointA, in float2 linePointB, out float2 intersectionA, out float2 intersectionB)
 {
+    // TODO: What happens if points are same???
+    
     float2 nearest = NearestPointOnLine(circleCenter, linePointA, linePointB);
     float2 toCircle = circleCenter - nearest;
-    if (length(toCircle) > radius) return false;
-       
-    float chordHalf = sqrt(radius * radius - dot(toCircle,toCircle)); //dot product = length squared
 
-    intersectionA = nearest - chordHalf * normalize(linePointB - linePointA);
-    intersectionB = nearest + chordHalf * normalize(linePointB - linePointA);
-    return true;
+    bool intersects =  length(toCircle) <= radius;
+    intersectionA = float2(0, 0);
+    intersectionB = float2(0, 0);
+
+    if (intersects)
+    {
+        float chordHalf = sqrt(radius * radius - dot(toCircle,toCircle)); //dot product = length squared
+        intersectionA = nearest - chordHalf * normalize(linePointB - linePointA);
+        intersectionB = nearest + chordHalf * normalize(linePointB - linePointA);
+    }
+    return intersects;
 }
 
 bool IsLinePointBetween(in float2 p, in float2 end1, in float2 end2)
@@ -115,21 +122,73 @@ bool IsLinePointBetween(in float2 p, in float2 end1, in float2 end2)
 /// Return true if the line segment intersects the circle. Gives the intersection that is closer to linePointA if there are two intersections. 
 bool LineSegmentCircleIntersection(in float2 circleCenter, in float radius, in float2 linePointA, in float2 linePointB, out float2 intersection)
 {
-    float2 intersection1, intersection2;
-    bool intersects = LineCircleIntersection(circleCenter, radius, linePointA, linePointB, intersection1, intersection2);
-    if (!intersects) return false;
+    // Huom!! Ei toimi jos ollaan jo ympyrän sisällä
     
-    if (IsLinePointBetween(intersection1, linePointA, linePointB))
+    float2 intersection1, intersection2;
+    bool lineIntersects = LineCircleIntersection(circleCenter, radius, linePointA, linePointB, intersection1, intersection2);
+    bool segmentIntersects = false;
+    intersection = float2(0, 0);
+    
+    if (lineIntersects) 
     {
-        intersection = intersection1;
-        return true;
-    }
-    if (IsLinePointBetween(intersection2, linePointA, linePointB))
-    {
-        intersection = intersection2;
-        return true;
+        if (IsLinePointBetween(intersection1, linePointA, linePointB))
+        {
+            intersection = intersection1;
+            segmentIntersects = true;
+        }
+        if (IsLinePointBetween(intersection2, linePointA, linePointB))
+        {
+            intersection = intersection2;
+            segmentIntersects = true;
+        }
     }
 
-    return false;
+    return segmentIntersects;
+}
+
+bool BoxLineIntersection(float2 minCorner, float2 maxCorner, float2 start, float2 end, out float2 intersection, out float2 normal)
+{
+    intersection = float2(0,0);
+    normal = float2(0,0);
+
+    bool intersects = false;
+
+    if (IntersectLineSegments2D(start, end, float2(minCorner.x, minCorner.y), float2(maxCorner.x, minCorner.y), intersection))
+    {
+        normal = float2(0, 1);
+       intersects = true;
+    }
+    if (IntersectLineSegments2D(start, end, float2(minCorner.x, maxCorner.y), float2(maxCorner.x, maxCorner.y), intersection))
+    {
+        normal = float2(0, -1);
+        intersects = true;
+    }
+    if (IntersectLineSegments2D(start, end, float2(minCorner.x, minCorner.y), float2(minCorner.x, maxCorner.y), intersection))
+    {
+        normal = float2(1, 0);
+        intersects = true;
+    }
+    if (IntersectLineSegments2D(start, end, float2(maxCorner.x, minCorner.y), float2(maxCorner.x, maxCorner.y), intersection))
+    {
+        normal = float2(-1, 0);
+        intersects = true;
+    }
+    
+    return intersects;
+}
+
+bool IsInsideBox(float2 position, float2 minCorner, float2 maxCorner)
+{
+    return position.x >= minCorner.x && position.x <= maxCorner.x &&
+        position.y >= minCorner.y && position.y <= maxCorner.y;
+}
+
+float2 ClampToBox(float2 position, float2 minCorner, float2 maxCorner)
+{
+    if (position.x < minCorner.x) position.x = minCorner.x;
+    if (position.x > maxCorner.x) position.x = maxCorner.x;
+    if (position.y < minCorner.y) position.y = minCorner.y;
+    if (position.y > maxCorner.y) position.y = maxCorner.y;
+    return position;
 }
 

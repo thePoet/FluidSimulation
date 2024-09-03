@@ -76,6 +76,8 @@ namespace FluidSimulation
             
             _computeShader.SetInt("_NumParticles", numParticles);
             _computeShader.SetFloat("_DeltaTime", deltaTime/_simulationSettings.NumSubSteps);
+            _computeShader.SetFloat("_MaxDisplacement", _simulationSettings.InteractionRadius * 0.45f);
+            _computeShader.SetFloat("_SolidRadius", 10f);
             
             WriteToBuffers(particles);
 
@@ -93,21 +95,20 @@ namespace FluidSimulation
                //    Execute(Kernel.ApplyViscosity, threadGroupsForParticles);
                 }
 
-                
-
                 // Save PreviousPosition
                 // positionChange = velocity * deltaTime
                 // adjust positionChange with collisions
                 // adjust Position with PositionChange
-                Execute(Kernel.ApplyVelocity, threadGroupsForParticles); //->ApplyDisplacement
+               
 
+                
+                
+                Execute(Kernel.ApplyVelocity, threadGroupsForParticles); //->ApplyDisplacement
                 
                 //   Partitioning based on Position
                 Execute(Kernel.ClearPartitioning, threadGroupsForCells);
                 Execute(Kernel.FillPartitioning, threadGroupsForParticles);
                 Execute(Kernel.FindNeighbours, threadGroupsForParticles);
-
-                
                 
                 Execute(Kernel.ConfineParticlesToArea, threadGroupsForParticles);
                 
@@ -135,10 +136,9 @@ namespace FluidSimulation
             float[] errorFlags = new float[10];
             _statsBuffer.GetData(errorFlags);
             string prefix = "FluidsComputeShader Warning: ";
-            if (errorFlags[0] > 0) Debug.LogWarning(prefix + "Too many particles in a cell");
-         //   string s = "";
-         //   for (int i=0; i<10; i++) s+= errorFlags[i] + " ";
-         //   Debug.Log(s);
+            if (errorFlags[0] > 0f) Debug.LogWarning(prefix + "Too many particles in a cell: " + + errorFlags[0]);
+            if (errorFlags[1] > 0f) Debug.LogWarning(prefix + "Paricles outside area: " + + errorFlags[0]);
+            if (errorFlags[3] > 0f) Debug.LogWarning(prefix + "Fluid particle starts inside solid: " + errorFlags[3]);
         }
     
 
@@ -187,7 +187,6 @@ namespace FluidSimulation
             SetBufferForAllKernels("_ParticlesInCells", _particlesInCells);
             
             SetBufferForAllKernels("_Fluids", _fluidsBuffer);
-            
             
             SetBufferForAllKernels("_Stats", _statsBuffer);          
             

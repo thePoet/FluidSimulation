@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Random = System.Random;
 
@@ -156,12 +157,35 @@ namespace FluidSimulation
         private void CreateWalls()
         {
 
-            Rect area = SimulationSettings.AreaBounds;
+        	Rect area = SimulationSettings.AreaBounds;
+
+            // Find all monobehaviours in scene:
+            var walls = GameObject.FindObjectsOfType<TestWallCreator>();
+
+            foreach (var wall in walls)
+            {
+                float hSpacing = Mathf.Sqrt(3f) * wall.spacing;
+                float vSpacing = (3f / 2f) * wall.spacing;
+
+                for (int y = 0; y < wall.layersY; y++)
+                {
+                    for (int x = 0; x < wall.layersX; x++)
+                    {
+                        Vector2 localPos = new Vector2(x * hSpacing, y * vSpacing);
+                        if (y%2 == 1) localPos += new Vector2(hSpacing/2f, 0f);
+                        
+                        Vector3 worldPos = wall.transform.TransformPoint(localPos);
+                        SpawnParticle(worldPos, Vector2.zero, FluidSubstance.SomeSolid);
+                    }
+                    
+                }
+            }
+            /*
             float d = 2f;
             float depth = 5f;
             float margin = 35f;
-            
-            
+
+
             for (float x = area.min.x+margin; x < area.max.x-margin; x+=d)
             {
                 float offset = UnityEngine.Random.Range(0f, depth);
@@ -174,8 +198,10 @@ namespace FluidSimulation
                 SpawnParticle(new Vector2(area.min.x+margin+offset, y), Vector2.zero, FluidSubstance.SomeSolid);
                 SpawnParticle(new Vector2(area.max.x-margin-offset, y), Vector2.zero, FluidSubstance.SomeSolid);
             }
+            */
         }
-        
+
+  
 
         private void UpdateParticleVisualization()
         {
