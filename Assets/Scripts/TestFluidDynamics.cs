@@ -68,7 +68,7 @@ namespace FluidSimulation
                 ViscositySigma = 0f,
                 ViscosityBeta = 0f,
                 GravityScale = 0.0f,
-                Mass = 3f
+                Mass = 1f
             }
         };
 

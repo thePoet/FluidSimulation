@@ -78,6 +78,7 @@ static const int ERROR_CELL_OVERFLOW = 0;
 static const int ERROR_OUTSIDE_AREA = 1;
 static const int ERROR_MAX_DENSITY_DISPLACEMENT = 2;
 static const int WARNING_INSIDE_SOLID = 3;
+static const float EPSILON = 0.00001;
 
 RWStructuredBuffer<Particle> _Particles; //Length: MaxNumParticles
 RWStructuredBuffer<TempParticleData> _TempParticleData; 
@@ -137,11 +138,16 @@ void TestSolidCollisions(in int particleIdx, in float2 start, in float2 goal, ou
         int neighbourIndex = _ParticleNeighbours[particleIdx * _MaxNumNeighbours + j];
         if (!IsSolid(neighbourIndex) ) continue;
 
-        if (length(start - _Particles[neighbourIndex].Position) < _SolidRadius)
+        float2 neighbourPos = _Particles[neighbourIndex].Position;
+
+        if (length(start - neighbourPos) < _SolidRadius)
+        {
+            reached = normalize(start - neighbourPos) * _SolidRadius;
             _Stats[WARNING_INSIDE_SOLID] += 1;
+            break;
+        }
         
-        
-        if (LineSegmentCircleIntersection(_Particles[neighbourIndex].Position, _SolidRadius, start, reached, collisionPoint))
+        if (LineSegmentCircleIntersection(neighbourPos, _SolidRadius, start, reached, collisionPoint))
         {
             reached = collisionPoint - 0.001 * normalize(reached-start);
         }
@@ -401,9 +407,9 @@ float2 DensityDisplacement(int particle1, int particle2)
 
     float2 displacement = float2(0.0,0.0);
 
-    if (length(fromTo) < 0.000001)
+    if (length(fromTo) < EPSILON)
     {
-        displacement =  RandomFloat2(float2(particle1, _Time)) * 0.001f;
+        displacement =  RandomFloat2(float2(particle1, _Time)) * 2 * EPSILON;
     }
     else if (q<1)
     {
@@ -485,22 +491,7 @@ void CalculateCollisionDisplacement (uint3 id : SV_DispatchThreadID)
 void ApplyDisplacement (uint3 id : SV_DispatchThreadID)
 {
     int particleIndex = id.x * 128 + id.y;
-
-/*
-    if (particleIndex == 0)
-    {
-        float maxDisplacement = 0;
-        float l=0;
-        for (int i=0; i<_NumParticles; i++)
-        {
-            l = length(_TempParticleData[i].PositionChange);
-            if (l>maxDisplacement)
-                maxDisplacement = l;
-        }
-     
-        _Stats[ERROR_MAX_DENSITY_DISPLACEMENT] = maxDisplacement;
-
-    }*/
+    
     if (particleIndex >= _NumParticles) return;
     if (IsSolid(particleIndex)) return;
 
