@@ -24,7 +24,7 @@ namespace FluidSimulation
         {
             InteractionRadius = 20f,
             Gravity = 1200f,
-            Drag = 0.0f,
+            Drag = 0.001f,
             MaxNumParticles = 13000,
             IsViscosityEnabled = true,
             NumSubSteps = 3,
@@ -38,8 +38,8 @@ namespace FluidSimulation
             new Fluid
             {
                 State = State.Liquid,
-                Stiffness = 750f,
-                NearStiffness = 1500f,
+                Stiffness = 2000f,
+                NearStiffness = 4000f,
                 RestDensity = 5f,
                 ViscositySigma = 0.05f,
                 ViscosityBeta = 0.05f,
@@ -114,7 +114,7 @@ namespace FluidSimulation
             }
             ProcessUserInput();
 
-            text.text = "Particles: " + _fluidDynamics.Particles.Length;
+//            text.text = "Particles: " + _fluidDynamics.Particles.Length;
         }
         
         #endregion

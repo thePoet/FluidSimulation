@@ -96,7 +96,7 @@ namespace FluidSimulation
                 }
 
                 
-                Execute(Kernel.ApplyVelocity, threadGroupsForParticles); //->ApplyDisplacement
+                Execute(Kernel.ApplyVelocity, threadGroupsForParticles); 
                 
                 //   Partitioning based on Position
                 Execute(Kernel.ClearPartitioning, threadGroupsForCells);
