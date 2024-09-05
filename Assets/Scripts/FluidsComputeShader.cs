@@ -90,18 +90,11 @@ namespace FluidSimulation
                 if (_simulationSettings.IsViscosityEnabled)
                 {
                     //adjust velocityChange
-               //     Execute(Kernel.CalculateViscosity, threadGroupsForParticles);
-               // velocity += velocityChange 
-               //    Execute(Kernel.ApplyViscosity, threadGroupsForParticles);
+                    Execute(Kernel.CalculateViscosity, threadGroupsForParticles);
+                    // velocity += velocityChange 
+                   Execute(Kernel.ApplyViscosity, threadGroupsForParticles);
                 }
 
-                // Save PreviousPosition
-                // positionChange = velocity * deltaTime
-                // adjust positionChange with collisions
-                // adjust Position with PositionChange
-               
-
-                
                 
                 Execute(Kernel.ApplyVelocity, threadGroupsForParticles); //->ApplyDisplacement
                 

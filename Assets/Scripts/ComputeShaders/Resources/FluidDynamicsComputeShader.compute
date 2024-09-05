@@ -4,6 +4,9 @@
 
 #include "FluidDynamicsCommon.hlsl"
 
+
+// TODO: Säädä mallia siten, että törmäyksissä voidaan muuttaa nopeutta
+
 // The computation phases:
 
 #pragma kernel ApplyGravity                         // Adjusts _Particles[n].Velocity based on gravity
@@ -120,6 +123,11 @@ bool IsSolid(int particleIdx)
     return FluidOf(particleIdx).State == 2;
 }
 
+bool IsFluid(int particleIdx)
+{
+    return FluidOf(particleIdx).State != 2;
+}
+
 // ---------------------------------
 
 
@@ -142,7 +150,7 @@ void TestSolidCollisions(in int particleIdx, in float2 start, in float2 goal, ou
 
         if (length(start - neighbourPos) < _SolidRadius)
         {
-            reached = normalize(start - neighbourPos) * _SolidRadius;
+            reached = normalize(start - neighbourPos) * (_SolidRadius + EPSILON);
             _Stats[WARNING_INSIDE_SOLID] += 1;
             break;
         }
@@ -388,7 +396,7 @@ void CalculatePressures (uint3 id : SV_DispatchThreadID)
     for (int i=0; i<_ParticleNeighbourCount[particleIndex]; i++)
     {
         int neighbourIndex = _ParticleNeighbours[particleIndex * _MaxNumNeighbours + i];
-        if (IsSolid(neighbourIndex)) continue;
+       // if (IsSolid(neighbourIndex)) continue;
         float q = QDistance(particleIndex, neighbourIndex);
         if (q<1)
         {
@@ -400,28 +408,33 @@ void CalculatePressures (uint3 id : SV_DispatchThreadID)
     _TempParticleData[particleIndex].NearPressure = nearStiffness * nearDensity;
 }
 
+// Returns the movement caused by fluid density at particle1
+// Direction towards particle2 if pressure at partivle1 is high.
 float2 DensityDisplacement(int particle1, int particle2)
 {
     float q = QDistance(particle1, particle2);
     float2 fromTo = _Particles[particle2].Position - _Particles[particle1].Position;
 
-    float2 displacement = float2(0.0,0.0);
+    float2 displacement = float2(0.0, 0.0);
 
-    if (length(fromTo) < EPSILON)
+    if (length(fromTo) < EPSILON) // If particles are extremely close...
     {
+        // ...move them in random direction.
         displacement =  RandomFloat2(float2(particle1, _Time)) * 2 * EPSILON;
     }
     else if (q<1)
     {
         float pressure = _TempParticleData[particle1].Pressure;
         float nearPressure = _TempParticleData[particle1].NearPressure;
-    
+
+   
         float2 d = _DeltaTime * _DeltaTime * (pressure * (1 - q) + nearPressure * (1 - q) * (1 - q)) *
-                    normalize(fromTo);
+                        normalize(fromTo);
 
         d = d * FluidOf(particle2).Mass / FluidOf(particle1).Mass;
     
         displacement =  0.5 * d;
+        
     }
     return displacement;
 }
@@ -440,9 +453,13 @@ void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
     for (int j=0; j<_ParticleNeighbourCount[particleIndex]; j++)
     {
         int neighbourIndex = _ParticleNeighbours[particleIndex * _MaxNumNeighbours + j];
-        if (IsSolid(neighbourIndex) ) continue;
-        _TempParticleData[particleIndex].PositionChange -= DensityDisplacement(particleIndex, neighbourIndex);
-        _TempParticleData[particleIndex].PositionChange += DensityDisplacement(neighbourIndex, particleIndex);
+
+
+        if (IsFluid(neighbourIndex) )
+        {
+            _TempParticleData[particleIndex].PositionChange -= DensityDisplacement(particleIndex, neighbourIndex);
+            _TempParticleData[particleIndex].PositionChange += DensityDisplacement(neighbourIndex, particleIndex);
+        }
     }
     
 }
