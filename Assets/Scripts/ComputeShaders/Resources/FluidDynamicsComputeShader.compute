@@ -91,7 +91,7 @@ RWStructuredBuffer<int> _ParticlesInCells; //Length:  Number of cells * MaxNumPa
 RWStructuredBuffer<int> _ParticleNeighbours; //Length: MaxNumParticles * MaxNumNeighbours
 RWStructuredBuffer<int> _ParticleNeighbourCount; //Length: MaxNumParticles 
 //RWStructuredBuffer<float2> _ChangeBuffer; //Length: MaxNumParticles * MaxNumNeighbours
-RWStructuredBuffer<float> _Stats; //Length: 10 
+RWStructuredBuffer<int> _Stats; //Length: 10 
 RWStructuredBuffer<Fluid> _Fluids; 
 
 
@@ -179,7 +179,6 @@ void TestSolidCollisions(in int particleIdx, in float2 start, in float2 goal, ou
     reached = goal;
     float2 collisionPoint;
     
-     
     for (int j=0; j<_ParticleNeighbourCount[particleIdx]; j++)
     {
         int neighbourIndex = _ParticleNeighbours[particleIdx * _MaxNumNeighbours + j];
@@ -187,10 +186,14 @@ void TestSolidCollisions(in int particleIdx, in float2 start, in float2 goal, ou
 
         float2 neighbourPos = _Particles[neighbourIndex].Position;
 
+
+        //TODO:mitä jos ollaan samaan aikaan kahden sisällä?
+        // TODO: epsilon-case
         if (length(start - neighbourPos) < _SolidRadius)
         {
-            reached = normalize(start - neighbourPos) * (_SolidRadius + EPSILON);
+            // If we start inside particle, we'll take shortest route out:
             _Stats[WARNING_INSIDE_SOLID] += 1;
+            reached = neighbourPos + normalize(start - neighbourPos) * (_SolidRadius + EPSILON);
             break;
         }
         
@@ -267,11 +270,12 @@ void ClearPartitioningCells (uint3 id : SV_DispatchThreadID)
     _CellParticleCount[index] = 0;
 
     // Set error flags to zero
+/*
     if (index==0)
     {
         for (int i=0; i<10; i++)
             _Stats[i] = 0;
-    }
+    }*/
 }
 
 

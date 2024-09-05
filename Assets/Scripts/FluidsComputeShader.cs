@@ -126,12 +126,12 @@ namespace FluidSimulation
 
         private void CheckErrorFlags()
         {
-            float[] errorFlags = new float[10];
+            int[] errorFlags = new int[10];
             _statsBuffer.GetData(errorFlags);
             string prefix = "FluidsComputeShader Warning: ";
-            if (errorFlags[0] > 0f) Debug.LogWarning(prefix + "Too many particles in a cell: " + + errorFlags[0]);
-            if (errorFlags[1] > 0f) Debug.LogWarning(prefix + "Paricles outside area: " + + errorFlags[0]);
-            if (errorFlags[3] > 0f) Debug.LogWarning(prefix + "Fluid particle starts inside solid: " + errorFlags[3]);
+            if (errorFlags[0] > 0) Debug.LogWarning(prefix + "Too many particles in a cell: " + + errorFlags[0]);
+            if (errorFlags[1] > 0) Debug.LogWarning(prefix + "Particles outside area: " + + errorFlags[1]);
+            if (errorFlags[3] > 0) Debug.LogWarning(prefix + "Fluid particle starts inside solid: " + errorFlags[3]);
         }
     
 
@@ -167,7 +167,7 @@ namespace FluidSimulation
             _fluidsBuffer = new ComputeBuffer(_fluids.Length, Fluid.Stride);
             _fluidsBuffer.SetData(_fluids);
 
-            _statsBuffer = new ComputeBuffer(10 , sizeof(float));
+            _statsBuffer = new ComputeBuffer(10 , sizeof(int));
         }
 
         private void SetBuffers()
