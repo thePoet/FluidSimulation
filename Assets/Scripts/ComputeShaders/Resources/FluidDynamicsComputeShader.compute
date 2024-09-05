@@ -137,17 +137,18 @@ bool IsOutsideArea(float2 position)
     return IsInsideBox(position, minCorner, maxCorner); 
 }
 
-float2 AreaBoundsDisplacement(float2 particlePosition)
+float2 AreaBoundsDisplacement(float2 particlePosition, out float addedDrag)
 {
     float2 result = float2(0.0, 0.0);
     float margin = 10;
+    addedDrag = 0;
     
     float2 minCornerSoft = float2(_AreaMinX + margin, _AreaMinY + margin);
     float2 maxCornerSoft = float2(_AreaMaxX - margin, _AreaMaxY - margin);
 
     if (IsInsideBox(particlePosition, minCornerSoft, maxCornerSoft)) return result; 
 
-    
+    addedDrag = 0.5;
     float softness = 0.5;
     float2 newPos = ClampToBox(particlePosition, float2(_AreaMinX+EPSILON,_AreaMinY+EPSILON), float2(_AreaMaxX-EPSILON,_AreaMaxY-EPSILON));
 
@@ -399,20 +400,6 @@ void ApplyVelocity (uint3 id : SV_DispatchThreadID)
     if (particleIdx >= _NumParticles) return;
     if (IsSolid(particleIdx)) return;
     
-//----
-   // _TempParticleData[particleIdx].PositionChange = CapMagnitude(_Particles[particleIdx].Velocity * _DeltaTime, _MaxDisplacement);
-    /*
-    float2 reached;
-    TestSolidCollisions(particleIdx, _Particles[particleIdx].Position, 
-        _Particles[particleIdx].Position + CapMagnitude(_Particles[particleIdx].Velocity * _DeltaTime, _MaxDisplacement),
-        reached);*/
-
-    //_TempParticleData[particleIdx].PositionChange = reached - _Particles[particleIdx].Position;
-//---
-    //_Particles[particleIdx].Position += _TempParticleData[particleIdx].PositionChange;
- //   _Particles[particleIdx].Position = reached;
-//    _Particles[particleIdx].Position += _Particles[particleIdx].Velocity * _DeltaTime;
-
     _TempParticleData[particleIdx].PositionChange += _Particles[particleIdx].Velocity * _DeltaTime;
 }
 
@@ -513,6 +500,7 @@ void CalculateCollisionDisplacement (uint3 id : SV_DispatchThreadID)
 
     if (IsSolid(particleIdx)) return;
 
+    /*
     float2 reached;
 
     // Adjust the PositionChanges magnitude so that we don't end up inside solids
@@ -521,7 +509,7 @@ void CalculateCollisionDisplacement (uint3 id : SV_DispatchThreadID)
         reached);
 
     _TempParticleData[particleIdx].PositionChange = reached - _Particles[particleIdx].Position;
-
+*/
     
 }
 
@@ -562,17 +550,28 @@ void CalculateVelocityBasedOnMovement(uint3 id : SV_DispatchThreadID)
     
     if (IsSolid(i)) return;
 
-    if (!IsOutsideArea(_TempParticleData[i].PreviousPosition))
-        _Stats[ERROR_OUTSIDE_AREA]++;
-        
+   
+
+    float2 reached;
+
+    float2 positionChange = CapMagnitude(_TempParticleData[i].PositionChange, _MaxDisplacement);
+
     
-    _Particles[i].Position += CapMagnitude(_TempParticleData[i].PositionChange, _MaxDisplacement);
-    _Particles[i].Position += AreaBoundsDisplacement(_Particles[i].Position);
+    TestSolidCollisions(i, _Particles[i].Position, 
+        _Particles[i].Position + positionChange,
+        reached);
+
+    positionChange = reached - _Particles[i].Position;
+
+    float addedDrag;
+    
+    _Particles[i].Position += positionChange;
+    _Particles[i].Position += AreaBoundsDisplacement(_Particles[i].Position, addedDrag);
     _Particles[i].Velocity = (_Particles[i].Position - _TempParticleData[i].PreviousPosition) / _DeltaTime;
     
     // Apply Drag
     if (length(_Particles[i].Velocity) < 0.0001) return;
-    float drag = length(_Particles[i].Velocity) * length(_Particles[i].Velocity) * _Drag * _DeltaTime;
+    float drag = length(_Particles[i].Velocity) * length(_Particles[i].Velocity) * (_Drag+addedDrag) * _DeltaTime;
     _Particles[i].Velocity -= normalize(_Particles[i].Velocity) * drag;
     
 }

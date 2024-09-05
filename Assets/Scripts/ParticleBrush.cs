@@ -6,7 +6,8 @@ namespace FluidSimulation
 {
     public class ParticleBrush : MonoBehaviour
     {
-        [FormerlySerializedAs("blobsPerFrame")] public int particlesPerFrame = 1;
+        public int particlesPerFrame = 1;
+        public bool oneAtTime = false;
         public float brushRadius = 10f;
         public float maxSpeed = 10f;
         public TestFluidDynamics testFluidDynamics;
@@ -30,6 +31,12 @@ namespace FluidSimulation
             if (LeftMouseButton)
             {
                 int amount = particlesPerFrame;
+
+                if (oneAtTime)
+                {
+                    amount = 1;
+                    if (!Input.GetMouseButtonDown(0)) return;
+                }
                 if (_currentSubstance == FluidSubstance.SomeSolid) amount = 1;
                 for (int i=0; i < amount; i++)
                 {
