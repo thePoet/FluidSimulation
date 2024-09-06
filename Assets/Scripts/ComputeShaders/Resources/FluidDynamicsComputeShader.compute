@@ -173,9 +173,11 @@ float2 AreaBoundsDisplacement(float2 particlePosition, out float addedDrag)
 
 
 
+// TODO: törmäyksen normaali tai nopeuskorjaus ulos tästä funktiosta
 
-void TestSolidCollisions(in int particleIdx, in float2 start, in float2 goal, out float2 reached)
+bool TestSolidCollisions(in int particleIdx, in float2 start, in float2 goal, out float2 reached, out float2 collisionNormal)
 {
+    bool collisionHappened = false;
     reached = goal;
     float2 collisionPoint;
     
@@ -189,19 +191,26 @@ void TestSolidCollisions(in int particleIdx, in float2 start, in float2 goal, ou
 
         //TODO:mitä jos ollaan samaan aikaan kahden sisällä?
         // TODO: epsilon-case
-        if (length(start - neighbourPos) < _SolidRadius)
+        float2 toNeighbour = neighbourPos-start; 
+        if (length(toNeighbour) < _SolidRadius)
         {
             // If we start inside particle, we'll take shortest route out:
             _Stats[WARNING_INSIDE_SOLID] += 1;
-            reached = neighbourPos + normalize(start - neighbourPos) * (_SolidRadius + EPSILON);
+            reached = neighbourPos - normalize(toNeighbour) * (_SolidRadius + EPSILON);
+            collisionNormal = -toNeighbour;
+            collisionHappened = true;
             break;
         }
         
         if (LineSegmentCircleIntersection(neighbourPos, _SolidRadius, start, reached, collisionPoint))
         {
-            reached = collisionPoint - 0.001 * normalize(reached-start);
+            float margin = _SolidRadius/50.0;
+            reached = collisionPoint - margin * normalize(reached-start);
+            collisionNormal = normalize(neighbourPos - collisionPoint);
+            collisionHappened = true;
         }
     }
+    return collisionHappened;
 
 }
 
@@ -293,7 +302,6 @@ void FillPartitioningCells (uint3 id : SV_DispatchThreadID)
         return;
     }
   
-    
     int previousCount = 0;
     InterlockedAdd(_CellParticleCount[cellIndex], 1, previousCount);
     if (previousCount >= _MaxNumParticlesPerCell)
@@ -302,9 +310,7 @@ void FillPartitioningCells (uint3 id : SV_DispatchThreadID)
         return;
     }
 
-  
     _ParticlesInCells[cellIndex * _MaxNumParticlesPerCell + previousCount] = index;
-
 }
 
 // ----------------- Neighbour Finding -----------------
@@ -379,7 +385,6 @@ void CalculateViscosity (uint3 id : SV_DispatchThreadID)
 {
     int particleIndex = id.x * 128 + id.y;
     if (particleIndex >= _NumParticles) return;
-    
     
     for (int i=0; i<_ParticleNeighbourCount[particleIndex]; i++)
     {
@@ -461,8 +466,9 @@ float2 DensityDisplacement(int particle1, int particle2)
                         normalize(fromTo);
 
         d = d * FluidOf(particle2).Mass / FluidOf(particle1).Mass;
-    
-        displacement =  0.5 * d;
+
+       // if (pressure>0)
+            displacement =  0.5 * d;
         
     }
     return displacement;
@@ -559,11 +565,13 @@ void CalculateVelocityBasedOnMovement(uint3 id : SV_DispatchThreadID)
     float2 reached;
 
     float2 positionChange = CapMagnitude(_TempParticleData[i].PositionChange, _MaxDisplacement);
-
+    float2 collisionNormal;
     
-    TestSolidCollisions(i, _Particles[i].Position, 
+    
+    bool collisionHappened = TestSolidCollisions(i, _Particles[i].Position, 
         _Particles[i].Position + positionChange,
-        reached);
+        reached, collisionNormal);
+  
 
     positionChange = reached - _Particles[i].Position;
 
@@ -571,7 +579,14 @@ void CalculateVelocityBasedOnMovement(uint3 id : SV_DispatchThreadID)
     
     _Particles[i].Position += positionChange;
     _Particles[i].Position += AreaBoundsDisplacement(_Particles[i].Position, addedDrag);
+
+    // TODO: This should be done berfore collisions
     _Particles[i].Velocity = (_Particles[i].Position - _TempParticleData[i].PreviousPosition) / _DeltaTime;
+    if (collisionHappened)
+    {
+        _Particles[i].Velocity = reflect(_Particles[i].Velocity, collisionNormal);
+    }
+
     
     // Apply Drag
     if (length(_Particles[i].Velocity) < 0.0001) return;
