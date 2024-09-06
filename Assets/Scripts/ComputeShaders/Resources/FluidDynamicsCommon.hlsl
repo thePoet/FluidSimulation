@@ -6,6 +6,12 @@ float cross2d(float2 a, float2 b)
     return a.x * b.y - a.y * b.x;
 }
 
+// Return vector a projected on vector b
+float2 Project(float2 a, float2 b)
+{
+    return (dot(a,b)/length(b))*b;
+}
+
 float RandomFloat(in float2 uv)
 {
     float2 noise = (frac(sin(dot(uv ,float2(12.9898,78.233)*2.0)) * 43758.5453));
@@ -15,6 +21,14 @@ float RandomFloat(in float2 uv)
 float2 RandomFloat2(in float2 uv)
 {
     return float2(RandomFloat(uv), RandomFloat(float2(uv.y, uv.x)));
+}
+
+
+float2 VelocityAfterCollision(float2 velocity, float2 surfaceNormal, float tangentialFriction, float perpFriction)
+{
+    float2 perpendicular = Project(velocity, surfaceNormal);
+    float2 tangential = velocity - perpendicular;
+    return -perpendicular * (1-perpFriction) + tangential * (1-tangentialFriction);
 }
 
 // Return the vector capped to a magnitude (length)

@@ -244,8 +244,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   particlesPerFrame: 15
-  oneAtTime: 1
-  brushRadius: 10
+  oneAtTime: 0
+  brushRadius: 20
   maxSpeed: 0.01
   testFluidDynamics: {fileID: 0}
 --- !u!4 &405270752
@@ -310,6 +310,50 @@ MonoBehaviour:
   spacing: 10
   layersX: 15
   layersY: 1
+--- !u!1 &1449309708
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1449309710}
+  - component: {fileID: 1449309709}
+  m_Layer: 0
+  m_Name: Dripper
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &1449309709
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1449309708}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ab77dee16e694d289fdb7fa6e9d740c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &1449309710
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1449309708}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 341, y: 376, z: -0.09575427}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1640547553
 GameObject:
   m_ObjectHideFlags: 0
@@ -778,3 +822,4 @@ SceneRoots:
   - {fileID: 1889715700}
   - {fileID: 2101029936}
   - {fileID: 1334688765}
+  - {fileID: 1449309710}

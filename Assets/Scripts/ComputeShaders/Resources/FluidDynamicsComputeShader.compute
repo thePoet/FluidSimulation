@@ -92,6 +92,7 @@ RWStructuredBuffer<int> _ParticleNeighbours; //Length: MaxNumParticles * MaxNumN
 RWStructuredBuffer<int> _ParticleNeighbourCount; //Length: MaxNumParticles 
 //RWStructuredBuffer<float2> _ChangeBuffer; //Length: MaxNumParticles * MaxNumNeighbours
 RWStructuredBuffer<int> _Stats; //Length: 10 
+RWStructuredBuffer<float2> _Debug; //Length: 5 
 RWStructuredBuffer<Fluid> _Fluids; 
 
 
@@ -204,9 +205,10 @@ bool TestSolidCollisions(in int particleIdx, in float2 start, in float2 goal, ou
         
         if (LineSegmentCircleIntersection(neighbourPos, _SolidRadius, start, reached, collisionPoint))
         {
-            float margin = _SolidRadius/50.0;
+            float margin = _SolidRadius/100.0;
             reached = collisionPoint - margin * normalize(reached-start);
-            collisionNormal = normalize(neighbourPos - collisionPoint);
+            collisionNormal = normalize(collisionPoint-neighbourPos);
+         //  collisionNormal = normalize(float2(-1, 1));
             collisionHappened = true;
         }
     }
@@ -559,14 +561,13 @@ void CalculateVelocityBasedOnMovement(uint3 id : SV_DispatchThreadID)
     if (i >= _NumParticles) return;
     
     if (IsSolid(i)) return;
-
-   
+    
 
     float2 reached;
-
     float2 positionChange = CapMagnitude(_TempParticleData[i].PositionChange, _MaxDisplacement);
     float2 collisionNormal;
-    
+    float2 preCollisionVelocity = positionChange / _DeltaTime;
+
     
     bool collisionHappened = TestSolidCollisions(i, _Particles[i].Position, 
         _Particles[i].Position + positionChange,
@@ -580,11 +581,12 @@ void CalculateVelocityBasedOnMovement(uint3 id : SV_DispatchThreadID)
     _Particles[i].Position += positionChange;
     _Particles[i].Position += AreaBoundsDisplacement(_Particles[i].Position, addedDrag);
 
-    // TODO: This should be done berfore collisions
+    
     _Particles[i].Velocity = (_Particles[i].Position - _TempParticleData[i].PreviousPosition) / _DeltaTime;
     if (collisionHappened)
     {
-        _Particles[i].Velocity = reflect(_Particles[i].Velocity, collisionNormal);
+        _Particles[i].Velocity = VelocityAfterCollision(preCollisionVelocity, collisionNormal, 0.05, 0.95);
+        _Debug[0] = _Particles[i].Velocity;
     }
 
     
@@ -594,40 +596,3 @@ void CalculateVelocityBasedOnMovement(uint3 id : SV_DispatchThreadID)
     _Particles[i].Velocity -= normalize(_Particles[i].Velocity) * drag;
     
 }
-
-/*
-            
-            void CollisionToSolid(int indexFluid, int indexSolid) 
-            {
-                var particles = particleData.All();
-                Vector2 solidToFluid = particles[indexFluid].Position - particles[indexSolid].Position;
-                float distance = solidToFluid.magnitude;
-                
-                float solidRadius = 10f;
-                if (distance >= solidRadius) return;
-                
-
-                Vector2 deltaPosition = particles[indexFluid].Position - particles[indexFluid].PreviousPosition;
-                Vector2 closestPointOutsideSolid = particles[indexSolid].Position + solidToFluid.normalized * solidRadius;
-                
-                Vector2 bounceDirection = Vector2.Reflect
-                (
-                    deltaPosition, // old velocity, projected on...
-                    particles[indexSolid].Position - closestPointOutsideSolid // ...surface normal of solid circle
-                ).normalized;
-                
-                
-                float bounceFriction = -0.1f;
-                float bounceDistance = (closestPointOutsideSolid - particles[indexFluid].Position).magnitude * bounceFriction;
-                
-                
-                // The main method of the simulation calcultates velocity from the difference between current and
-                // previous position, so changing particle velocity would do not good. Instead we change the previous
-                // position to indirectly induce the wanted velocity.
-                particles[indexFluid].PreviousPosition = closestPointOutsideSolid - bounceDirection * bounceDistance;
-                particles[indexFluid].Position = closestPointOutsideSolid;
-
- 
-            }
-
-         */

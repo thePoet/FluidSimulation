@@ -32,12 +32,12 @@ namespace FluidSimulation
             {
                 int amount = particlesPerFrame;
 
-                if (oneAtTime)
+                if (oneAtTime || _currentSubstance == FluidSubstance.SomeSolid )
                 {
                     amount = 1;
                     if (!Input.GetMouseButtonDown(0)) return;
                 }
-                if (_currentSubstance == FluidSubstance.SomeSolid) amount = 1;
+        
                 for (int i=0; i < amount; i++)
                 {
                   testFluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, _currentSubstance);

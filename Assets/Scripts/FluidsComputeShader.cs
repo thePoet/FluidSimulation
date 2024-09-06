@@ -26,6 +26,7 @@ namespace FluidSimulation
         private ComputeBuffer _particleNeighbourCount;
         private ComputeBuffer _fluidsBuffer;
         private ComputeBuffer _statsBuffer;
+        private ComputeBuffer _debugBuffer;
         
         enum Kernel
         {
@@ -112,11 +113,14 @@ namespace FluidSimulation
            
                 Execute(Kernel.ConfineParticlesToArea, threadGroupsForParticles);
                 Execute(Kernel.CalculateVelocityBasedOnMovement, threadGroupsForParticles);
+                
+                PrintDebugData();
             }
             
 
             ReadFromBuffers(particles);
             CheckErrorFlags();
+          
             
             
 
@@ -133,6 +137,14 @@ namespace FluidSimulation
             if (errorFlags[1] > 0) Debug.LogWarning(prefix + "Particles outside area: " + + errorFlags[1]);
             if (errorFlags[3] > 0) Debug.LogWarning(prefix + "Fluid particle starts inside solid: " + errorFlags[3]);
         }
+        
+        private void PrintDebugData()
+        {
+            Vector2[] data = new Vector2[5];
+            _debugBuffer.GetData(data);
+            Debug.Log(data[0]);
+        }
+
     
 
         private void SetShaderVariables(SimulationSettings simulationSettings)
@@ -168,6 +180,7 @@ namespace FluidSimulation
             _fluidsBuffer.SetData(_fluids);
 
             _statsBuffer = new ComputeBuffer(10 , sizeof(int));
+            _debugBuffer = new ComputeBuffer(10 , sizeof(float));
         }
 
         private void SetBuffers()
@@ -181,7 +194,8 @@ namespace FluidSimulation
             
             SetBufferForAllKernels("_Fluids", _fluidsBuffer);
             
-            SetBufferForAllKernels("_Stats", _statsBuffer);          
+            SetBufferForAllKernels("_Stats", _statsBuffer);   
+            SetBufferForAllKernels("_Debug", _debugBuffer);          
             
             void SetBufferForAllKernels(string bufferName, ComputeBuffer buffer)
             {
@@ -213,6 +227,7 @@ namespace FluidSimulation
             _particleNeighbourCount.Release();
             _fluidsBuffer.Release();
             _statsBuffer.Release();
+            _debugBuffer.Release();
         }
         
         private void Execute(Kernel kernel, Vector3Int threadGroups)
