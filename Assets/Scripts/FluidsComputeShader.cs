@@ -6,90 +6,110 @@ namespace FluidSimulation
 {
    public class FluidsComputeShader
    {
-        
-
         private struct Buffers
         {
-            private ComputeBuffer _particleDataRW;
-            private ComputeBuffer _particleDataInternal;
-            private ComputeBuffer _cellParticleCount;
-            private ComputeBuffer _particlesInCells;
-            private ComputeBuffer _particleNeighbours;
-            private ComputeBuffer _particleNeighbourCount;
-            private ComputeBuffer _fluids;
-            private ComputeBuffer _stats;
-            private ComputeBuffer _debug;
+            private class Buffer
+            {
+                public string name;
+                public ComputeBuffer buffer;
+                public Buffer(){}
+            }
+  
+            private Buffer[] _buffers;
             
             public void Create(SimulationSettings settings, Fluid[] fluids)
             {
-                _particleDataRW = new ComputeBuffer(settings.MaxNumParticles, FluidParticle.Stride, ComputeBufferType.Default, ComputeBufferMode.SubUpdates);
-                _particleDataInternal = new ComputeBuffer(settings.MaxNumParticles, InternalParticleData.Stride);
-                _particleNeighbours = new ComputeBuffer(settings.MaxNumParticles * settings.MaxNumNeighbours, sizeof(int));
-                _particleNeighbourCount = new ComputeBuffer(settings.MaxNumParticles , sizeof(int));
-                int numCells = settings.PartitioningGrid.NumberOfSquares;
-                _cellParticleCount = new ComputeBuffer(numCells, sizeof(int));
-                _particlesInCells = new ComputeBuffer(settings.MaxNumParticlesInPartitioningCell*numCells, sizeof(int));
-                _fluids = new ComputeBuffer(fluids.Length, Fluid.Stride);
-                _fluids.SetData(fluids);
-                _stats = new ComputeBuffer(10 , sizeof(int));
-                _debug = new ComputeBuffer(10 , sizeof(float));
+                _buffers = new Buffer[9];
+                var s = settings;
+
+                _buffers[0] = new Buffer
+                {
+                    name = "_Particles",
+                    buffer = new ComputeBuffer(s.MaxNumParticles, FluidParticle.Stride,
+                        ComputeBufferType.Default, ComputeBufferMode.Dynamic)
+                };
+                _buffers[1] = new Buffer
+                {
+                    name = "_TempParticleData",
+                    buffer = new ComputeBuffer(s.MaxNumParticles, InternalParticleData.Stride)
+                };
+                _buffers[2] = new Buffer
+                {
+                    name = "_ParticleNeighbours",
+                    buffer = new ComputeBuffer(s.MaxNumParticles * s.MaxNumNeighbours, sizeof(int))
+                };
+                _buffers[3] = new Buffer
+                {
+                    name = "_ParticleNeighbourCount",
+                    buffer = new ComputeBuffer(s.MaxNumParticles, sizeof(int))
+                };
+                _buffers[4] = new Buffer
+                {
+                    name = "_CellParticleCount",
+                    buffer = new ComputeBuffer(s.PartitioningGrid.NumberOfSquares, sizeof(int))
+                };
+                _buffers[5] = new Buffer
+                {
+                    name = "_ParticlesInCells",
+                    buffer = new ComputeBuffer(s.PartitioningGrid.NumberOfSquares * s.MaxNumParticlesInPartitioningCell, sizeof(int))
+                };
+                _buffers[6] = new Buffer
+                {
+                    name = "_Fluids",
+                    buffer = new ComputeBuffer(fluids.Length, Fluid.Stride)
+                };
+                _buffers[7] = new Buffer
+                {
+                    name = "_Stats",
+                    buffer = new ComputeBuffer(10 , sizeof(int))
+                };
+                _buffers[8] = new Buffer
+                {
+                    name = "_Debug",
+                    buffer = new ComputeBuffer(10 , sizeof(float))
+                };
+                
+                _buffers[6].buffer.SetData(fluids);
+            
             }
 
             public void SetForAllKernels(ComputeShader computeShader, int numKernels)
             {
-                SetBufferForAllKernels("_Particles", _particleDataRW);
-                SetBufferForAllKernels("_TempParticleData", _particleDataInternal);
-                SetBufferForAllKernels("_ParticleNeighbours", _particleNeighbours); 
-                SetBufferForAllKernels("_ParticleNeighbourCount", _particleNeighbourCount);
-                SetBufferForAllKernels("_CellParticleCount", _cellParticleCount); 
-                SetBufferForAllKernels("_ParticlesInCells", _particlesInCells);
-                SetBufferForAllKernels("_Fluids", _fluids);
-                SetBufferForAllKernels("_Stats", _stats);   
-                SetBufferForAllKernels("_Debug", _debug);          
-            
-                void SetBufferForAllKernels(string bufferName, ComputeBuffer buffer)
+                foreach (Buffer b in _buffers)
                 {
                     for (int i = 0; i < numKernels; i++)
                     {
-                        computeShader.SetBuffer(i, bufferName, buffer);
+                        computeShader.SetBuffer(i, b.name, b.buffer);
                     }
                 }
             }
             
             public void Release()
             {
-                _particleDataRW.Release();
-                _particleDataInternal.Release();
-                _cellParticleCount.Release();
-                _particlesInCells.Release();
-                _particleNeighbours.Release();
-                _particleNeighbourCount.Release();
-                _fluids.Release();
-                _stats.Release();
-                _debug.Release();
+                foreach (Buffer b in _buffers) b.buffer.Release();
             }
             
             public void ReadParticleData(FluidParticle[] particles)
             {
-                _particleDataRW.GetData(particles);  
+                _buffers[0].buffer.GetData(particles);  
             }
 
             public void WriteParticleData(FluidParticle[] particles)
             {
-                _particleDataRW.SetData(particles);
+                _buffers[0].buffer.SetData(particles);
             }
 
             public Vector2[] DebugData()
             {
                 Vector2[] data = new Vector2[5];
-                _debug.GetData(data);
+                _buffers[8].buffer.GetData(data); 
                 return data;
             }
 
             public int[] GetStats()
             {
                 int[] data = new int[10];
-                _stats.GetData(data);
+                _buffers[7].buffer.GetData(data); 
                 return data;
             }
         }
@@ -157,8 +177,6 @@ namespace FluidSimulation
 
         public void Step(float deltaTime, FluidParticle[] particles, int numParticles)
         {
-            float time = Time.realtimeSinceStartup;
-            
             _computeShader.SetInt("_NumParticles", numParticles);
             _computeShader.SetFloat("_DeltaTime", deltaTime/_simulationSettings.NumSubSteps);
             _computeShader.SetFloat("_MaxDisplacement", _simulationSettings.InteractionRadius * 0.45f);
@@ -260,3 +278,5 @@ namespace FluidSimulation
         private Vector3Int threadGroupsForCells => new Vector3Int(32, 16, 1); //NOTE: This is too many
     }
 }
+
+
