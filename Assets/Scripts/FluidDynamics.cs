@@ -42,7 +42,7 @@ namespace FluidSimulation
         }
         public void SelectParticle(int particleId)
         {
-            _computeShader.selectedParticle = particleId;
+            _computeShader.SelectedParticle = particleId;
         }
 
         public Span<FluidParticle> Particles => _particles.AsSpan().Slice(0, NumParticles);
