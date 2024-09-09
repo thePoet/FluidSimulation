@@ -11,7 +11,7 @@ namespace FluidSimulation
         public ComputeShader ComputeShader;
         public int NumParticles { get; private set; }
 
-        private FluidsComputeShader _computeShader;
+        public FluidsComputeShader _computeShader;
         private readonly FluidParticle[] _particles;
         private int _nextId = 1;
         private SpatialPartitioningGrid<int> _partitioningGrid;
@@ -39,6 +39,10 @@ namespace FluidSimulation
         {
             _computeShader.Step(timeStep, _particles, NumParticles);
             UpdateSpatialPartitioningGrid();
+        }
+        public void SelectParticle(int particleId)
+        {
+            _computeShader.selectedParticle = particleId;
         }
 
         public Span<FluidParticle> Particles => _particles.AsSpan().Slice(0, NumParticles);
@@ -78,6 +82,7 @@ namespace FluidSimulation
             }
         }
 
-    
+
+     
     }
 }

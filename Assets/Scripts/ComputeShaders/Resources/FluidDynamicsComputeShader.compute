@@ -61,6 +61,7 @@ int _NumParticles;
 int _MaxNumParticles;
 int _MaxNumNeighbours;
 int _MaxNumParticlesPerCell;
+
 float _InteractionRadius;
 float _Gravity;
 float _Drag;
@@ -73,6 +74,8 @@ float _AreaMaxX;
 float _AreaMaxY;
 
 float _DeltaTime;
+
+int _SelectedParticle; // For getting debug info
 
 float _Time = 0;
 // Error flags
@@ -199,7 +202,7 @@ bool TestSolidCollisions(in int particleIdx, in float2 start, in float2 goal, ou
             _Stats[WARNING_INSIDE_SOLID] += 1;
             reached = neighbourPos - normalize(toNeighbour) * (_SolidRadius + EPSILON);
             collisionNormal = -toNeighbour;
-            collisionHappened = true;
+            collisionHappened = false;
             break;
         }
         
@@ -447,7 +450,7 @@ void CalculatePressures (uint3 id : SV_DispatchThreadID)
 
 // Returns the movement caused by fluid density at particle1
 // Direction towards particle2 if pressure at partivle1 is high.
-float2 DensityDisplacement(int particle1, int particle2)
+float2 DensityDisplacement(int particle1, int particle2, bool pushOnly)
 {
     float q = QDistance(particle1, particle2);
     float2 fromTo = _Particles[particle2].Position - _Particles[particle1].Position;
@@ -469,7 +472,7 @@ float2 DensityDisplacement(int particle1, int particle2)
 
         d = d * FluidOf(particle2).Mass / FluidOf(particle1).Mass;
 
-       // if (pressure>0)
+        if (!pushOnly || pressure > 0)
             displacement =  0.5 * d;
         
     }
@@ -494,8 +497,8 @@ void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
 
         if (IsFluid(neighbourIndex) )
         {
-            _TempParticleData[particleIndex].PositionChange -= DensityDisplacement(particleIndex, neighbourIndex);
-            _TempParticleData[particleIndex].PositionChange += DensityDisplacement(neighbourIndex, particleIndex);
+            _TempParticleData[particleIndex].PositionChange -= DensityDisplacement(particleIndex, neighbourIndex, true);
+            _TempParticleData[particleIndex].PositionChange += DensityDisplacement(neighbourIndex, particleIndex, true);
         }
     }
     
@@ -559,8 +562,13 @@ void CalculateVelocityBasedOnMovement(uint3 id : SV_DispatchThreadID)
 {
     int i = id.x * 128 + id.y;
     if (i >= _NumParticles) return;
+
+
+
+    
     
     if (IsSolid(i)) return;
+
     
 
     float2 reached;
@@ -586,7 +594,6 @@ void CalculateVelocityBasedOnMovement(uint3 id : SV_DispatchThreadID)
     if (collisionHappened)
     {
         _Particles[i].Velocity = VelocityAfterCollision(preCollisionVelocity, collisionNormal, 0.05, 0.95);
-        _Debug[0] = _Particles[i].Velocity;
     }
 
     
@@ -594,5 +601,13 @@ void CalculateVelocityBasedOnMovement(uint3 id : SV_DispatchThreadID)
     if (length(_Particles[i].Velocity) < 0.0001) return;
     float drag = length(_Particles[i].Velocity) * length(_Particles[i].Velocity) * (_Drag+addedDrag) * _DeltaTime;
     _Particles[i].Velocity -= normalize(_Particles[i].Velocity) * drag;
+
+    if (i==_SelectedParticle)
+    {
+        _Debug[0] = _Particles[i].Position;
+        _Debug[1] = _Particles[i].Velocity;
+        _Debug[2] = _TempParticleData[i].PositionChange;
+        _Debug[3] = preCollisionVelocity;
+    }
     
 }

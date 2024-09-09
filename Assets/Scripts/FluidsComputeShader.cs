@@ -4,7 +4,9 @@ using UnityEngine;
 namespace FluidSimulation
 {
    public class FluidsComputeShader
-    {
+   {
+        public int selectedParticle = 0;
+        
         private struct TempParticleData
         {
             public Vector2 PositionChange;
@@ -71,6 +73,13 @@ namespace FluidSimulation
         }
 
 
+        public Vector2[] GetSelectedParticleData()
+        {
+            Vector2[] data = new Vector2[5];
+            _debugBuffer.GetData(data);
+            return data;
+        }
+
         public void Step(float deltaTime, FluidParticle[] particles, int numParticles)
         {
             float time = Time.realtimeSinceStartup;
@@ -79,6 +88,7 @@ namespace FluidSimulation
             _computeShader.SetFloat("_DeltaTime", deltaTime/_simulationSettings.NumSubSteps);
             _computeShader.SetFloat("_MaxDisplacement", _simulationSettings.InteractionRadius * 0.45f);
             _computeShader.SetFloat("_SolidRadius", 15f);
+            _computeShader.SetInt("_SelectedParticle", selectedParticle);
             
             WriteToBuffers(particles);
 
@@ -114,7 +124,7 @@ namespace FluidSimulation
                 Execute(Kernel.ConfineParticlesToArea, threadGroupsForParticles);
                 Execute(Kernel.CalculateVelocityBasedOnMovement, threadGroupsForParticles);
                 
-                PrintDebugData();
+          //      PrintDebugData();
             }
             
 

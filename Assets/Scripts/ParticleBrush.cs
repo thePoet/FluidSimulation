@@ -50,6 +50,15 @@ namespace FluidSimulation
                 testFluidDynamics.SetParticleVelocities(MousePosition, 15f, deltaMousePosition/Time.deltaTime);
             }
             
+            if (Input.GetKey(KeyCode.I))
+            {
+                int[] particles = testFluidDynamics.ParticleIdsInsideCircle(MousePosition, 15f);
+                if (particles.Length > 0)
+                {
+                    testFluidDynamics.SelectParticle(particles[0]);
+                }
+            }
+            
             if (Input.GetKey(KeyCode.Alpha1)) _currentSubstance = FluidSubstance.SomeLiquid;
             if (Input.GetKey(KeyCode.Alpha2)) _currentSubstance = FluidSubstance.SomeGas;
             if (Input.GetKey(KeyCode.Alpha3)) _currentSubstance = FluidSubstance.SomeSolid;

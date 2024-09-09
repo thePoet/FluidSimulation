@@ -19,6 +19,8 @@ namespace FluidSimulation
         private Container _container;
 
         private bool _isPaused;
+
+        private int _selectedParticle = 0;
         
         private SimulationSettings SimulationSettings => new()
         {
@@ -114,7 +116,19 @@ namespace FluidSimulation
             }
             ProcessUserInput();
 
-//            text.text = "Particles: " + _fluidDynamics.Particles.Length;
+        }
+        
+        void OnDrawGizmos()
+        {
+            if (_fluidDynamics == null) return;
+            var data = _fluidDynamics._computeShader.GetSelectedParticleData();
+            Gizmos.DrawSphere(data[0], 5f);
+            Gizmos.color = Color.blue;
+            Gizmos.DrawLine(data[0], data[0] + data[1]);
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawLine(data[0], data[0] + data[2]*100f);
+            Gizmos.color = Color.red;
+            Gizmos.DrawLine(data[0], data[0] + data[3]);
         }
         
         #endregion
@@ -152,6 +166,13 @@ namespace FluidSimulation
             }
         }
 
+        public int[] ParticleIdsInsideCircle(Vector2 position, float radius) => _fluidDynamics.ParticlesInsideCircle(position, radius);
+      
+        public void SelectParticle(int particleId)
+        {
+            _fluidDynamics.SelectParticle(particleId);
+        }
+        
         private void CreateWalls()
         {
 
@@ -213,6 +234,8 @@ namespace FluidSimulation
 
         }
 
+   
+
         private void Clear()
         {
             _fluidDynamics.Clear();
@@ -258,5 +281,7 @@ namespace FluidSimulation
 
         
         #endregion
+
+   
     }
 }

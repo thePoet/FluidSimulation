@@ -27,6 +27,7 @@ namespace FluidSimulation
             }
 
             var particle = Instantiate(PrefabFor(substance), parent: transform, worldPositionStays: false);
+            particle.name = "Particle " + id.ToString();
             _particles.Add(id, particle);
 
 

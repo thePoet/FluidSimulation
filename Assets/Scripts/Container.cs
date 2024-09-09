@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace FluidSimulation
@@ -7,8 +6,7 @@ namespace FluidSimulation
     public class Container : MonoBehaviour
     {
         public Rect Bounds;
-
-
+        
         private void OnValidate()
         {
             UpdateBoundaryLine();
