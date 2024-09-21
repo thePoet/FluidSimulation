@@ -10,15 +10,15 @@ namespace FluidSimulation
         public bool oneAtTime = false;
         public float brushRadius = 10f;
         public float maxSpeed = 10f;
-        public TestFluidDynamics testFluidDynamics;
+        [FormerlySerializedAs("testFluidDynamics")] public FluidDynamics fluidDynamics;
         
         private Vector2 _previousMousePosition;
         private FluidSubstance _currentSubstance = FluidSubstance.SomeLiquid;
         
         private void Start()
         {
-            testFluidDynamics = FindObjectOfType<TestFluidDynamics>();
-            if (testFluidDynamics == null) Debug.LogError("No TestFluidDynamics found in the scene.");
+            fluidDynamics = FindObjectOfType<FluidDynamics>();
+            if (fluidDynamics == null) Debug.LogError("No TestFluidDynamics found in the scene.");
             
             
         }
@@ -26,7 +26,7 @@ namespace FluidSimulation
 
         void Update()
         {
-            if (testFluidDynamics == null) return;
+            if (fluidDynamics == null) return;
             
             if (LeftMouseButton)
             {
@@ -40,22 +40,22 @@ namespace FluidSimulation
         
                 for (int i=0; i < amount; i++)
                 {
-                  testFluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, _currentSubstance);
+                  fluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, _currentSubstance);
                 }
             }
 
             if (RightMouseButton)
             {
                 Vector2 deltaMousePosition = MousePosition - _previousMousePosition;
-                testFluidDynamics.SetParticleVelocities(MousePosition, 15f, deltaMousePosition/Time.deltaTime);
+                fluidDynamics.SetParticleVelocities(MousePosition, 15f, deltaMousePosition/Time.deltaTime);
             }
             
             if (Input.GetKey(KeyCode.I))
             {
-                int[] particles = testFluidDynamics.ParticleIdsInsideCircle(MousePosition, 15f);
+                int[] particles = fluidDynamics.ParticleIdsInsideCircle(MousePosition, 15f);
                 if (particles.Length > 0)
                 {
-                    testFluidDynamics.SelectParticle(particles[0]);
+                    fluidDynamics.SelectParticle(particles[0]);
                 }
             }
             

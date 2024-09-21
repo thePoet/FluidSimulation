@@ -197,7 +197,7 @@ bool TestSolidCollisions(in int particleIdx, in float2 start, in float2 goal, ou
         if (length(toNeighbour) < _SolidRadius)
         {
             // If we start inside particle, we'll take shortest route out:
-            _Stats[WARNING_INSIDE_SOLID] += 1;
+            //_Stats[WARNING_INSIDE_SOLID] += 1;
             reached = neighbourPos - normalize(toNeighbour) * (_SolidRadius + EPSILON);
             collisionNormal = -toNeighbour;
             collisionHappened = false;

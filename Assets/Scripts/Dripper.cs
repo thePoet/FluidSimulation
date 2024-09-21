@@ -5,11 +5,11 @@ public class Dripper : MonoBehaviour
 {
     public bool onlyOne = false;
     
-    private TestFluidDynamics _testFluidDynamics;
+    private FluidDynamics _fluidDynamics;
     // Start is called before the first frame update
     void Start()
     {
-        _testFluidDynamics = FindObjectOfType<TestFluidDynamics>();
+        _fluidDynamics = FindObjectOfType<FluidDynamics>();
         if (onlyOne)
             SpawnParticle();
         else
@@ -19,6 +19,6 @@ public class Dripper : MonoBehaviour
     // Update is called once per frame
     void SpawnParticle()
     {
-        _testFluidDynamics.SpawnParticle(transform.position, Vector2.zero, FluidSubstance.SomeLiquid);
+        _fluidDynamics.SpawnParticle(transform.position, Vector2.zero, FluidSubstance.SomeLiquid);
     }
 }
