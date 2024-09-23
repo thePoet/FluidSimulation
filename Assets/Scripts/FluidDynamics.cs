@@ -45,8 +45,8 @@ namespace FluidSimulation
                 Stiffness = 2000f,
                 NearStiffness = 4000f,
                 RestDensity = 5f,
-                ViscositySigma = 0.02f,
-                ViscosityBeta = 0.02f,
+                ViscositySigma = 0.01f,
+                ViscosityBeta = 0.01f,
                 GravityScale = 1f,
                 Mass = 1f
             },

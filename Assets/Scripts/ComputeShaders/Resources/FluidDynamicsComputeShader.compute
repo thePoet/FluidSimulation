@@ -3,26 +3,16 @@
 // https://www.academia.edu/452554/Particle-Based_Viscoelastic_Fluid_Simulation
 #include "FluidDynamicsCommon.hlsl"
 
-
-
-// The computation phases:
-
-#pragma kernel ApplyGravity                         
+#pragma kernel InitAndApplyGravity                         
 #pragma kernel ClearPartitioningCells              
 #pragma kernel FillPartitioningCells                
 #pragma kernel FindNeighbours                      
 #pragma kernel CalculateViscosity                   
 #pragma kernel ApplyViscosity                      
 #pragma kernel ApplyVelocity                        
-                                                   
-                                                    
 #pragma kernel CalculatePressures                   
 #pragma kernel CalculateDensityDisplacement         
-#pragma kernel CalculateCollisionDisplacement       
-#pragma kernel ApplyDisplacement                    
-#pragma kernel ConfineParticlesToArea
-#pragma kernel CalculateVelocityBasedOnMovement
-
+#pragma kernel MoveParticles
 
 
 struct Particle
@@ -91,7 +81,6 @@ RWStructuredBuffer<int> _CellParticleCount; // Length: Number of cells
 RWStructuredBuffer<int> _ParticlesInCells; //Length:  Number of cells * MaxNumParticlesPerCell
 RWStructuredBuffer<int> _ParticleNeighbours; //Length: MaxNumParticles * MaxNumNeighbours
 RWStructuredBuffer<int> _ParticleNeighbourCount; //Length: MaxNumParticles 
-//RWStructuredBuffer<float2> _ChangeBuffer; //Length: MaxNumParticles * MaxNumNeighbours
 RWStructuredBuffer<int> _Stats; //Length: 10 
 RWStructuredBuffer<float2> _Debug; //Length: 5 
 RWStructuredBuffer<Fluid> _Fluids; 
@@ -219,24 +208,30 @@ bool TestSolidCollisions(in int particleIdx, in float2 start, in float2 goal, ou
 
 // --------------------- GRAVITY------------------------------------------ ---------------------
 [numthreads(8,8,1)]
-void ApplyGravity (uint3 id : SV_DispatchThreadID) // AND initialize stuff 
+void InitAndApplyGravity (uint3 id : SV_DispatchThreadID) 
 {
     int particleIndex = id.x * 128 + id.y;
-    if (particleIndex==0) _Time += _DeltaTime;
+
+    if (particleIndex==0)
+    {
+        _Time += _DeltaTime;
+
+        // Set error flags to zero
+        for (int i=0; i<10; i++)
+            _Stats[i] = 0;
+    }
     
     if (particleIndex >= _NumParticles) return;
     _TempParticleData[particleIndex].PreviousPosition = _Particles[particleIndex].Position;
     _TempParticleData[particleIndex].PositionChange = float2(0, 0);
     _TempParticleData[particleIndex].VelocityChange = float2(0, 0);
 
+    // Apply gravity to fluid particles:
     if (IsSolid(particleIndex)) return;
     _Particles[particleIndex].Velocity += float2(0.0, -_DeltaTime * _Gravity * FluidOf(particleIndex).GravityScale);
 }
 
 // ------------- SPATIAL PARTITIONING ----------------------------------------------------------------
-
-
-
 int2 CellCoordinates(in float2 position)
 {
     int2 result;
@@ -261,8 +256,6 @@ bool IsInsideArea(float2 position)
 {
     return position.x >= _AreaMinX && position.x <= _AreaMaxX && position.y >= _AreaMinY && position.y <= _AreaMaxY;
 }
-
-
 
 int NumCells()
 {
@@ -422,8 +415,7 @@ void CalculatePressures (uint3 id : SV_DispatchThreadID)
     if (particleIndex >= _NumParticles) return;
 
     int fluidIndex = _Particles[particleIndex].fluidIdx;
-
-    
+ 
     const float restDensity = _Fluids[fluidIndex].RestDensity;
     const float stiffness = _Fluids[fluidIndex].Stiffness;
     const float nearStiffness = _Fluids[fluidIndex].NearStiffness;
@@ -434,7 +426,9 @@ void CalculatePressures (uint3 id : SV_DispatchThreadID)
     for (int i=0; i<_ParticleNeighbourCount[particleIndex]; i++)
     {
         int neighbourIndex = _ParticleNeighbours[particleIndex * _MaxNumNeighbours + i];
-       // if (IsSolid(neighbourIndex)) continue;
+
+
+        if (IsSolid(neighbourIndex)) continue;
         float q = QDistance(particleIndex, neighbourIndex);
         if (q<1)
         {
@@ -484,101 +478,37 @@ void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
     int particleIndex = id.x * 128 + id.y;
     if (particleIndex >= _NumParticles) return;
     
-   // _TempParticleData[particleIndex].PositionChange = float2(0,0);
-
     if (IsSolid(particleIndex) ) return;
 
     for (int j=0; j<_ParticleNeighbourCount[particleIndex]; j++)
     {
         int neighbourIndex = _ParticleNeighbours[particleIndex * _MaxNumNeighbours + j];
 
-
-      //  if (IsFluid(neighbourIndex) )
-       // {
+        if (IsFluid(neighbourIndex) )
+        {
             _TempParticleData[particleIndex].PositionChange -= DensityDisplacement(particleIndex, neighbourIndex, true);
             _TempParticleData[particleIndex].PositionChange += DensityDisplacement(neighbourIndex, particleIndex, true);
-        //}
+        }
     }
-    
-}
-
-
-
-
-[numthreads(8,8,1)]
-void CalculateCollisionDisplacement (uint3 id : SV_DispatchThreadID)
-{
-    int particleIdx = id.x * 128 + id.y;
-    if (particleIdx >= _NumParticles) return;
-
-    if (IsSolid(particleIdx)) return;
-
-    /*
-    float2 reached;
-
-    // Adjust the PositionChanges magnitude so that we don't end up inside solids
-    TestSolidCollisions(particleIdx, _Particles[particleIdx].Position, 
-        _Particles[particleIdx].Position + _TempParticleData[particleIdx].PositionChange,
-        reached);
-
-    _TempParticleData[particleIdx].PositionChange = reached - _Particles[particleIdx].Position;
-*/
-    
 }
 
 
 [numthreads(8,8,1)]
-void ApplyDisplacement (uint3 id : SV_DispatchThreadID)
-{
-    /*
-    int particleIndex = id.x * 128 + id.y;
-    if (particleIndex >= _NumParticles) return;
-
-    if (IsSolid(particleIndex)) return;
-
-    float2 posChange = CapMagnitude(_TempParticleData[particleIndex].PositionChange, _MaxDisplacement);
-    _Particles[particleIndex].Position += posChange;*/
-}
-
-
-
-
-[numthreads(8,8,1)]
-void ConfineParticlesToArea (uint3 id : SV_DispatchThreadID)
-{/*
-    int i = id.x * 128 + id.y;
-    if (i >= _NumParticles) return;
-    if (IsSolid(i)) return;
-
-    _Particles[i].Position += AreaBoundsDisplacement(_Particles[i].Position);*/
-}
-
-// --- RESOLVE STEP ---             
-
-[numthreads(8,8,1)]
-void CalculateVelocityBasedOnMovement(uint3 id : SV_DispatchThreadID)
+void MoveParticles(uint3 id : SV_DispatchThreadID)
 {
     int i = id.x * 128 + id.y;
     if (i >= _NumParticles) return;
-
-
-
-    
     
     if (IsSolid(i)) return;
-
-    
 
     float2 reached;
     float2 positionChange = CapMagnitude(_TempParticleData[i].PositionChange, _MaxDisplacement);
     float2 collisionNormal;
     float2 preCollisionVelocity = positionChange / _DeltaTime;
-
     
     bool collisionHappened = TestSolidCollisions(i, _Particles[i].Position, 
         _Particles[i].Position + positionChange,
         reached, collisionNormal);
-  
 
     positionChange = reached - _Particles[i].Position;
 
@@ -586,7 +516,6 @@ void CalculateVelocityBasedOnMovement(uint3 id : SV_DispatchThreadID)
     
     _Particles[i].Position += positionChange;
     _Particles[i].Position += AreaBoundsDisplacement(_Particles[i].Position, addedDrag);
-
     
     _Particles[i].Velocity = (_Particles[i].Position - _TempParticleData[i].PreviousPosition) / _DeltaTime;
     if (collisionHappened)
@@ -594,7 +523,6 @@ void CalculateVelocityBasedOnMovement(uint3 id : SV_DispatchThreadID)
         _Particles[i].Velocity = VelocityAfterCollision(preCollisionVelocity, collisionNormal, 0.05, 0.95);
     }
 
-    
     // Apply Drag
     if (length(_Particles[i].Velocity) < 0.0001) return;
     float drag = length(_Particles[i].Velocity) * length(_Particles[i].Velocity) * (_Drag+addedDrag) * _DeltaTime;

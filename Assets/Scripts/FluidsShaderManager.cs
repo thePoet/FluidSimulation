@@ -9,7 +9,7 @@ namespace FluidSimulation
    {
         enum Kernel
         {
-            ApplyGravity = 0,
+            InitAndApplyGravity = 0,
             ClearPartitioning = 1,
             FillPartitioning = 2,
             FindNeighbours = 3,
@@ -18,13 +18,9 @@ namespace FluidSimulation
             ApplyVelocity = 6,
             CalculatePressures = 7,
             CalculateDensityDisplacement = 8,
-            CalculateCollisionDisplacement = 9,
-            ApplyDisplacement = 10,
-            ConfineParticlesToArea = 11,
-            CalculateVelocityBasedOnMovement = 12
+            MoveParticles = 9
         }
-   
-
+        
         public int SelectedParticle = 0;
         
         private readonly ComputeShader _computeShader;
@@ -51,10 +47,8 @@ namespace FluidSimulation
                     _computeShader.SetBuffer(kernelIndex, buffer.Name, buffer.ComputeBuffer);
                 }
             }
-            
             SetShaderVariables(simulationSettings);
         }
-
         
        
         public void Step(float deltaTime, FluidParticle[] particles, int numParticles)
@@ -69,33 +63,20 @@ namespace FluidSimulation
 
             for (int s = 0; s < _simulationSettings.NumSubSteps; s++)
             {
-                //adjust velocity
-                Execute(Kernel.ApplyGravity, threadGroupsForParticles);
+                Execute(Kernel.InitAndApplyGravity, threadGroupsForParticles);
 
                 if (_simulationSettings.IsViscosityEnabled)
                 {
-                    //adjust velocityChange
                     Execute(Kernel.CalculateViscosity, threadGroupsForParticles);
-                    // velocity += velocityChange 
-                   Execute(Kernel.ApplyViscosity, threadGroupsForParticles);
+                    Execute(Kernel.ApplyViscosity, threadGroupsForParticles);
                 }
-                
                 Execute(Kernel.ApplyVelocity, threadGroupsForParticles); 
-                
-                //   Partitioning based on Position
                 Execute(Kernel.ClearPartitioning, threadGroupsForCells);
                 Execute(Kernel.FillPartitioning, threadGroupsForParticles);
                 Execute(Kernel.FindNeighbours, threadGroupsForParticles);
-                
-                Execute(Kernel.ConfineParticlesToArea, threadGroupsForParticles);
-                
                 Execute(Kernel.CalculatePressures, threadGroupsForParticles);
                 Execute(Kernel.CalculateDensityDisplacement, threadGroupsForParticles);
-                Execute(Kernel.CalculateCollisionDisplacement, threadGroupsForParticles);
-                Execute(Kernel.ApplyDisplacement, threadGroupsForParticles);
-           
-                Execute(Kernel.ConfineParticlesToArea, threadGroupsForParticles);
-                Execute(Kernel.CalculateVelocityBasedOnMovement, threadGroupsForParticles);
+                Execute(Kernel.MoveParticles, threadGroupsForParticles);
             }
    
             _buffers[0].ComputeBuffer.GetData(particles);  
@@ -103,9 +84,7 @@ namespace FluidSimulation
    
            // Debug.Log("Sim step with read/write took " + 1000f * (Time.realtimeSinceStartup - time) + " ms.");
         }
-
-   
-   
+        
         public void Dispose()
         {
             foreach (ShaderBuffer buffer in _buffers) buffer.ComputeBuffer.Release();
@@ -124,15 +103,12 @@ namespace FluidSimulation
         {
             _computeShader.SetInt("_MaxNumParticles", simulationSettings.MaxNumParticles);
             _computeShader.SetInt("_MaxNumNeighbours", simulationSettings.MaxNumNeighbours);
-            
             _computeShader.SetInt("_MaxNumParticlesPerCell", simulationSettings.MaxNumParticlesInPartitioningCell);
             _computeShader.SetFloat("_InteractionRadius", _simulationSettings.InteractionRadius);
-            
             _computeShader.SetFloat("_AreaMinX", simulationSettings.AreaBounds.xMin);
             _computeShader.SetFloat("_AreaMinY", simulationSettings.AreaBounds.yMin);
             _computeShader.SetFloat("_AreaMaxX", simulationSettings.AreaBounds.xMax);
             _computeShader.SetFloat("_AreaMaxY", simulationSettings.AreaBounds.yMax);
-            
             _computeShader.SetFloat("_Gravity", simulationSettings.Gravity);
             _computeShader.SetFloat("_Drag", simulationSettings.Drag);
         }
