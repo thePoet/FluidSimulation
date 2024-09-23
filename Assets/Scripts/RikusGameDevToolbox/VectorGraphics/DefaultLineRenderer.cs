@@ -16,7 +16,7 @@ namespace RikusGameDevToolbox.VectorGraphics
         
         static Material DefaulMaterial()
         {
-            string shaderName = "Legacy Shaders/ParticleData/Alpha Blended Premultiply";
+            string shaderName = "Legacy Shaders/Particles/Alpha Blended Premultiply";
             Shader shader = Shader.Find(shaderName);
             if (shader == null) throw new ApplicationException("Cannot find " + shaderName);
             return new Material(shader);

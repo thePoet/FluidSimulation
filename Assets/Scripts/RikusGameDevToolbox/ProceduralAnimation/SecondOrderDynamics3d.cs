@@ -30,7 +30,7 @@ namespace RikusGameDevToolbox.ProceduralAnimation
         public Vector3 OutputAcceleration => _yd2;    
 
         /// <summary>
-        /// If true time step can be split internally to keep the testFluidDynamics stable.
+        /// If true time step can be split internally to keep the simulation stable.
         /// </summary>
         public bool splitTimeStepAllowed = true;
         
