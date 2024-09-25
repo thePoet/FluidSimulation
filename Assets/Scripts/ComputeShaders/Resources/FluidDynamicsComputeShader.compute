@@ -169,11 +169,14 @@ float2 AreaBoundsDisplacement(float2 particlePosition, out float addedDrag)
 
 // TODO: törmäyksen normaali tai nopeuskorjaus ulos tästä funktiosta
 
+
+
 bool TestSolidCollisions(in int particleIdx, in float2 start, in float2 goal, out float2 reached, out float2 collisionNormal)
 {
     bool collisionHappened = false;
     reached = goal;
     float2 collisionPoint;
+
     
     for (int j=0; j<_ParticleNeighbourCount[particleIdx]; j++)
     {
@@ -189,19 +192,19 @@ bool TestSolidCollisions(in int particleIdx, in float2 start, in float2 goal, ou
         if (length(toNeighbour) < _SolidRadius)
         {
             // If we start inside particle, we'll take shortest route out:
-            //_Stats[WARNING_INSIDE_SOLID] += 1;
+            _Stats[WARNING_INSIDE_SOLID] += 1;
             reached = neighbourPos - normalize(toNeighbour) * (_SolidRadius + EPSILON);
             collisionNormal = -toNeighbour;
-            collisionHappened = false;
+            collisionHappened = false; //?????
             break;
         }
         
         if (LineSegmentCircleIntersection(neighbourPos, _SolidRadius, start, reached, collisionPoint))
         {
-            float margin = _SolidRadius/100.0;
-            reached = collisionPoint - margin * normalize(reached-start);
+            float margin = _SolidRadius/80.0;
             collisionNormal = normalize(collisionPoint-neighbourPos);
-         //  collisionNormal = normalize(float2(-1, 1));
+            // By moving the particle a little bit along the collision normal we ensure it does not get stuck on a slope
+            reached = collisionPoint + margin * collisionNormal; 
             collisionHappened = true;
         }
     }
@@ -494,8 +497,8 @@ void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
 
         if (IsFluid(neighbourIndex) )
         {
-            _TempData[particleIndex].DisplacementDensity -= DensityDisplacement(particleIndex, neighbourIndex, 0.3);
-            _TempData[particleIndex].DisplacementDensity += DensityDisplacement(neighbourIndex, particleIndex, 0.3);
+            _TempData[particleIndex].DisplacementDensity -= DensityDisplacement(particleIndex, neighbourIndex, 0.5);
+            _TempData[particleIndex].DisplacementDensity += DensityDisplacement(neighbourIndex, particleIndex, 0.5);
             
             //_TempData[particleIndex].PositionChange -= DensityDisplacement(particleIndex, neighbourIndex, 0.3);
             //_TempData[particleIndex].PositionChange += DensityDisplacement(neighbourIndex, particleIndex, 0.3);
@@ -568,7 +571,7 @@ void MoveParticles(uint3 id : SV_DispatchThreadID)
     if (i == _SelectedParticle)
     {
         _Debug[0] = _Particles[i].Position;
-        _Debug[1] = _Particles[i].Position - _TempData[i].PreviousPosition;
+        _Debug[1] = collisionNormal;
         _Debug[2] = _TempData[i].DisplacementVelocity;
         _Debug[3] = _TempData[i].DisplacementDensity;
         _Debug[4] = _TempData[i].DisplacementCollision;

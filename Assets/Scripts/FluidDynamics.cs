@@ -129,7 +129,7 @@ namespace FluidSimulation
         
         void OnDrawGizmos()
         {
-          
+            if (ShaderManager == null) return;
             var data = ShaderManager.GetSelectedParticleData();
             if (data==null) return;
             
@@ -142,7 +142,6 @@ namespace FluidSimulation
             Gizmos.DrawLine(data[0], data[0] + data[4]*100f);
             Gizmos.color = Color.black;
             Gizmos.DrawLine(data[0], data[0] + data[1]*100f);
-
         }
         
         #endregion

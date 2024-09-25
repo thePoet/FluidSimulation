@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -96,7 +95,8 @@ namespace FluidSimulation
         public Vector2[] GetSelectedParticleData()
         {
             if (SelectedParticle == -1) return null;
-            if (_buffers==null) return null;
+            if (!_buffers[8].ComputeBuffer.IsValid()) return null;
+            
             Vector2[] data = new Vector2[5];
             _buffers[8].ComputeBuffer.GetData(data); 
             return data;

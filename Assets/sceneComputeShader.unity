@@ -122,6 +122,53 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &59571762
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 59571764}
+  - component: {fileID: 59571763}
+  m_Layer: 0
+  m_Name: TestWall (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &59571763
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 59571762}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: feb91e84392f44725bdc9004429ba295, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spacing: 10
+  layersX: 15
+  layersY: 1
+--- !u!4 &59571764
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 59571762}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: 0.9639981, w: 0.26590917}
+  m_LocalPosition: {x: 272, y: 113, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 149.158}
 --- !u!1 &363422005
 GameObject:
   m_ObjectHideFlags: 0
@@ -208,7 +255,7 @@ Transform:
   m_GameObject: {fileID: 363422005}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 362, y: 200, z: -10}
+  m_LocalPosition: {x: 353, y: 200, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -247,7 +294,7 @@ MonoBehaviour:
   oneAtTime: 0
   brushRadius: 20
   maxSpeed: 0.01
-  testFluidDynamics: {fileID: 0}
+  fluidDynamics: {fileID: 0}
 --- !u!4 &405270752
 Transform:
   m_ObjectHideFlags: 0
@@ -258,51 +305,6 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 10.851978, y: 25.732283, z: 0.07199226}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &923699008
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 923699010}
-  - component: {fileID: 923699009}
-  m_Layer: 0
-  m_Name: Dripper (1)
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!114 &923699009
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 923699008}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5ab77dee16e694d289fdb7fa6e9d740c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  onlyOne: 1
---- !u!4 &923699010
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 923699008}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 364, y: 189, z: -0.09575427}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -384,7 +386,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ab77dee16e694d289fdb7fa6e9d740c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  onlyOne: 0
+  onlyOne: 1
 --- !u!4 &1449309710
 Transform:
   m_ObjectHideFlags: 0
@@ -394,7 +396,7 @@ Transform:
   m_GameObject: {fileID: 1449309708}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 372, y: 376, z: -0.09575427}
+  m_LocalPosition: {x: 372, y: 197.4, z: -0.09575427}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -513,7 +515,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e0318b743faf4ffb9c28c6167a90b9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  text: {fileID: 2101029934}
 --- !u!114 &1692431640
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -868,5 +869,5 @@ SceneRoots:
   - {fileID: 1889715700}
   - {fileID: 2101029936}
   - {fileID: 1334688765}
+  - {fileID: 59571764}
   - {fileID: 1449309710}
-  - {fileID: 923699010}
