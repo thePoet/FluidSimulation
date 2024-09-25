@@ -129,15 +129,20 @@ namespace FluidSimulation
         
         void OnDrawGizmos()
         {
-            if (_selectedParticle == -1) return;
+          
             var data = ShaderManager.GetSelectedParticleData();
+            if (data==null) return;
+            
             Gizmos.DrawSphere(data[0], 5f);
-            Gizmos.color = Color.blue;
-            Gizmos.DrawLine(data[0], data[0] + data[1]);
-            Gizmos.color = Color.yellow;
+            Gizmos.color = Color.green;
             Gizmos.DrawLine(data[0], data[0] + data[2]*100f);
+            Gizmos.color = Color.blue;
+            Gizmos.DrawLine(data[0], data[0] + data[3]*100f);
             Gizmos.color = Color.red;
-            Gizmos.DrawLine(data[0], data[0] + data[3]);
+            Gizmos.DrawLine(data[0], data[0] + data[4]*100f);
+            Gizmos.color = Color.black;
+            Gizmos.DrawLine(data[0], data[0] + data[1]*100f);
+
         }
         
         #endregion

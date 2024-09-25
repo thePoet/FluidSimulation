@@ -25,11 +25,14 @@ struct Particle
 
 struct TempParticleData
 {
-    float2 PositionChange;
+    float2 DisplacementCollision;
     float2 VelocityChange;
     float2 PreviousPosition;
     float Pressure;
     float NearPressure;
+    float2 DisplacementVelocity;
+    float2 Unused2;
+    float2 DisplacementDensity;
 };
 
 struct Fluid
@@ -75,7 +78,7 @@ static const int WARNING_INSIDE_SOLID = 3;
 static const float EPSILON = 0.00001;
 
 RWStructuredBuffer<Particle> _Particles; //Length: MaxNumParticles
-RWStructuredBuffer<TempParticleData> _TempParticleData; 
+RWStructuredBuffer<TempParticleData> _TempData; 
 // Number of cells: ceil((AreaMaxX - AreaMinX) / InteractionRadius) * ceil((AreaMaxY - AreaMinY) / InteractionRadius)
 RWStructuredBuffer<int> _CellParticleCount; // Length: Number of cells
 RWStructuredBuffer<int> _ParticlesInCells; //Length:  Number of cells * MaxNumParticlesPerCell
@@ -222,9 +225,13 @@ void InitAndApplyGravity (uint3 id : SV_DispatchThreadID)
     }
     
     if (particleIndex >= _NumParticles) return;
-    _TempParticleData[particleIndex].PreviousPosition = _Particles[particleIndex].Position;
-    _TempParticleData[particleIndex].PositionChange = float2(0, 0);
-    _TempParticleData[particleIndex].VelocityChange = float2(0, 0);
+    _TempData[particleIndex].PreviousPosition = _Particles[particleIndex].Position;
+    _TempData[particleIndex].DisplacementCollision = float2(0, 0);
+    _TempData[particleIndex].VelocityChange = float2(0, 0);
+    _TempData[particleIndex].DisplacementDensity = float2(0, 0);
+    _TempData[particleIndex].DisplacementVelocity = float2(0, 0);
+    _TempData[particleIndex].Unused2 = float2(0, 0);
+    
 
     // Apply gravity to fluid particles:
     if (IsSolid(particleIndex)) return;
@@ -386,7 +393,7 @@ void CalculateViscosity (uint3 id : SV_DispatchThreadID)
     {
         int neighbourIndex = _ParticleNeighbours[particleIndex * _MaxNumNeighbours + i];
         float2 impulse = ViscosityImpulse(particleIndex, neighbourIndex);
-        _TempParticleData[particleIndex].VelocityChange += -impulse * 0.5;
+        _TempData[particleIndex].VelocityChange += -impulse * 0.5;
    }
 }
 
@@ -395,7 +402,7 @@ void ApplyViscosity (uint3 id : SV_DispatchThreadID)
 {
     int particleIndex = id.x * 128 + id.y;
     if (particleIndex >= _NumParticles) return;
-    _Particles[particleIndex].Velocity += _TempParticleData[particleIndex].VelocityChange;
+    _Particles[particleIndex].Velocity += _TempData[particleIndex].VelocityChange;
 }
 
 [numthreads(8,8,1)]
@@ -404,8 +411,9 @@ void ApplyVelocity (uint3 id : SV_DispatchThreadID)
     int particleIdx = id.x * 128 + id.y;
     if (particleIdx >= _NumParticles) return;
     if (IsSolid(particleIdx)) return;
-    
-    _TempParticleData[particleIdx].PositionChange += _Particles[particleIdx].Velocity * _DeltaTime;
+
+    _TempData[particleIdx].DisplacementVelocity = _Particles[particleIdx].Velocity * _DeltaTime;
+   // _TempData[particleIdx].PositionChange += _Particles[particleIdx].Velocity * _DeltaTime;
 }
 
 [numthreads(8,8,1)]
@@ -427,7 +435,6 @@ void CalculatePressures (uint3 id : SV_DispatchThreadID)
     {
         int neighbourIndex = _ParticleNeighbours[particleIndex * _MaxNumNeighbours + i];
 
-
         if (IsSolid(neighbourIndex)) continue;
         float q = QDistance(particleIndex, neighbourIndex);
         if (q<1)
@@ -436,13 +443,13 @@ void CalculatePressures (uint3 id : SV_DispatchThreadID)
             nearDensity += (1-q) * (1-q) * (1-q);   
         }
     }
-    _TempParticleData[particleIndex].Pressure = stiffness * (density - restDensity);
-    _TempParticleData[particleIndex].NearPressure = nearStiffness * nearDensity;
+    _TempData[particleIndex].Pressure = stiffness * (density - restDensity);
+    _TempData[particleIndex].NearPressure = nearStiffness * nearDensity;
 }
 
 // Returns the movement caused by fluid density at particle1
 // Direction towards particle2 if pressure at partivle1 is high.
-float2 DensityDisplacement(int particle1, int particle2, bool pushOnly)
+float2 DensityDisplacement(int particle1, int particle2, float pullFactor=1)
 {
     float q = QDistance(particle1, particle2);
     float2 fromTo = _Particles[particle2].Position - _Particles[particle1].Position;
@@ -456,16 +463,17 @@ float2 DensityDisplacement(int particle1, int particle2, bool pushOnly)
     }
     else if (q<1)
     {
-        float pressure = _TempParticleData[particle1].Pressure;
-        float nearPressure = _TempParticleData[particle1].NearPressure;
+        float pressure = _TempData[particle1].Pressure;
+        float nearPressure = _TempData[particle1].NearPressure;
    
         float2 d = _DeltaTime * _DeltaTime * (pressure * (1 - q) + nearPressure * (1 - q) * (1 - q)) *
                         normalize(fromTo);
 
         d = d * FluidOf(particle2).Mass / FluidOf(particle1).Mass;
+      
+        displacement =  0.5 * d;
 
-        if (!pushOnly || pressure > 0)
-            displacement =  0.5 * d;
+        if (pressure < 0) displacement *= pullFactor;
         
     }
     return displacement;
@@ -486,11 +494,38 @@ void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
 
         if (IsFluid(neighbourIndex) )
         {
-            _TempParticleData[particleIndex].PositionChange -= DensityDisplacement(particleIndex, neighbourIndex, true);
-            _TempParticleData[particleIndex].PositionChange += DensityDisplacement(neighbourIndex, particleIndex, true);
+            _TempData[particleIndex].DisplacementDensity -= DensityDisplacement(particleIndex, neighbourIndex, 0.3);
+            _TempData[particleIndex].DisplacementDensity += DensityDisplacement(neighbourIndex, particleIndex, 0.3);
+            
+            //_TempData[particleIndex].PositionChange -= DensityDisplacement(particleIndex, neighbourIndex, 0.3);
+            //_TempData[particleIndex].PositionChange += DensityDisplacement(neighbourIndex, particleIndex, 0.3);
         }
     }
 }
+
+/*
+float2 SpringDisplacementFromSolids(int particle, float2 position)
+{
+    float2 displacement = float2(0.0, 0.0);
+    
+    for (int j=0; j<_ParticleNeighbourCount[particle]; j++)
+    {
+        int neighbourIndex = _ParticleNeighbours[particle * _MaxNumNeighbours + j];
+        if (!IsSolid(neighbourIndex) ) continue;
+
+        float2 neighbourPos = _Particles[neighbourIndex].Position;
+
+        float2 toSolid = neighbourPos - position;
+
+        float penetration = length(toSolid) - _SolidRadius*1.3;
+        if (penetration > 0)
+        {
+            displacement += 0.5 * penetration * normalize(-toSolid);
+        }
+    }
+
+    return displacement;
+}*/
 
 
 [numthreads(8,8,1)]
@@ -502,7 +537,8 @@ void MoveParticles(uint3 id : SV_DispatchThreadID)
     if (IsSolid(i)) return;
 
     float2 reached;
-    float2 positionChange = CapMagnitude(_TempParticleData[i].PositionChange, _MaxDisplacement);
+//    float2 positionChange = CapMagnitude(_TempParticleData[i].PositionChange, _MaxDisplacement);
+    float2 positionChange = _TempData[i].DisplacementVelocity + _TempData[i].DisplacementDensity;
     float2 collisionNormal;
     float2 preCollisionVelocity = positionChange / _DeltaTime;
     
@@ -510,14 +546,15 @@ void MoveParticles(uint3 id : SV_DispatchThreadID)
         _Particles[i].Position + positionChange,
         reached, collisionNormal);
 
-    positionChange = reached - _Particles[i].Position;
-
+    _TempData[i].DisplacementCollision = reached - (_Particles[i].Position + positionChange);
+    
     float addedDrag;
     
-    _Particles[i].Position += positionChange;
+    _Particles[i].Position = reached;
+    
     _Particles[i].Position += AreaBoundsDisplacement(_Particles[i].Position, addedDrag);
     
-    _Particles[i].Velocity = (_Particles[i].Position - _TempParticleData[i].PreviousPosition) / _DeltaTime;
+    _Particles[i].Velocity = (_Particles[i].Position - _TempData[i].PreviousPosition) / _DeltaTime;
     if (collisionHappened)
     {
         _Particles[i].Velocity = VelocityAfterCollision(preCollisionVelocity, collisionNormal, 0.05, 0.95);
@@ -528,12 +565,13 @@ void MoveParticles(uint3 id : SV_DispatchThreadID)
     float drag = length(_Particles[i].Velocity) * length(_Particles[i].Velocity) * (_Drag+addedDrag) * _DeltaTime;
     _Particles[i].Velocity -= normalize(_Particles[i].Velocity) * drag;
 
-    if (i==_SelectedParticle)
+    if (i == _SelectedParticle)
     {
         _Debug[0] = _Particles[i].Position;
-        _Debug[1] = _Particles[i].Velocity;
-        _Debug[2] = _TempParticleData[i].PositionChange;
-        _Debug[3] = preCollisionVelocity;
+        _Debug[1] = _Particles[i].Position - _TempData[i].PreviousPosition;
+        _Debug[2] = _TempData[i].DisplacementVelocity;
+        _Debug[3] = _TempData[i].DisplacementDensity;
+        _Debug[4] = _TempData[i].DisplacementCollision;
     }
     
 }

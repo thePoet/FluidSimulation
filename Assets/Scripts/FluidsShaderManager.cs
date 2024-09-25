@@ -21,7 +21,7 @@ namespace FluidSimulation
             MoveParticles = 9
         }
         
-        public int SelectedParticle = 0;
+        public int SelectedParticle = -1;
         
         private readonly ComputeShader _computeShader;
         private ShaderBuffer[] _buffers;
@@ -53,6 +53,8 @@ namespace FluidSimulation
        
         public void Step(float deltaTime, FluidParticle[] particles, int numParticles)
         {
+            float time=Time.realtimeSinceStartup;
+            
             _computeShader.SetInt("_NumParticles", numParticles);
             _computeShader.SetFloat("_DeltaTime", deltaTime/_simulationSettings.NumSubSteps);
             _computeShader.SetFloat("_MaxDisplacement", _simulationSettings.InteractionRadius * 0.45f);
@@ -82,7 +84,7 @@ namespace FluidSimulation
             _buffers[0].ComputeBuffer.GetData(particles);  
             CheckErrorFlags();
    
-           // Debug.Log("Sim step with read/write took " + 1000f * (Time.realtimeSinceStartup - time) + " ms.");
+//            Debug.Log("Sim step with read/write took " + 1000f * (Time.realtimeSinceStartup - time) + " ms.");
         }
         
         public void Dispose()
@@ -93,6 +95,8 @@ namespace FluidSimulation
 
         public Vector2[] GetSelectedParticleData()
         {
+            if (SelectedParticle == -1) return null;
+            if (_buffers==null) return null;
             Vector2[] data = new Vector2[5];
             _buffers[8].ComputeBuffer.GetData(data); 
             return data;
@@ -124,7 +128,7 @@ namespace FluidSimulation
             int numPartInCell = s.MaxNumParticlesInPartitioningCell;
 
             buffers[0] = new ShaderBuffer("_Particles",              numPart,                  FluidParticle.Stride, ShaderBuffer.Type.IO);
-            buffers[1] = new ShaderBuffer("_TempParticleData",       numPart,                  8 * sizeof(float),    ShaderBuffer.Type.Internal);
+            buffers[1] = new ShaderBuffer("_TempData",               numPart,                  14 * sizeof(float),   ShaderBuffer.Type.Internal);
             buffers[2] = new ShaderBuffer("_ParticleNeighbours",     numPart * numNeigh,       sizeof(int),          ShaderBuffer.Type.Internal);
             buffers[3] = new ShaderBuffer("_ParticleNeighbourCount", numPart,                  sizeof(int),          ShaderBuffer.Type.Internal);
             buffers[4] = new ShaderBuffer("_CellParticleCount",      numCells,                 sizeof(int),          ShaderBuffer.Type.Internal);
