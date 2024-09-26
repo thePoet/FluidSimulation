@@ -48,7 +48,8 @@ namespace FluidSimulation
                 ViscositySigma = 0.01f,
                 ViscosityBeta = 0.01f,
                 GravityScale = 1f,
-                Mass = 1f
+                Mass = 1f,
+                DensityPullFactor = 0.5f
             },
             new Fluid
             {
@@ -59,7 +60,8 @@ namespace FluidSimulation
                 ViscositySigma = 0.15f,
                 ViscosityBeta = 0.15f,
                 GravityScale = 0.0f,
-                Mass = 0.01f
+                Mass = 0.9f,
+                DensityPullFactor = 0.5f
             },
             new Fluid
             {
@@ -70,7 +72,8 @@ namespace FluidSimulation
                 ViscositySigma = 0f,
                 ViscosityBeta = 0f,
                 GravityScale = 0.0f,
-                Mass = 1f
+                Mass = 1f,
+                DensityPullFactor = 0.0f
             }
         };
 

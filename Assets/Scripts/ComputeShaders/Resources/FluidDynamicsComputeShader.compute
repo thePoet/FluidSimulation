@@ -45,6 +45,7 @@ struct Fluid
     float ViscosityBeta;
     float GravityScale;
     float Mass;
+    float DensityPullFactor;
 };
 
 // Settings
@@ -472,9 +473,8 @@ float2 DensityDisplacement(int particle1, int particle2, float pullFactor=1)
         float2 d = _DeltaTime * _DeltaTime * (pressure * (1 - q) + nearPressure * (1 - q) * (1 - q)) *
                         normalize(fromTo);
 
-        d = d * FluidOf(particle2).Mass / FluidOf(particle1).Mass;
-      
-        displacement =  0.5 * d;
+             
+        displacement =  0.5 * FluidOf(particle2).Mass / FluidOf(particle1).Mass * d;
 
         if (pressure < 0) displacement *= pullFactor;
         
@@ -486,19 +486,27 @@ float2 DensityDisplacement(int particle1, int particle2, float pullFactor=1)
 [numthreads(8,8,1)]
 void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
 {
-    int particleIndex = id.x * 128 + id.y;
-    if (particleIndex >= _NumParticles) return;
+    int i = id.x * 128 + id.y;
+    if (i >= _NumParticles) return;
     
-    if (IsSolid(particleIndex) ) return;
+    if (IsSolid(i) ) return;
 
-    for (int j=0; j<_ParticleNeighbourCount[particleIndex]; j++)
+   
+    
+    for (int j=0; j<_ParticleNeighbourCount[i]; j++)
     {
-        int neighbourIndex = _ParticleNeighbours[particleIndex * _MaxNumNeighbours + j];
+        int neighbourIdx = _ParticleNeighbours[i * _MaxNumNeighbours + j];
 
-        if (IsFluid(neighbourIndex) )
+        if (IsFluid(neighbourIdx) )
         {
-            _TempData[particleIndex].DisplacementDensity -= DensityDisplacement(particleIndex, neighbourIndex, 0.5);
-            _TempData[particleIndex].DisplacementDensity += DensityDisplacement(neighbourIndex, particleIndex, 0.5);
+            float pullFactor = FluidOf(i).DensityPullFactor;
+            if (_Particles[i].fluidIdx != _Particles[neighbourIdx].fluidIdx)
+            {
+                pullFactor = 0;
+            }
+            
+           _TempData[i].DisplacementDensity -= DensityDisplacement(i, neighbourIdx, pullFactor);
+            _TempData[i].DisplacementDensity += DensityDisplacement(neighbourIdx, i, pullFactor);
             
             //_TempData[particleIndex].PositionChange -= DensityDisplacement(particleIndex, neighbourIndex, 0.3);
             //_TempData[particleIndex].PositionChange += DensityDisplacement(neighbourIndex, particleIndex, 0.3);
