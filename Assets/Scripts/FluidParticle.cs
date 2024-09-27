@@ -2,18 +2,16 @@ using UnityEngine;
 
 namespace FluidSimulation
 {
-    public struct FluidParticle : IPositionAndId
+    public struct FluidParticle
     {
-        public int Id { get; set; }
-        public Vector2 Position { get; set; }
-        public Vector2 PreviousPosition;
+        public int Id;
+        public Vector2 Position;
         public Vector2 Velocity;
-        public ParticleType Type;
+        public int FluidIndex;
+        
+        public static int Stride => 2*sizeof(int) + 4 * sizeof(float);
+
     }
     
-    public enum ParticleType
-    {
-        Liquid, Solid
-    }
-    
+
 }

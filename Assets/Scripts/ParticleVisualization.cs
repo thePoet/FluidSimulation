@@ -8,6 +8,7 @@ namespace FluidSimulation
     public class ParticleVisualization : MonoBehaviour
     {
         public GameObject liquidParticlePrefab;
+        public GameObject gasParticlePrefab;
         public GameObject solidParticlePrefab;
 
         private Dictionary<int, GameObject> _particles;
@@ -17,7 +18,7 @@ namespace FluidSimulation
             _particles = new Dictionary<int, GameObject>();
         }
 
-        public void AddParticle(int id, ParticleType particleType)
+        public void AddParticle(int id,FluidSubstance substance)
         {
             if (_particles.ContainsKey(id))
             {
@@ -25,15 +26,17 @@ namespace FluidSimulation
                 return;
             }
 
-            var particle = Instantiate(PrefabFor(particleType), parent: transform, worldPositionStays: false);
+            var particle = Instantiate(PrefabFor(substance), parent: transform, worldPositionStays: false);
+            particle.name = "Particle " + id.ToString();
             _particles.Add(id, particle);
 
 
-            GameObject PrefabFor(ParticleType pType) => pType switch
+            GameObject PrefabFor(FluidSubstance substance) => substance switch
             {
-                ParticleType.Liquid => liquidParticlePrefab,
-                ParticleType.Solid => solidParticlePrefab,
-                _ => throw new ArgumentOutOfRangeException(nameof(particleType), particleType, null)
+                FluidSubstance.SomeLiquid => liquidParticlePrefab,
+                FluidSubstance.SomeGas => gasParticlePrefab,
+                FluidSubstance.SomeSolid => solidParticlePrefab,
+                _ => throw new ArgumentOutOfRangeException(nameof(substance), substance, null)
             };
 
         }
@@ -61,7 +64,7 @@ namespace FluidSimulation
             _particles.Clear();
         }
 
-        public void MoveParticle(int id, Vector2 position)
+        public void UpdateParticle(int id, Vector2 position)
         {
             if (!_particles.ContainsKey(id))
             {

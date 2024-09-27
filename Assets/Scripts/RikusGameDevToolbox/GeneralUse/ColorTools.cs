@@ -66,7 +66,7 @@ namespace RikusGameDevToolbox.GeneralUse
         
         
         /// <summary>
-        /// Blends two colors together using sigma compositing.
+        /// Blends two colors together using alpha compositing.
         /// Similar effect to the Photoshop's "normal" layer blend mode.
         /// </summary>
         public static Color Blend(Color under, Color over)
@@ -77,7 +77,7 @@ namespace RikusGameDevToolbox.GeneralUse
 
         /// <summary>
         /// Figures out which color needs to be blended over the "under" Color
-        /// to get the "blend" Color. The color is chosen so that it's sigma is as
+        /// to get the "blend" Color. The color is chosen so that it's alpha is as
         /// low as possible.
         /// NOTE: Does not currently work for cases where inputs are transparent.
         /// </summary>
