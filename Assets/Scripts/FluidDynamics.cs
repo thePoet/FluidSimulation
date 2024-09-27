@@ -54,12 +54,12 @@ namespace FluidSimulation
             new Fluid
             {
                 State = State.Gas,
-                Stiffness = 300f,
-                NearStiffness = 600f,
-                RestDensity = 0.25f,
+                Stiffness = 200f,
+                NearStiffness = 400f,
+                RestDensity = 1f,
                 ViscositySigma = 0.15f,
                 ViscosityBeta = 0.15f,
-                GravityScale = 0.0f,
+                GravityScale = -0.1f,
                 Mass = 0.9f,
                 DensityPullFactor = 0.5f
             },
