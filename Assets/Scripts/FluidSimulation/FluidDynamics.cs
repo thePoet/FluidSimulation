@@ -13,12 +13,10 @@ namespace FluidSimulation
     
     public class FluidDynamics : MonoBehaviour
     {
-        public int NumParticles { get; private set; }
+        public FluidParticles Particles; //TODO: readonly  
 
         private ShaderManager ShaderManager;
-        private FluidParticle[] _particles;
-        private int _nextId = 1;
-        private SpatialPartitioningGrid<int> _partitioningGrid;
+        // private SpatialPartitioningGrid<int> _partitioningGrid;
         private ParticleVisualization _particleVisualization;
         private LevelOutline _levelOutline;
         private bool _isPaused;
@@ -84,8 +82,6 @@ namespace FluidSimulation
         #region ------------------------------------------- UNITY METHODS -----------------------------------------------
         private void Awake()
         {
-          
-            
             SetMaxFrameRate(60);
 
             _particleVisualization = FindObjectOfType<ParticleVisualization>();
@@ -94,19 +90,21 @@ namespace FluidSimulation
             if (_levelOutline == null) Debug.LogError("No container found in the scene.");
 
             ShaderManager = new ShaderManager("FluidDynamicsComputeShader", Settings, Fluids);
-            _particles = new FluidParticle[Settings.MaxNumParticles];
 
 
-            _partitioningGrid = new SpatialPartitioningGrid<int>(
+            var partitioningGrid = new SpatialPartitioningGrid<int>(
                 Settings.PartitioningGrid,
                 Settings.MaxNumParticlesInPartitioningCell,
-                i => _particles[i].Position);
-            
+                i => Particles.Get(i).Position);
+
+            Particles = new FluidParticles(Settings.MaxNumParticles, partitioningGrid);
+
             void SetMaxFrameRate(int frameRate)
             {
                 QualitySettings.vSyncCount = 0;
                 Application.targetFrameRate = frameRate;
             }
+            
         }
 
         private void Start()
@@ -124,8 +122,7 @@ namespace FluidSimulation
         {
             if (!_isPaused)
             {
-                ShaderManager.Step(0.015f, _particles, NumParticles);
-                UpdateSpatialPartitioningGrid();
+                ShaderManager.Step(0.015f, Particles, Particles.NumParticles);
                 UpdateParticleVisualization();
             }
             ProcessUserInput();
@@ -170,7 +167,7 @@ namespace FluidSimulation
                 FluidIndex = FluidIndex(substance)
             };
 
-            int particleId = AddParticle(particle);
+            int particleId = Particles.Add(particle);
             _particleVisualization.AddParticle(particleId, substance, position);
 
             return particleId;
@@ -178,45 +175,23 @@ namespace FluidSimulation
 
         public void SetParticleVelocities(Vector2 position, float radius, Vector2 velocity)
         {
-            foreach (var particleIdx in ParticlesInsideCircle(position, radius))
+            foreach (var particleIdx in Particles.InsideCircle(position, radius))
             {
-                Particles[particleIdx].Velocity = velocity;
+                Particles.Particles[particleIdx].Velocity = velocity;
             }
         }
         
-        
-        public int[] ParticlesInsideCircle(Vector2 position, float radius) => _partitioningGrid.CircleContents(position, radius);
-        
-        public int AddParticle(FluidParticle particle)
-        {
-            particle.Id = _nextId;
-            _nextId++;
-            NumParticles++;
-            int index = NumParticles - 1;
-            _particles[index] = particle;
-            return particle.Id;
-        }
 
-        public int[] ParticleIdsInsideCircle(Vector2 position, float radius) => ParticlesInsideCircle(position, radius);
+        
+
+        public int[] ParticleIdsInsideCircle(Vector2 position, float radius) => Particles.InsideCircle(position, radius);
       
         public void SelectParticle(int particleId)
         {
             ShaderManager.SelectedParticle = particleId;
         }
         
-        private Span<FluidParticle> Particles => _particles.AsSpan().Slice(0, NumParticles);
-
         
-        // TODO: Read from compute buffer instead.
-        private void UpdateSpatialPartitioningGrid()
-        {
-            _partitioningGrid.Clear();
-      
-            for (int i = 0; i < NumParticles; i++)
-            {
-                _partitioningGrid.Add(i);
-            }
-        }
 
         
         private void CreateWalls()
@@ -248,11 +223,10 @@ namespace FluidSimulation
 
         }
         
-
         private void UpdateParticleVisualization()
         {
             float t = Time.realtimeSinceStartup;
-            foreach (var particle in Particles)
+            foreach (var particle in Particles.Particles)
             {
                 _particleVisualization.UpdateParticle(particle.Id, particle.Position);
                _particleVisualization.ColorParticle(particle.Id, Color.blue);
@@ -262,7 +236,7 @@ namespace FluidSimulation
 
         private void Clear()
         {
-            NumParticles = 0;
+            Particles.Clear();
             _particleVisualization.Clear();
         }
         
@@ -276,33 +250,7 @@ namespace FluidSimulation
                 _ => throw new System.ArgumentOutOfRangeException(nameof(substance), substance, null)
             };
         }
-/*
-        private void RunPerformanceTest()
-        {
-            Clear();
-            
-            Random.InitState(123);
-         
-            for (int i = 0; i < 4000; i++)
-            {
-                SpawnParticle(RandomPosition(), Vector2.zero, FluidSubstance.SomeLiquid);
-            }
-
-            Timer timer = new Timer();
-            for (int i = 0; i < 60; i++) _fluidDynamics.Step(_particleData, 0.015f);
-            Debug.Log("Performance test took " + timer.Time * 1000f + " ms.");
-            
-            Vector2 RandomPosition()
-            {
-                return new Vector2
-                (
-                    x: Random.Range(SimulationSettings.AreaBounds.xMin, SimulationSettings.AreaBounds.xMax),
-                    y: Random.Range(SimulationSettings.AreaBounds.yMin, SimulationSettings.AreaBounds.yMax)
-                );
-            }
-        }
-*/
-
+        
         
         #endregion
 

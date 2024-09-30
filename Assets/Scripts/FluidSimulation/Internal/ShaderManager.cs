@@ -50,7 +50,7 @@ namespace FluidSimulation.Internal
         }
         
        
-        public void Step(float deltaTime, FluidParticle[] particles, int numParticles)
+        public void Step(float deltaTime, FluidParticles particles, int numParticles)
         {
             float time=Time.realtimeSinceStartup;
             
@@ -60,8 +60,8 @@ namespace FluidSimulation.Internal
             _computeShader.SetFloat("_SolidRadius", 15f);
             _computeShader.SetInt("_SelectedParticle", SelectedParticle);
             
-            _buffers[0].ComputeBuffer.SetData(particles);
-
+            particles.WriteToComputeBuffer(_buffers[0].ComputeBuffer);
+          
             for (int s = 0; s < _simulationSettings.NumSubSteps; s++)
             {
                 Execute(Kernel.InitAndApplyGravity, threadGroupsForParticles);
@@ -79,8 +79,9 @@ namespace FluidSimulation.Internal
                 Execute(Kernel.CalculateDensityDisplacement, threadGroupsForParticles);
                 Execute(Kernel.MoveParticles, threadGroupsForParticles);
             }
-   
-            _buffers[0].ComputeBuffer.GetData(particles);  
+
+            particles.ReadFromComputeBuffer(_buffers[0].ComputeBuffer);
+            
             CheckErrorFlags();
    
 //           Debug.Log("Sim step with " + numParticles + " particles : " + 1000f * (Time.realtimeSinceStartup - time) + " ms.");
