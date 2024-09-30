@@ -474,7 +474,7 @@ float2 DensityDisplacement(int particle1, int particle2, float pullFactor=1)
                         normalize(fromTo);
 
              
-        displacement =  0.5 * FluidOf(particle2).Mass / FluidOf(particle1).Mass * d;
+        displacement =  0.5 * FluidOf(particle1).Mass / FluidOf(particle2).Mass * d;
 
         if (pressure < 0) displacement *= pullFactor;
         

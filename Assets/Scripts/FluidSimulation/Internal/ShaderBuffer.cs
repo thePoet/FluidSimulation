@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace FluidSimulation
+namespace FluidSimulation.Internal
 {
     public class ShaderBuffer
     {

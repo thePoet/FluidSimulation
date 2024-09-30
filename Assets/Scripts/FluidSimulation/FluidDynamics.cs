@@ -1,6 +1,6 @@
 using System;
+using FluidSimulation.Internal;
 using UnityEngine;
-
 
 namespace FluidSimulation
 {
@@ -15,12 +15,12 @@ namespace FluidSimulation
     {
         public int NumParticles { get; private set; }
 
-        private FluidsShaderManager ShaderManager;
+        private ShaderManager ShaderManager;
         private FluidParticle[] _particles;
         private int _nextId = 1;
         private SpatialPartitioningGrid<int> _partitioningGrid;
         private ParticleVisualization _particleVisualization;
-        private Container _container;
+        private LevelOutline _levelOutline;
         private bool _isPaused;
         private int _selectedParticle = -1;
         
@@ -29,17 +29,17 @@ namespace FluidSimulation
             InteractionRadius = 20f,
             Gravity = 1200f,
             Drag = 0.001f,
-            MaxNumParticles = 13000,
+            MaxNumParticles = 30000,
             IsViscosityEnabled = true,
             NumSubSteps = 3,
-            AreaBounds = new Rect(Vector2.zero, new Vector2(700f, 400f)),
-            MaxNumParticlesInPartitioningCell = 50,
+            AreaBounds = new Rect(Vector2.zero, new Vector2(1200f, 600f)),
+            MaxNumParticlesInPartitioningCell = 100,
             MaxNumNeighbours = 50
         };
 
-        private Fluid[] Fluids => new[]
+        private FluidInternal[] Fluids => new[]
         {
-            new Fluid
+            new FluidInternal
             {
                 State = State.Liquid,
                 Stiffness = 2000f,
@@ -51,19 +51,19 @@ namespace FluidSimulation
                 Mass = 1f,
                 DensityPullFactor = 0.5f
             },
-            new Fluid
+            new FluidInternal
             {
                 State = State.Gas,
                 Stiffness = 200f,
                 NearStiffness = 400f,
                 RestDensity = 1f,
-                ViscositySigma = 0.15f,
-                ViscosityBeta = 0.15f,
-                GravityScale = -0.1f,
-                Mass = 0.9f,
-                DensityPullFactor = 0.5f
+                ViscositySigma = 0.05f,
+                ViscosityBeta = 0.05f,
+                GravityScale = -0.05f,
+                Mass = 0.1f,
+                DensityPullFactor = 1f
             },
-            new Fluid
+            new FluidInternal
             {
                 State = State.Solid,
                 Stiffness = 1f,
@@ -84,14 +84,16 @@ namespace FluidSimulation
         #region ------------------------------------------- UNITY METHODS -----------------------------------------------
         private void Awake()
         {
+          
+            
             SetMaxFrameRate(60);
 
             _particleVisualization = FindObjectOfType<ParticleVisualization>();
-            _container = FindObjectOfType<Container>();
+            _levelOutline = FindObjectOfType<LevelOutline>();
             if (_particleVisualization == null) Debug.LogError("No visualization found in the scene.");
-            if (_container == null) Debug.LogError("No container found in the scene.");
+            if (_levelOutline == null) Debug.LogError("No container found in the scene.");
 
-            ShaderManager = new FluidsShaderManager("FluidDynamicsComputeShader", Settings, Fluids);
+            ShaderManager = new ShaderManager("FluidDynamicsComputeShader", Settings, Fluids);
             _particles = new FluidParticle[Settings.MaxNumParticles];
 
 
@@ -169,7 +171,7 @@ namespace FluidSimulation
             };
 
             int particleId = AddParticle(particle);
-            _particleVisualization.AddParticle(particleId, substance);
+            _particleVisualization.AddParticle(particleId, substance, position);
 
             return particleId;
         }

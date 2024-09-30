@@ -4,7 +4,7 @@ namespace FluidSimulation
 {
     public struct FluidParticle
     {
-        public int Id;
+        public int Id; //Pois?
         public Vector2 Position;
         public Vector2 Velocity;
         public int FluidIndex;
@@ -12,6 +12,7 @@ namespace FluidSimulation
         public static int Stride => 2*sizeof(int) + 4 * sizeof(float);
 
     }
+    
     
 
 }
