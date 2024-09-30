@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
-namespace FluidSimulation
+namespace FluidDemo
 {
     public class ParticleBrush : MonoBehaviour
     {
@@ -10,14 +10,14 @@ namespace FluidSimulation
         public bool oneAtTime = false;
         public float brushRadius = 10f;
         public float maxSpeed = 10f;
-        [FormerlySerializedAs("testFluidDynamics")] public FluidDynamics fluidDynamics;
+        public FluidSimDemo fluidDynamics;
         
         private Vector2 _previousMousePosition;
         private FluidSubstance _currentSubstance = FluidSubstance.SomeLiquid;
         
         private void Start()
         {
-            fluidDynamics = FindObjectOfType<FluidDynamics>();
+            fluidDynamics = FindObjectOfType<FluidSimDemo>();
             if (fluidDynamics == null) Debug.LogError("No TestFluidDynamics found in the scene.");
             
             
@@ -49,7 +49,7 @@ namespace FluidSimulation
                 Vector2 deltaMousePosition = MousePosition - _previousMousePosition;
                 fluidDynamics.SetParticleVelocities(MousePosition, 15f, deltaMousePosition/Time.deltaTime);
             }
-            
+            /*
             if (Input.GetKey(KeyCode.I))
             {
                 int[] particles = fluidDynamics.ParticleIdsInsideCircle(MousePosition, 15f);
@@ -57,7 +57,7 @@ namespace FluidSimulation
                 {
                     fluidDynamics.SelectParticle(particles[0]);
                 }
-            }
+            }*/
             
             if (Input.GetKey(KeyCode.Alpha1)) _currentSubstance = FluidSubstance.SomeLiquid;
             if (Input.GetKey(KeyCode.Alpha2)) _currentSubstance = FluidSubstance.SomeGas;

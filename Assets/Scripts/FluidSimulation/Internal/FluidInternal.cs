@@ -1,4 +1,4 @@
-namespace FluidSimulation
+namespace FluidSimulation.Internal
 {
     public struct FluidInternal
     {
@@ -14,16 +14,17 @@ namespace FluidSimulation
 
         public static int Stride => sizeof(int) + 8 * sizeof(float);
 
-
         public State State
         {
             get => (State)StateIndex;
             set => StateIndex = (int)value;
         }
-        
-        
-    }
 
+    }
+}
+
+namespace FluidSimulation
+{
     public enum State
     {
         Liquid,
