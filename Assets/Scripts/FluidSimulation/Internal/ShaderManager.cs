@@ -26,7 +26,7 @@ namespace FluidSimulation.Internal
         private ShaderBuffer[] _buffers;
         private readonly SimulationSettings _simulationSettings;
         
-        public ShaderManager(string shaderFileName, SimulationSettings simulationSettings, FluidInternal[] fluids)  
+        public ShaderManager(string shaderFileName, SimulationSettings simulationSettings, FluidInternal[] fluids, int numPartitioningCells)  
         {
             _computeShader = Resources.Load(shaderFileName) as ComputeShader;
             if (_computeShader == null)
@@ -35,7 +35,8 @@ namespace FluidSimulation.Internal
             }
             
             _simulationSettings = simulationSettings;
-            _buffers = CreateBuffers(simulationSettings, fluids);
+        
+            _buffers = CreateBuffers(simulationSettings, fluids, numPartitioningCells);
             
             _buffers[6].ComputeBuffer.SetData(fluids);
 
@@ -119,13 +120,13 @@ namespace FluidSimulation.Internal
         }
 
         
-        private ShaderBuffer[] CreateBuffers(SimulationSettings settings, FluidInternal[] fluids)
+        private ShaderBuffer[] CreateBuffers(SimulationSettings settings, FluidInternal[] fluids, int numPartitioningCells)
         {
             var buffers = new ShaderBuffer[9];
             var s = settings;
             int numPart = s.MaxNumParticles;
             int numNeigh = s.MaxNumNeighbours;
-            int numCells = s.PartitioningGrid.NumberOfSquares;
+            int numCells = numPartitioningCells;
             int numPartInCell = s.MaxNumParticlesInPartitioningCell;
 
             buffers[0] = new ShaderBuffer("_Particles",              numPart,                  FluidParticle.Stride, ShaderBuffer.Type.IO);

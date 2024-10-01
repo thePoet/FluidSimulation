@@ -142,6 +142,8 @@ namespace FluidSimulation.Internal
         {
             return new Span<T>(_entities, squareIndex * _maxNumEntitiesInSquare, _numEntitiesInSquare[squareIndex]);
         }
+
+        public int NumSquares => _grid.NumberOfSquares;
     
         private Vector2 Position(T entity) => _positionForEntity(entity);
     

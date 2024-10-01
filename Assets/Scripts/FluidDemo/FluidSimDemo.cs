@@ -53,13 +53,12 @@ namespace FluidDemo
             _fluidDynamics.Dispose();
         }
 
-/*
+
         void OnDrawGizmos()
         {
-            
-            if (ShaderManager == null) return;
-            var data = ShaderManager.GetSelectedParticleData();
-            if (data==null) return;
+            if (_fluidDynamics == null) return;
+            var data = _fluidDynamics.DebugData();
+            if (data == null) return;
 
             Gizmos.DrawSphere(data[0], 5f);
             Gizmos.color = Color.green;
@@ -72,7 +71,7 @@ namespace FluidDemo
             Gizmos.DrawLine(data[0], data[0] + data[1]*100f);
         }
 
-*/
+
         void Update()
         {
             if (!_isPaused)
@@ -114,7 +113,7 @@ namespace FluidDemo
             if (Input.GetKeyDown(KeyCode.C)) Clear();
             if (Input.GetKeyDown(KeyCode.Q)) Application.Quit();
             if (Input.GetKeyDown(KeyCode.Space)) _isPaused = !_isPaused;
-            //if (Input.GetKeyDown(KeyCode.T)) RunPerformanceTest();
+            if (Input.GetKeyDown(KeyCode.I)) SelectDebugParticle();
         }
 
         private void UpdateParticleVisualization()
@@ -133,7 +132,18 @@ namespace FluidDemo
             _fluidDynamics.Particles.Clear();
             _particleVisualization.Clear();
         }
-        
+
+        private void SelectDebugParticle()
+        {
+            Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            int[] particles = _fluidDynamics.Particles.InsideCircle(mousePos, 15f);
+            if (particles.Length > 0)
+            {
+                _fluidDynamics.SubscribeDebugData(particles[0]);
+            }
+            
+            
+        }
 
 
 

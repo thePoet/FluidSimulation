@@ -1,4 +1,5 @@
 using FluidSimulation.Internal;
+using RikusGameDevToolbox.GeneralUse;
 using UnityEngine;
 
 namespace FluidSimulation
@@ -15,13 +16,13 @@ namespace FluidSimulation
         
         public FluidDynamics(SimulationSettings settings, Fluid[] fluids)
         {
-            ShaderManager = new ShaderManager("FluidDynamicsComputeShader", settings, ToInternalFluids(fluids));
-           
             var partitioningGrid = new SpatialPartitioningGrid<int>(
-                settings.PartitioningGrid,
+                new Grid2D(settings.AreaBounds, squareSize: settings.InteractionRadius),
                 settings.MaxNumParticlesInPartitioningCell,
                 i => Particles.Get(i).Position);
 
+            ShaderManager = new ShaderManager("FluidDynamicsComputeShader", settings, ToInternalFluids(fluids), partitioningGrid.NumSquares);
+            
             Particles = new FluidParticles(settings.MaxNumParticles, partitioningGrid);
         }
 
@@ -35,14 +36,21 @@ namespace FluidSimulation
             ShaderManager.Step(deltaTime, Particles, Particles.NumParticles);
         }
 
+        public void SubscribeDebugData(int particleId)
+        {
+            ShaderManager.SelectedParticle = particleId;
+        }
+
+        public Vector2[] DebugData()
+        {
+            return ShaderManager.GetSelectedParticleData();
+        }
+        
         #region ------------------------------------------ PRIVATE METHODS ----------------------------------------------
 
       
       
-        public void SelectParticle(int particleId)
-        {
-            ShaderManager.SelectedParticle = particleId;
-        }
+      
 
         FluidInternal[] ToInternalFluids(Fluid[] fluids)
         {

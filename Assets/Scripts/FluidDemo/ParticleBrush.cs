@@ -19,10 +19,7 @@ namespace FluidDemo
         {
             fluidDynamics = FindObjectOfType<FluidSimDemo>();
             if (fluidDynamics == null) Debug.LogError("No TestFluidDynamics found in the scene.");
-            
-            
         }
-
 
         void Update()
         {
@@ -49,15 +46,7 @@ namespace FluidDemo
                 Vector2 deltaMousePosition = MousePosition - _previousMousePosition;
                 fluidDynamics.SetParticleVelocities(MousePosition, 15f, deltaMousePosition/Time.deltaTime);
             }
-            /*
-            if (Input.GetKey(KeyCode.I))
-            {
-                int[] particles = fluidDynamics.ParticleIdsInsideCircle(MousePosition, 15f);
-                if (particles.Length > 0)
-                {
-                    fluidDynamics.SelectParticle(particles[0]);
-                }
-            }*/
+  
             
             if (Input.GetKey(KeyCode.Alpha1)) _currentFluidId = FluidId.Water;
             if (Input.GetKey(KeyCode.Alpha2)) _currentFluidId = FluidId.Smoke;
