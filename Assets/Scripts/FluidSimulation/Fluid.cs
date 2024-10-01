@@ -1,5 +1,7 @@
 namespace FluidSimulation
 {
+    // TODO: Muuta tyypeiksi jotka enforcaa jai informoi sallitun rangen 
+    
     public abstract record Fluid(string Name, float Density);
 
     public record Liquid(string Name, float Density, float Viscosity) : Fluid(Name, Density);

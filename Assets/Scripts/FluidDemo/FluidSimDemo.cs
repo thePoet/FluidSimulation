@@ -1,6 +1,5 @@
 using UnityEngine;
 using FluidSimulation;
-using FluidSimulation.Internal;  // TODO: POIS!!
 
 namespace FluidDemo
 {
@@ -13,8 +12,6 @@ namespace FluidDemo
 
     public class FluidSimDemo : MonoBehaviour
     {
-
-
         private FluidDynamics _fluidDynamics;
         private ParticleVisualization _particleVisualization;
         private LevelOutline _levelOutline;
@@ -33,45 +30,14 @@ namespace FluidDemo
             MaxNumNeighbours = 50
         };
 
-        private FluidInternal[] Fluids => new[]
+        private Fluid[] Fluids => new Fluid[]
         {
-            new FluidInternal
-            {
-                State = State.Liquid,
-                Stiffness = 2000f,
-                NearStiffness = 4000f,
-                RestDensity = 5f,
-                ViscositySigma = 0.01f,
-                ViscosityBeta = 0.01f,
-                GravityScale = 1f,
-                Mass = 1f,
-                DensityPullFactor = 0.5f
-            },
-            new FluidInternal
-            {
-                State = State.Gas,
-                Stiffness = 200f,
-                NearStiffness = 400f,
-                RestDensity = 1f,
-                ViscositySigma = 0.05f,
-                ViscosityBeta = 0.05f,
-                GravityScale = -0.05f,
-                Mass = 0.1f,
-                DensityPullFactor = 1f
-            },
-            new FluidInternal
-            {
-                State = State.Solid,
-                Stiffness = 1f,
-                NearStiffness = 1f,
-                RestDensity = 1f,
-                ViscositySigma = 0f,
-                ViscosityBeta = 0f,
-                GravityScale = 0.0f,
-                Mass = 1f,
-                DensityPullFactor = 0.0f
-            }
+            new Liquid(Name: "Water", Density: 1f, Viscosity:0.3f),
+            new Gas(Name: "Gas", Density: 0.1f, Viscosity:0.1f),
+            new Solid(Name: "Rock", Density: 2f)
         };
+        
+ 
 
         private void Awake()
         {
@@ -93,14 +59,10 @@ namespace FluidDemo
 
         }
 
-
-
-        // Start is called before the first frame update
-        void Start()
+        private void OnDisable()
         {
-
+            _fluidDynamics.Dispose();
         }
-
 
 
         void OnDrawGizmos()

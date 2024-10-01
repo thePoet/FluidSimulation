@@ -9,17 +9,14 @@ namespace FluidSimulation
         public readonly FluidParticles Particles;   
 
         private ShaderManager ShaderManager;
-
         private int _selectedParticle = -1;
         
+
         
-            
-            
-        public FluidDynamics(SimulationSettings settings, FluidInternal[] fluids)
+        public FluidDynamics(SimulationSettings settings, Fluid[] fluids)
         {
-           ShaderManager = new ShaderManager("FluidDynamicsComputeShader", settings, fluids);
-
-
+            ShaderManager = new ShaderManager("FluidDynamicsComputeShader", settings, ToInternalFluids(fluids));
+           
             var partitioningGrid = new SpatialPartitioningGrid<int>(
                 settings.PartitioningGrid,
                 settings.MaxNumParticlesInPartitioningCell,
@@ -28,38 +25,37 @@ namespace FluidSimulation
             Particles = new FluidParticles(settings.MaxNumParticles, partitioningGrid);
         }
 
-        ~FluidDynamics()
+        public void Dispose()
         {
             ShaderManager.Dispose();
         }
 
         public void Step(float deltaTime)
         {
-            ShaderManager.Step(0.015f, Particles, Particles.NumParticles);
+            ShaderManager.Step(deltaTime, Particles, Particles.NumParticles);
         }
-        
-
-
-  
-        
-    
 
         #region ------------------------------------------ PRIVATE METHODS ----------------------------------------------
 
-        
-
-
-        
-
-        public int[] ParticleIdsInsideCircle(Vector2 position, float radius) => Particles.InsideCircle(position, radius);
+      
       
         public void SelectParticle(int particleId)
         {
             ShaderManager.SelectedParticle = particleId;
         }
-        
-        
 
+        FluidInternal[] ToInternalFluids(Fluid[] fluids)
+        {
+            var internalFluids = new FluidInternal[fluids.Length];
+            for (int i = 0; i < fluids.Length; i++)
+            {
+                internalFluids[i] = FluidInternal.From(fluids[i]);
+            }
+            return internalFluids;
+        }
+        
+    
+        
         
         #endregion
 
