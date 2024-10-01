@@ -2,3 +2,4 @@ TODO:
 
 
 - Partikkelit kimpoavat väärin alueen laidoista
+- Järkevämpi virheiden ilmoittaminen

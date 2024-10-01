@@ -29,7 +29,7 @@ namespace FluidDemo
                     if (y % 2 == 1) localPos += new Vector2(hSpacing / 2f, 0f);
 
                     Vector3 worldPos = transform.TransformPoint(localPos);
-                    fluidSim.SpawnParticle(worldPos, Vector2.zero, FluidSubstance.SomeSolid);
+                    fluidSim.SpawnParticle(worldPos, Vector2.zero, FluidId.Rock);
                 }
             }
         }

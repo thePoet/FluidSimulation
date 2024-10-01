@@ -3,12 +3,7 @@ using FluidSimulation;
 
 namespace FluidDemo
 {
-    public enum FluidSubstance
-    {
-        SomeLiquid,
-        SomeGas,
-        SomeSolid
-    }
+
 
     public class FluidSimDemo : MonoBehaviour
     {
@@ -30,13 +25,7 @@ namespace FluidDemo
             MaxNumNeighbours = 50
         };
 
-        private Fluid[] Fluids => new Fluid[]
-        {
-            new Liquid(Name: "Water", Density: 1f, Viscosity:0.3f),
-            new Gas(Name: "Gas", Density: 0.1f, Viscosity:0.1f),
-            new Solid(Name: "Rock", Density: 2f)
-        };
-        
+
  
 
         private void Awake()
@@ -49,7 +38,7 @@ namespace FluidDemo
             if (_levelOutline == null) Debug.LogError("No container found in the scene.");
 
 
-            _fluidDynamics = new FluidDynamics(Settings, Fluids);
+            _fluidDynamics = new FluidDynamics(Settings, Fluids.List);
 
             void SetMaxFrameRate(int frameRate)
             {
@@ -64,10 +53,10 @@ namespace FluidDemo
             _fluidDynamics.Dispose();
         }
 
-
+/*
         void OnDrawGizmos()
         {
-            /*
+            
             if (ShaderManager == null) return;
             var data = ShaderManager.GetSelectedParticleData();
             if (data==null) return;
@@ -80,9 +69,10 @@ namespace FluidDemo
             Gizmos.color = Color.red;
             Gizmos.DrawLine(data[0], data[0] + data[4]*100f);
             Gizmos.color = Color.black;
-            Gizmos.DrawLine(data[0], data[0] + data[1]*100f);*/
+            Gizmos.DrawLine(data[0], data[0] + data[1]*100f);
         }
 
+*/
         void Update()
         {
             if (!_isPaused)
@@ -95,17 +85,17 @@ namespace FluidDemo
 
         }
         
-        public int SpawnParticle(Vector2 position, Vector2 velocity, FluidSubstance substance)
+        public int SpawnParticle(Vector2 position, Vector2 velocity, FluidId fluidId)
         {
             var particle = new FluidParticle()
             {
                 Position = position,
                 Velocity = velocity,
-                FluidIndex = FluidIndex(substance)
+                FluidIndex = Fluids.IndexOf(fluidId)
             };
 
             int particleId = _fluidDynamics.Particles.Add(particle);
-            _particleVisualization.AddParticle(particleId, substance, position);
+            _particleVisualization.AddParticle(particleId, fluidId, position);
 
             return particleId;
         }
@@ -144,16 +134,6 @@ namespace FluidDemo
             _particleVisualization.Clear();
         }
         
-        private int FluidIndex(FluidSubstance substance) 
-        {
-            return substance switch
-            {
-                FluidSubstance.SomeLiquid => 0,
-                FluidSubstance.SomeGas => 1,
-                FluidSubstance.SomeSolid => 2,
-                _ => throw new System.ArgumentOutOfRangeException(nameof(substance), substance, null)
-            };
-        }
 
 
 

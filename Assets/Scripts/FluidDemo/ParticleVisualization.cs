@@ -20,7 +20,7 @@ namespace FluidDemo
             _particleSystem = GetComponent<ParticleSystem>();
         }
 
-        public void AddParticle(int id, FluidSubstance substance, Vector2 position)
+        public void AddParticle(int id, FluidId fluidId, Vector2 position)
         {
             if (_particles.ContainsKey(id))
             {
@@ -28,7 +28,7 @@ namespace FluidDemo
                 return;
             }
 
-            var particle = Instantiate(PrefabFor(substance), parent: transform, worldPositionStays: false);
+            var particle = Instantiate(PrefabFor(fluidId), parent: transform, worldPositionStays: false);
             particle.name = "Particle " + id.ToString();
             _particles.Add(id, particle);
 
@@ -43,11 +43,11 @@ namespace FluidDemo
             _particleSystem.Emit(emitParams, 1);
 */
             
-            GameObject PrefabFor(FluidSubstance substance) => substance switch
+            GameObject PrefabFor(FluidId substance) => substance switch
             {
-                FluidSubstance.SomeLiquid => liquidParticlePrefab,
-                FluidSubstance.SomeGas => gasParticlePrefab,
-                FluidSubstance.SomeSolid => solidParticlePrefab,
+                FluidId.Water => liquidParticlePrefab,
+                FluidId.Smoke => gasParticlePrefab,
+                FluidId.Rock => solidParticlePrefab,
                 _ => throw new ArgumentOutOfRangeException(nameof(substance), substance, null)
             };
             

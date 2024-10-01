@@ -13,7 +13,7 @@ namespace FluidDemo
         public FluidSimDemo fluidDynamics;
         
         private Vector2 _previousMousePosition;
-        private FluidSubstance _currentSubstance = FluidSubstance.SomeLiquid;
+        private FluidId _currentFluidId = FluidId.Water;
         
         private void Start()
         {
@@ -32,7 +32,7 @@ namespace FluidDemo
             {
                 int amount = particlesPerFrame;
 
-                if (oneAtTime || _currentSubstance == FluidSubstance.SomeSolid )
+                if (oneAtTime || _currentFluidId == FluidId.Rock )
                 {
                     amount = 1;
                     if (!Input.GetMouseButtonDown(0)) return;
@@ -40,7 +40,7 @@ namespace FluidDemo
         
                 for (int i=0; i < amount; i++)
                 {
-                  fluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, _currentSubstance);
+                  fluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, _currentFluidId);
                 }
             }
 
@@ -59,9 +59,9 @@ namespace FluidDemo
                 }
             }*/
             
-            if (Input.GetKey(KeyCode.Alpha1)) _currentSubstance = FluidSubstance.SomeLiquid;
-            if (Input.GetKey(KeyCode.Alpha2)) _currentSubstance = FluidSubstance.SomeGas;
-            if (Input.GetKey(KeyCode.Alpha3)) _currentSubstance = FluidSubstance.SomeSolid;
+            if (Input.GetKey(KeyCode.Alpha1)) _currentFluidId = FluidId.Water;
+            if (Input.GetKey(KeyCode.Alpha2)) _currentFluidId = FluidId.Smoke;
+            if (Input.GetKey(KeyCode.Alpha3)) _currentFluidId = FluidId.Rock;
 
 
             _previousMousePosition = MousePosition;
