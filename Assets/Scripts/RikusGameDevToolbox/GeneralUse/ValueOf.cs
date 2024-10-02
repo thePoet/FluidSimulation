@@ -35,7 +35,7 @@ using System.Reflection;
              Factory = (Func<TThis>)lambda.Compile();
          }
 
-         public TValue Value { get; protected set; }
+        public TValue Value { get; protected set; }
 
          public static TThis From(TValue item)
          {
@@ -94,8 +94,7 @@ using System.Reflection;
          {
              return !(a == b);
          }
-
-         // Implicit operator removed. See issue #14.
+         
 
          public override string ToString()
          {

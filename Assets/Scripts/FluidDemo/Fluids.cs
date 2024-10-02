@@ -1,3 +1,4 @@
+using System;
 using FluidSimulation;
 
 namespace FluidDemo
@@ -21,11 +22,11 @@ namespace FluidDemo
             List[(int)FluidId.Rock]  = new Solid(Density: 2f);
         }
       
-        
         public static int IndexOf(FluidId fluidId) => (int)fluidId;
 
-        public static FluidId IdFluid(this FluidParticle particle) => (FluidId)particle.FluidIndex;
-        
-        
+        // Extension methods for FluidParticle so we can get and set it's fluid with FluidId
+        public static FluidId GetFluid(this FluidParticle particle) => (FluidId)particle.FluidIndex;
+        public static void SetFluid(this ref FluidParticle particle, FluidId id) => particle.FluidIndex = IndexOf(id);
+
     }
 }

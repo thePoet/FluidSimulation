@@ -7,12 +7,11 @@ namespace FluidSimulation
     
     public class FluidDynamics 
     {
-        public readonly FluidParticles Particles;   
-
-        private ShaderManager ShaderManager;
-        private int _selectedParticle = -1;
         
+        public readonly FluidParticles Particles;   
+        private readonly ShaderManager _shaderManager;
 
+        #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
         
         public FluidDynamics(SimulationSettings settings, Fluid[] fluids)
         {
@@ -21,36 +20,37 @@ namespace FluidSimulation
                 settings.MaxNumParticlesInPartitioningCell,
                 i => Particles.Get(i).Position);
 
-            ShaderManager = new ShaderManager("FluidDynamicsComputeShader", settings, ToInternalFluids(fluids), partitioningGrid.NumSquares);
+            _shaderManager = new ShaderManager("FluidDynamicsComputeShader", settings, ToInternalFluids(fluids), partitioningGrid.NumSquares);
             
             Particles = new FluidParticles(settings.MaxNumParticles, partitioningGrid);
         }
 
         public void Dispose()
         {
-            ShaderManager.Dispose();
+            _shaderManager.Dispose();
         }
 
         public void Step(float deltaTime)
         {
-            ShaderManager.Step(deltaTime, Particles, Particles.NumParticles);
+            _shaderManager.Step(deltaTime, Particles, Particles.NumParticles);
         }
 
+        /// <summary>
+        /// The subscribed debug data for the given particle. The data is available after next Step-method call.
+        /// </summary>
+        /// <param name="particleId"></param>
         public void SubscribeDebugData(int particleId)
         {
-            ShaderManager.SelectedParticle = particleId;
+            _shaderManager.SelectedParticle = particleId;
         }
 
         public Vector2[] DebugData()
         {
-            return ShaderManager.GetSelectedParticleData();
+            return _shaderManager.GetSelectedParticleData();
         }
         
+        #endregion
         #region ------------------------------------------ PRIVATE METHODS ----------------------------------------------
-
-      
-      
-      
 
         FluidInternal[] ToInternalFluids(Fluid[] fluids)
         {
@@ -61,9 +61,6 @@ namespace FluidSimulation
             }
             return internalFluids;
         }
-        
-    
-        
         
         #endregion
 

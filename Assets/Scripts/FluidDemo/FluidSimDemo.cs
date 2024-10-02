@@ -25,9 +25,6 @@ namespace FluidDemo
             MaxNumNeighbours = 50
         };
 
-
- 
-
         private void Awake()
         {
             SetMaxFrameRate(60);
@@ -71,7 +68,6 @@ namespace FluidDemo
             Gizmos.DrawLine(data[0], data[0] + data[1]*100f);
         }
 
-
         void Update()
         {
             if (!_isPaused)
@@ -79,19 +75,15 @@ namespace FluidDemo
                 _fluidDynamics.Step(0.015f);
                 UpdateParticleVisualization();
             }
-
             ProcessUserInput();
-
         }
         
         public int SpawnParticle(Vector2 position, Vector2 velocity, FluidId fluidId)
         {
-            var particle = new FluidParticle()
-            {
-                Position = position,
-                Velocity = velocity,
-                FluidIndex = Fluids.IndexOf(fluidId)
-            };
+            var particle = new FluidParticle();
+            particle.Position = position;
+            particle.Velocity = velocity;
+            particle.SetFluid(fluidId);
 
             int particleId = _fluidDynamics.Particles.Add(particle);
             _particleVisualization.AddParticle(particleId, fluidId, position);
@@ -106,7 +98,6 @@ namespace FluidDemo
                 _fluidDynamics.Particles.Particles[particleIdx].Velocity = velocity;
             }
         }
-
 
         private void ProcessUserInput()
         {
@@ -126,7 +117,6 @@ namespace FluidDemo
             }
         }
 
-
         private void Clear()
         {
             _fluidDynamics.Particles.Clear();
@@ -141,11 +131,7 @@ namespace FluidDemo
             {
                 _fluidDynamics.SubscribeDebugData(particles[0]);
             }
-            
-            
         }
-
-
 
     }
 }
