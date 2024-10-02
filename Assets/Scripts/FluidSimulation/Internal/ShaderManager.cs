@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace FluidSimulation
+namespace FluidSimulation.Internal
 {
-   public class FluidsShaderManager
+   public class ShaderManager
    {
         enum Kernel
         {
@@ -26,7 +26,7 @@ namespace FluidSimulation
         private ShaderBuffer[] _buffers;
         private readonly SimulationSettings _simulationSettings;
         
-        public FluidsShaderManager(string shaderFileName, SimulationSettings simulationSettings, Fluid[] fluids)  
+        public ShaderManager(string shaderFileName, SimulationSettings simulationSettings, FluidInternal[] fluids, int numPartitioningCells)  
         {
             _computeShader = Resources.Load(shaderFileName) as ComputeShader;
             if (_computeShader == null)
@@ -35,7 +35,8 @@ namespace FluidSimulation
             }
             
             _simulationSettings = simulationSettings;
-            _buffers = CreateBuffers(simulationSettings, fluids);
+        
+            _buffers = CreateBuffers(simulationSettings, fluids, numPartitioningCells);
             
             _buffers[6].ComputeBuffer.SetData(fluids);
 
@@ -50,7 +51,7 @@ namespace FluidSimulation
         }
         
        
-        public void Step(float deltaTime, FluidParticle[] particles, int numParticles)
+        public void Step(float deltaTime, FluidParticles particles, int numParticles)
         {
             float time=Time.realtimeSinceStartup;
             
@@ -60,8 +61,8 @@ namespace FluidSimulation
             _computeShader.SetFloat("_SolidRadius", 15f);
             _computeShader.SetInt("_SelectedParticle", SelectedParticle);
             
-            _buffers[0].ComputeBuffer.SetData(particles);
-
+            particles.WriteToComputeBuffer(_buffers[0].ComputeBuffer);
+          
             for (int s = 0; s < _simulationSettings.NumSubSteps; s++)
             {
                 Execute(Kernel.InitAndApplyGravity, threadGroupsForParticles);
@@ -79,11 +80,12 @@ namespace FluidSimulation
                 Execute(Kernel.CalculateDensityDisplacement, threadGroupsForParticles);
                 Execute(Kernel.MoveParticles, threadGroupsForParticles);
             }
-   
-            _buffers[0].ComputeBuffer.GetData(particles);  
+
+            particles.ReadFromComputeBuffer(_buffers[0].ComputeBuffer);
+            
             CheckErrorFlags();
    
-//            Debug.Log("Sim step with read/write took " + 1000f * (Time.realtimeSinceStartup - time) + " ms.");
+//           Debug.Log("Sim step with " + numParticles + " particles : " + 1000f * (Time.realtimeSinceStartup - time) + " ms.");
         }
         
         public void Dispose()
@@ -118,13 +120,13 @@ namespace FluidSimulation
         }
 
         
-        private ShaderBuffer[] CreateBuffers(SimulationSettings settings, Fluid[] fluids)
+        private ShaderBuffer[] CreateBuffers(SimulationSettings settings, FluidInternal[] fluids, int numPartitioningCells)
         {
             var buffers = new ShaderBuffer[9];
             var s = settings;
             int numPart = s.MaxNumParticles;
             int numNeigh = s.MaxNumNeighbours;
-            int numCells = s.PartitioningGrid.NumberOfSquares;
+            int numCells = numPartitioningCells;
             int numPartInCell = s.MaxNumParticlesInPartitioningCell;
 
             buffers[0] = new ShaderBuffer("_Particles",              numPart,                  FluidParticle.Stride, ShaderBuffer.Type.IO);
@@ -133,7 +135,7 @@ namespace FluidSimulation
             buffers[3] = new ShaderBuffer("_ParticleNeighbourCount", numPart,                  sizeof(int),          ShaderBuffer.Type.Internal);
             buffers[4] = new ShaderBuffer("_CellParticleCount",      numCells,                 sizeof(int),          ShaderBuffer.Type.Internal);
             buffers[5] = new ShaderBuffer("_ParticlesInCells",       numCells * numPartInCell, sizeof(int),          ShaderBuffer.Type.Internal);
-            buffers[6] = new ShaderBuffer("_Fluids",                 fluids.Length,            Fluid.Stride,         ShaderBuffer.Type.Internal);
+            buffers[6] = new ShaderBuffer("_Fluids",                 fluids.Length,            FluidInternal.Stride,         ShaderBuffer.Type.Internal);
             buffers[7] = new ShaderBuffer("_Stats",                  10,                       sizeof(int),          ShaderBuffer.Type.IO);
             buffers[8] = new ShaderBuffer("_Debug",                  10,                       sizeof(float),        ShaderBuffer.Type.IO);
             

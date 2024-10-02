@@ -1,6 +1,7 @@
 using FluidSimulation;
 using UnityEngine;
 
+/*
 public class Dripper : MonoBehaviour
 {
     public bool onlyOne = false;
@@ -22,3 +23,4 @@ public class Dripper : MonoBehaviour
         _fluidDynamics.SpawnParticle(transform.position, Vector2.zero, FluidSubstance.SomeLiquid);
     }
 }
+*/

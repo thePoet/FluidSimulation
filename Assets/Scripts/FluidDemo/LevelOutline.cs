@@ -3,7 +3,7 @@ using UnityEngine;
 namespace FluidSimulation
 {
     [RequireComponent(typeof(LineRenderer))]
-    public class Container : MonoBehaviour
+    public class LevelOutline : MonoBehaviour
     {
         public Rect Bounds;
         

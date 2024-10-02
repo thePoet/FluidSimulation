@@ -132,7 +132,7 @@ bool IsOutsideArea(float2 position)
     return IsInsideBox(position, minCorner, maxCorner); 
 }
 
-float2 AreaBoundsDisplacement(float2 particlePosition, out float addedDrag)
+float2 AreaBoundsDisplacement(in float2 particlePosition, out float addedDrag)
 {
     float2 result = float2(0.0, 0.0);
     float margin = 10;
@@ -141,29 +141,32 @@ float2 AreaBoundsDisplacement(float2 particlePosition, out float addedDrag)
     float2 minCornerSoft = float2(_AreaMinX + margin, _AreaMinY + margin);
     float2 maxCornerSoft = float2(_AreaMaxX - margin, _AreaMaxY - margin);
 
-    if (IsInsideBox(particlePosition, minCornerSoft, maxCornerSoft)) return result; 
+    if (!IsInsideBox(particlePosition, minCornerSoft, maxCornerSoft))
+    {
+        addedDrag = 0.5;
+        float softness = 0.5;
+        float2 newPos = ClampToBox(particlePosition, float2(_AreaMinX+EPSILON,_AreaMinY+EPSILON), float2(_AreaMaxX-EPSILON,_AreaMaxY-EPSILON));
 
-    addedDrag = 0.5;
-    float softness = 0.5;
-    float2 newPos = ClampToBox(particlePosition, float2(_AreaMinX+EPSILON,_AreaMinY+EPSILON), float2(_AreaMaxX-EPSILON,_AreaMaxY-EPSILON));
+        if (newPos.x < minCornerSoft.x)
+        {
+            newPos.x = lerp(newPos.x, minCornerSoft.x, softness);
+        }
+        if (newPos.x > maxCornerSoft.x)
+        {
+            newPos.x = lerp(newPos.x, maxCornerSoft.x, softness);
+        }
+        if (newPos.y < minCornerSoft.y)
+        {
+            newPos.y = lerp(newPos.y, minCornerSoft.y, softness);
+        }
+        if (newPos.y > maxCornerSoft.y)
+        {
+            newPos.y = lerp(newPos.y, maxCornerSoft.y, softness);
+        }
+        result = newPos - particlePosition;
+    }
 
-    if (newPos.x < minCornerSoft.x)
-    {
-        newPos.x = lerp(newPos.x, minCornerSoft.x, softness);
-    }
-    if (newPos.x > maxCornerSoft.x)
-    {
-        newPos.x = lerp(newPos.x, maxCornerSoft.x, softness);
-    }
-    if (newPos.y < minCornerSoft.y)
-    {
-        newPos.y = lerp(newPos.y, minCornerSoft.y, softness);
-    }
-    if (newPos.y > maxCornerSoft.y)
-    {
-        newPos.y = lerp(newPos.y, maxCornerSoft.y, softness);
-    }
-    return newPos - particlePosition;
+    return result;
 }
 
 
@@ -474,7 +477,7 @@ float2 DensityDisplacement(int particle1, int particle2, float pullFactor=1)
                         normalize(fromTo);
 
              
-        displacement =  0.5 * FluidOf(particle2).Mass / FluidOf(particle1).Mass * d;
+        displacement =  0.5 * FluidOf(particle1).Mass / FluidOf(particle2).Mass * d;
 
         if (pressure < 0) displacement *= pullFactor;
         

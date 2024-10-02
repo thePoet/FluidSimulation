@@ -1,4 +1,3 @@
-using RikusGameDevToolbox.GeneralUse;
 using UnityEngine;
     
 namespace FluidSimulation
@@ -13,11 +12,6 @@ namespace FluidSimulation
         public int MaxNumParticlesInPartitioningCell;
         public bool IsViscosityEnabled;
         public int NumSubSteps;
-
-        // TODO: MOVE:
-        public Grid2D PartitioningGrid => new Grid2D(AreaBounds, squareSize: InteractionRadius);
-    
-
         public int MaxNumNeighbours;
     }
 

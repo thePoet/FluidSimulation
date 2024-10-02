@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
-namespace FluidSimulation
+namespace FluidDemo
 {
     public class ParticleBrush : MonoBehaviour
     {
@@ -10,19 +10,16 @@ namespace FluidSimulation
         public bool oneAtTime = false;
         public float brushRadius = 10f;
         public float maxSpeed = 10f;
-        [FormerlySerializedAs("testFluidDynamics")] public FluidDynamics fluidDynamics;
+        public FluidSimDemo fluidDynamics;
         
         private Vector2 _previousMousePosition;
-        private FluidSubstance _currentSubstance = FluidSubstance.SomeLiquid;
+        private FluidId _currentFluidId = FluidId.Water;
         
         private void Start()
         {
-            fluidDynamics = FindObjectOfType<FluidDynamics>();
+            fluidDynamics = FindObjectOfType<FluidSimDemo>();
             if (fluidDynamics == null) Debug.LogError("No TestFluidDynamics found in the scene.");
-            
-            
         }
-
 
         void Update()
         {
@@ -32,7 +29,7 @@ namespace FluidSimulation
             {
                 int amount = particlesPerFrame;
 
-                if (oneAtTime || _currentSubstance == FluidSubstance.SomeSolid )
+                if (oneAtTime || _currentFluidId == FluidId.Rock )
                 {
                     amount = 1;
                     if (!Input.GetMouseButtonDown(0)) return;
@@ -40,7 +37,7 @@ namespace FluidSimulation
         
                 for (int i=0; i < amount; i++)
                 {
-                  fluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, _currentSubstance);
+                  fluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, _currentFluidId);
                 }
             }
 
@@ -49,19 +46,11 @@ namespace FluidSimulation
                 Vector2 deltaMousePosition = MousePosition - _previousMousePosition;
                 fluidDynamics.SetParticleVelocities(MousePosition, 15f, deltaMousePosition/Time.deltaTime);
             }
+  
             
-            if (Input.GetKey(KeyCode.I))
-            {
-                int[] particles = fluidDynamics.ParticleIdsInsideCircle(MousePosition, 15f);
-                if (particles.Length > 0)
-                {
-                    fluidDynamics.SelectParticle(particles[0]);
-                }
-            }
-            
-            if (Input.GetKey(KeyCode.Alpha1)) _currentSubstance = FluidSubstance.SomeLiquid;
-            if (Input.GetKey(KeyCode.Alpha2)) _currentSubstance = FluidSubstance.SomeGas;
-            if (Input.GetKey(KeyCode.Alpha3)) _currentSubstance = FluidSubstance.SomeSolid;
+            if (Input.GetKey(KeyCode.Alpha1)) _currentFluidId = FluidId.Water;
+            if (Input.GetKey(KeyCode.Alpha2)) _currentFluidId = FluidId.Smoke;
+            if (Input.GetKey(KeyCode.Alpha3)) _currentFluidId = FluidId.Rock;
 
 
             _previousMousePosition = MousePosition;

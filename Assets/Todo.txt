@@ -1,0 +1,6 @@
+TODO:
+
+
+- Partikkelit kimpoavat väärin alueen laidoista
+- Järkevämpi virheiden ilmoittaminen
+- Lisää stabiiliutta nopeusrajoituksilla ja kitkalla
