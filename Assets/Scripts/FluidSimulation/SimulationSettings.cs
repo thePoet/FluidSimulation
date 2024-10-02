@@ -4,15 +4,13 @@ namespace FluidSimulation
 {
     public struct SimulationSettings
     {
-        public float InteractionRadius;
-        public float Gravity;
-        public float Drag;
-        public int MaxNumParticles;
         public Rect AreaBounds;
-        public int MaxNumParticlesInPartitioningCell;
+        /// <summary>The scale is the spacing of particles i.e. the typical distance between them.</summary>
+        public float Scale;
+        public float Gravity;
+        public int MaxNumParticles;
         public bool IsViscosityEnabled;
-        public int NumSubSteps;
-        public int MaxNumNeighbours;
+        public float SolidRadius;
     }
 
 }

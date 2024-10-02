@@ -24,9 +24,9 @@ namespace FluidSimulation.Internal
         
         private readonly ComputeShader _computeShader;
         private ShaderBuffer[] _buffers;
-        private readonly SimulationSettings _simulationSettings;
+        private readonly SimulationSettingsInternal _simulationSettings;
         
-        public ShaderManager(string shaderFileName, SimulationSettings simulationSettings, FluidInternal[] fluids, int numPartitioningCells)  
+        public ShaderManager(string shaderFileName, SimulationSettingsInternal simulationSettings, FluidInternal[] fluids, int numPartitioningCells)  
         {
             _computeShader = Resources.Load(shaderFileName) as ComputeShader;
             if (_computeShader == null)
@@ -58,7 +58,6 @@ namespace FluidSimulation.Internal
             _computeShader.SetInt("_NumParticles", numParticles);
             _computeShader.SetFloat("_DeltaTime", deltaTime/_simulationSettings.NumSubSteps);
             _computeShader.SetFloat("_MaxDisplacement", _simulationSettings.InteractionRadius * 0.45f);
-            _computeShader.SetFloat("_SolidRadius", 15f);
             _computeShader.SetInt("_SelectedParticle", SelectedParticle);
             
             particles.WriteToComputeBuffer(_buffers[0].ComputeBuffer);
@@ -105,7 +104,7 @@ namespace FluidSimulation.Internal
         }
 
 
-        private void SetShaderVariables(SimulationSettings simulationSettings)
+        private void SetShaderVariables(SimulationSettingsInternal simulationSettings)
         {
             _computeShader.SetInt("_MaxNumParticles", simulationSettings.MaxNumParticles);
             _computeShader.SetInt("_MaxNumNeighbours", simulationSettings.MaxNumNeighbours);
@@ -117,10 +116,11 @@ namespace FluidSimulation.Internal
             _computeShader.SetFloat("_AreaMaxY", simulationSettings.AreaBounds.yMax);
             _computeShader.SetFloat("_Gravity", simulationSettings.Gravity);
             _computeShader.SetFloat("_Drag", simulationSettings.Drag);
+            _computeShader.SetFloat("_SolidRadius", simulationSettings.SolidRadius);
         }
 
         
-        private ShaderBuffer[] CreateBuffers(SimulationSettings settings, FluidInternal[] fluids, int numPartitioningCells)
+        private ShaderBuffer[] CreateBuffers(SimulationSettingsInternal settings, FluidInternal[] fluids, int numPartitioningCells)
         {
             var buffers = new ShaderBuffer[9];
             var s = settings;

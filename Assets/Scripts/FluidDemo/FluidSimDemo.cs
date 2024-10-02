@@ -3,26 +3,21 @@ using FluidSimulation;
 
 namespace FluidDemo
 {
-
-
     public class FluidSimDemo : MonoBehaviour
     {
         private FluidDynamics _fluidDynamics;
         private ParticleVisualization _particleVisualization;
         private LevelOutline _levelOutline;
         private bool _isPaused;
-
+    
         private SimulationSettings Settings => new()
         {
-            InteractionRadius = 20f,
+            Scale = 6f,
             Gravity = 1200f,
-            Drag = 0.001f,
             MaxNumParticles = 30000,
             IsViscosityEnabled = true,
-            NumSubSteps = 3,
             AreaBounds = new Rect(Vector2.zero, new Vector2(1200f, 600f)),
-            MaxNumParticlesInPartitioningCell = 100,
-            MaxNumNeighbours = 50
+            SolidRadius = 15f
         };
 
         private void Awake()
@@ -34,7 +29,6 @@ namespace FluidDemo
             if (_particleVisualization == null) Debug.LogError("No visualization found in the scene.");
             if (_levelOutline == null) Debug.LogError("No container found in the scene.");
 
-
             _fluidDynamics = new FluidDynamics(Settings, Fluids.List);
 
             void SetMaxFrameRate(int frameRate)
@@ -42,7 +36,6 @@ namespace FluidDemo
                 QualitySettings.vSyncCount = 0;
                 Application.targetFrameRate = frameRate;
             }
-
         }
 
         private void OnDisable()
