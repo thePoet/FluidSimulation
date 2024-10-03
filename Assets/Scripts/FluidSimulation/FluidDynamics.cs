@@ -11,7 +11,9 @@ namespace FluidSimulation
 
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
         
-        public FluidDynamics(SimulationSettings simulationSettings, Fluid[] fluids)
+        
+        //TODO: parameters could be combined into a single type
+        public FluidDynamics(SimulationSettings simulationSettings, Fluid[] fluids, ProximityAlertSubscription[] alerts = null)
         {
             var settings = ConvertSimulationSettings(simulationSettings);
             
@@ -20,7 +22,7 @@ namespace FluidSimulation
                 settings.MaxNumParticlesInPartitioningCell,
                 i => Particles.Get(i).Position);
 
-            _shaderManager = new ShaderManager("FluidDynamicsComputeShader", settings, ToInternalFluids(fluids), partitioningGrid.NumSquares);
+            _shaderManager = new ShaderManager("FluidDynamicsComputeShader", settings, ToInternalFluids(fluids), partitioningGrid.NumSquares, alerts);
             
             Particles = new FluidParticles(settings.MaxNumParticles, partitioningGrid);
         }
@@ -83,6 +85,9 @@ namespace FluidSimulation
         private FluidInternal ConvertFluid(Fluid fluid)
         {
             var f = new FluidInternal();
+
+            f.Mass = fluid.Density;
+
             if (fluid is Liquid)
             {
                 f.State = 0;
@@ -103,7 +108,7 @@ namespace FluidSimulation
                 f.Stiffness = 200f;
                 f.NearStiffness = 400f;
                 f.RestDensity = 5f;
-                f.DensityPullFactor = 1f;
+                f.DensityPullFactor = 0.5f;
                 
                 f.ViscositySigma = 0.2f * (fluid as Gas).Viscosity;
                 f.ViscosityBeta = 0.2f * (fluid as Gas).Viscosity;
@@ -122,7 +127,6 @@ namespace FluidSimulation
                 f.GravityScale = 0f;
             }
         
-            f.Mass = fluid.Density;
                 
             return f;
         }

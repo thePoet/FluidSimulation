@@ -1,26 +1,28 @@
-using FluidSimulation;
 using UnityEngine;
 
-/*
-public class Dripper : MonoBehaviour
+namespace FluidDemo
 {
-    public bool onlyOne = false;
-    
-    private FluidDynamics _fluidDynamics;
-    // Start is called before the first frame update
-    void Start()
+    public class Dripper : MonoBehaviour
     {
-        _fluidDynamics = FindObjectOfType<FluidDynamics>();
-        if (onlyOne)
-            SpawnParticle();
-        else
-            InvokeRepeating("SpawnParticle", 0.1f,1f);
+        public bool onlyOne = false;
+
+        private FluidSimDemo _fluidDemo;
+
+        // Start is called before the first frame update
+        void Start()
+        {
+            _fluidDemo = FindObjectOfType<FluidSimDemo>();
+            if (onlyOne)
+                SpawnParticle();
+            else
+                InvokeRepeating("SpawnParticle", 0.1f, 1f);
+        }
+
+        // Update is called once per frame
+        void SpawnParticle()
+        {
+            _fluidDemo.SpawnParticle(transform.position, Vector2.zero, FluidId.Water);
+        }
     }
 
-    // Update is called once per frame
-    void SpawnParticle()
-    {
-        _fluidDynamics.SpawnParticle(transform.position, Vector2.zero, FluidSubstance.SomeLiquid);
-    }
 }
-*/

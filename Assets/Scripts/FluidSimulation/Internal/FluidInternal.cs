@@ -2,6 +2,8 @@ namespace FluidSimulation.Internal
 {
     public struct FluidInternal
     {
+        public const int Stride = sizeof(int) + 8 * sizeof(float);
+
         public int State;  // 0=Liquid, 1=Gas, 2=Solid
         public float Stiffness;
         public float NearStiffness;
@@ -11,9 +13,5 @@ namespace FluidSimulation.Internal
         public float GravityScale;
         public float Mass;
         public float DensityPullFactor;
-
-        public static int Stride => sizeof(int) + 8 * sizeof(float);
-
-      
     }
 }

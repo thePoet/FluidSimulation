@@ -8,6 +8,8 @@ namespace FluidDemo
     public class ParticleVisualization : MonoBehaviour
     {
         public GameObject liquidParticlePrefab;
+        public GameObject greenLiquidParticlePrefab;
+        public GameObject redLiquidParticlePrefab;
         public GameObject gasParticlePrefab;
         public GameObject solidParticlePrefab;
 
@@ -48,6 +50,8 @@ namespace FluidDemo
                 FluidId.Water => liquidParticlePrefab,
                 FluidId.Smoke => gasParticlePrefab,
                 FluidId.Rock => solidParticlePrefab,
+                FluidId.GreenLiquid => greenLiquidParticlePrefab,
+                FluidId.RedLiquid => redLiquidParticlePrefab,
                 _ => throw new ArgumentOutOfRangeException(nameof(substance), substance, null)
             };
             

@@ -1,5 +1,5 @@
-using System;
 using FluidSimulation;
+using RikusGameDevToolbox.GeneralUse;
 
 namespace FluidDemo
 {    
@@ -7,19 +7,25 @@ namespace FluidDemo
     {
         Water,
         Smoke,
-        Rock
+        Rock,
+        GreenLiquid,
+        RedLiquid
     }
-    
+
     public static class Fluids
     {
-        public static readonly Fluid[] List; 
-
+        public static readonly Fluid[] List;
+        
         static Fluids()
         {
-            List = new Fluid[3];
+            int numLiquids = Generic.NumEnumerators<FluidId>();
+            List = new Fluid[numLiquids];
+            
             List[(int)FluidId.Water] = new Liquid(Density: 1f, Viscosity: 0.3f);
-            List[(int)FluidId.Smoke] = new Gas(Density: 0.1f,  Viscosity: 0.1f);
+            List[(int)FluidId.Smoke] = new Gas(Density: 0.01f,  Viscosity: 0.1f);
             List[(int)FluidId.Rock]  = new Solid(Density: 2f);
+            List[(int)FluidId.GreenLiquid] = new Liquid(Density: 1f, Viscosity: 0.3f);
+            List[(int)FluidId.RedLiquid] = new Liquid(Density: 1f, Viscosity: 0.3f);
         }
       
         public static int IndexOf(FluidId fluidId) => (int)fluidId;

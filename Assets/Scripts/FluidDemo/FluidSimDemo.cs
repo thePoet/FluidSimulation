@@ -43,7 +43,6 @@ namespace FluidDemo
             _fluidDynamics.Dispose();
         }
 
-
         void OnDrawGizmos()
         {
             if (_fluidDynamics == null) return;

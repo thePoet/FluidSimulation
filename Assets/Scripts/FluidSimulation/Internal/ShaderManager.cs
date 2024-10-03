@@ -26,7 +26,8 @@ namespace FluidSimulation.Internal
         private ShaderBuffer[] _buffers;
         private readonly SimulationSettingsInternal _simulationSettings;
         
-        public ShaderManager(string shaderFileName, SimulationSettingsInternal simulationSettings, FluidInternal[] fluids, int numPartitioningCells)  
+        public ShaderManager(string shaderFileName, SimulationSettingsInternal simulationSettings,
+            FluidInternal[] fluids, int numPartitioningCells, ProximityAlertSubscription[] alerts)  
         {
             _computeShader = Resources.Load(shaderFileName) as ComputeShader;
             if (_computeShader == null)
@@ -39,6 +40,7 @@ namespace FluidSimulation.Internal
             _buffers = CreateBuffers(simulationSettings, fluids, numPartitioningCells);
             
             _buffers[6].ComputeBuffer.SetData(fluids);
+            _buffers[9].ComputeBuffer.SetData(CreateProximityAlertMatrix(alerts, fluids));
 
             foreach (int kernelIndex in AllKernelIndices())
             {
@@ -120,9 +122,10 @@ namespace FluidSimulation.Internal
         }
 
         
-        private ShaderBuffer[] CreateBuffers(SimulationSettingsInternal settings, FluidInternal[] fluids, int numPartitioningCells)
+        private ShaderBuffer[] CreateBuffers(SimulationSettingsInternal settings, FluidInternal[] fluids,
+            int numPartitioningCells)
         {
-            var buffers = new ShaderBuffer[9];
+            var buffers = new ShaderBuffer[10];
             var s = settings;
             int numPart = s.MaxNumParticles;
             int numNeigh = s.MaxNumNeighbours;
@@ -138,8 +141,24 @@ namespace FluidSimulation.Internal
             buffers[6] = new ShaderBuffer("_Fluids",                 fluids.Length,            FluidInternal.Stride,         ShaderBuffer.Type.Internal);
             buffers[7] = new ShaderBuffer("_Stats",                  10,                       sizeof(int),          ShaderBuffer.Type.IO);
             buffers[8] = new ShaderBuffer("_Debug",                  10,                       sizeof(float),        ShaderBuffer.Type.IO);
-            
+            buffers[9] = new ShaderBuffer("_ProximityAlertMatrix",   fluids.Length*fluids.Length, sizeof(float), ShaderBuffer.Type.Internal); 
             return buffers;
+        }
+
+
+        private float[] CreateProximityAlertMatrix(ProximityAlertSubscription[] alerts, FluidInternal[] fluids)
+        {
+            float[] result = new float[fluids.Length * fluids.Length];
+            for (int i = 0; i < result.Length; i++) result[i] = float.PositiveInfinity;
+
+            if (alerts == null) return result;
+            
+            foreach (var alert in alerts)
+            {
+                int index = alert.IndexFluidA + alert.IndexFluidB * fluids.Length;
+                result[index] = alert.Range;
+            }
+            return result;
         }
         
         private void CheckErrorFlags()
@@ -168,8 +187,8 @@ namespace FluidSimulation.Internal
             }
         }
         
-        private Vector3Int threadGroupsForParticles => new Vector3Int(32, 16, 1);
-        private Vector3Int threadGroupsForCells => new Vector3Int(32, 16, 1); //NOTE: This is too many
+        private Vector3Int threadGroupsForParticles => new Vector3Int(32, 16, 1); // TODO: Calculate necessary amount
+        private Vector3Int threadGroupsForCells => new Vector3Int(32, 16, 1); // TODO: Calculate necessary amount, this is too many.
     }
 }
 

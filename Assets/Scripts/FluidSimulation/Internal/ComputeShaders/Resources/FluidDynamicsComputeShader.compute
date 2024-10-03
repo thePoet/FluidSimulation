@@ -78,6 +78,9 @@ static const int ERROR_MAX_DENSITY_DISPLACEMENT = 2;
 static const int WARNING_INSIDE_SOLID = 3;
 static const float EPSILON = 0.00001;
 
+
+//TODO: RWStructured ei liene tehokkain tyyppi näille kaikille:
+
 RWStructuredBuffer<Particle> _Particles; //Length: MaxNumParticles
 RWStructuredBuffer<TempParticleData> _TempData; 
 // Number of cells: ceil((AreaMaxX - AreaMinX) / InteractionRadius) * ceil((AreaMaxY - AreaMinY) / InteractionRadius)
@@ -88,6 +91,7 @@ RWStructuredBuffer<int> _ParticleNeighbourCount; //Length: MaxNumParticles
 RWStructuredBuffer<int> _Stats; //Length: 10 
 RWStructuredBuffer<float2> _Debug; //Length: 5 
 RWStructuredBuffer<Fluid> _Fluids; 
+RWStructuredBuffer<float> _ProximityAlertMatrix; 
 
 
 // --------------------- UTILITY FUNCTIONS ---------------------
@@ -446,6 +450,7 @@ void CalculatePressures (uint3 id : SV_DispatchThreadID)
         float q = QDistance(particleIndex, neighbourIndex);
         if (q<1)
         {
+            // Visual density, does not take mass in to accountb
             density += (1-q) * (1-q);
             nearDensity += (1-q) * (1-q) * (1-q);   
         }
@@ -455,7 +460,7 @@ void CalculatePressures (uint3 id : SV_DispatchThreadID)
 }
 
 // Returns the movement caused by fluid density at particle1
-// Direction towards particle2 if pressure at partivle1 is high.
+// Direction towards particle2 if pressure at particle1 is high.
 float2 DensityDisplacement(int particle1, int particle2, float pullFactor=1)
 {
     float q = QDistance(particle1, particle2);
@@ -477,7 +482,7 @@ float2 DensityDisplacement(int particle1, int particle2, float pullFactor=1)
                         normalize(fromTo);
 
              
-        displacement =  0.5 * FluidOf(particle1).Mass / FluidOf(particle2).Mass * d;
+        displacement =  0.5 * (FluidOf(particle1).Mass / FluidOf(particle2).Mass) * d;
 
         if (pressure < 0) displacement *= pullFactor;
         
@@ -508,11 +513,8 @@ void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
                 pullFactor = 0;
             }
             
-           _TempData[i].DisplacementDensity -= DensityDisplacement(i, neighbourIdx, pullFactor);
+            _TempData[i].DisplacementDensity -= DensityDisplacement(i, neighbourIdx, pullFactor);
             _TempData[i].DisplacementDensity += DensityDisplacement(neighbourIdx, i, pullFactor);
-            
-            //_TempData[particleIndex].PositionChange -= DensityDisplacement(particleIndex, neighbourIndex, 0.3);
-            //_TempData[particleIndex].PositionChange += DensityDisplacement(neighbourIndex, particleIndex, 0.3);
         }
     }
 }
@@ -551,8 +553,8 @@ void MoveParticles(uint3 id : SV_DispatchThreadID)
     if (IsSolid(i)) return;
 
     float2 reached;
-//    float2 positionChange = CapMagnitude(_TempParticleData[i].PositionChange, _MaxDisplacement);
     float2 positionChange = _TempData[i].DisplacementVelocity + _TempData[i].DisplacementDensity;
+    positionChange = CapMagnitude(positionChange, _MaxDisplacement);
     float2 collisionNormal;
     float2 preCollisionVelocity = positionChange / _DeltaTime;
     
