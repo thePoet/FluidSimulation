@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using FluidSimulation;
 
@@ -29,7 +30,14 @@ namespace FluidDemo
             if (_particleVisualization == null) Debug.LogError("No visualization found in the scene.");
             if (_levelOutline == null) Debug.LogError("No container found in the scene.");
 
-            _fluidDynamics = new FluidDynamics(Settings, Fluids.List);
+            var pas = new ProximityAlertSubscription();
+            pas.IndexFluidA = Fluids.IndexOf(FluidId.GreenLiquid);
+            pas.IndexFluidB = Fluids.IndexOf(FluidId.RedLiquid);
+            pas.Range = 10f;
+            var alerts = new ProximityAlertSubscription[1];
+            alerts[0] = pas;
+            
+            _fluidDynamics = new FluidDynamics(Settings, Fluids.List, alerts);
 
             void SetMaxFrameRate(int frameRate)
             {
@@ -68,8 +76,14 @@ namespace FluidDemo
                 UpdateParticleVisualization();
             }
             ProcessUserInput();
+
+
+            ProcessProximityAlerts(_fluidDynamics.ProximityAlerts());
+            
         }
-        
+
+       
+
         public int SpawnParticle(Vector2 position, Vector2 velocity, FluidId fluidId)
         {
             var particle = new FluidParticle();
@@ -82,6 +96,27 @@ namespace FluidDemo
 
             return particleId;
         }
+
+        private void ProcessProximityAlerts(Span<ProximityAlert> proximityAlerts)
+        {
+            foreach (var alert in proximityAlerts)
+            {
+                int i1 = alert.IndexParticleA;
+                int i2 = alert.IndexParticleB;
+
+                ChangeParticleSubstance(i1, FluidId.Smoke);
+                ChangeParticleSubstance(i2, FluidId.Smoke);
+            }
+                
+        }
+
+        private void ChangeParticleSubstance(int particleIdx, FluidId fluidId)
+        {
+            _fluidDynamics.Particles.Particles[particleIdx].SetFluid(FluidId.Smoke);
+            _particleVisualization.RemoveParticle(particleIdx);
+            _particleVisualization.AddParticle(particleIdx, fluidId,_fluidDynamics.Particles.Particles[particleIdx].Position);
+        }
+
 
         public void SetParticleVelocities(Vector2 position, float radius, Vector2 velocity)
         {

@@ -1,3 +1,4 @@
+using System;
 using FluidSimulation.Internal;
 using RikusGameDevToolbox.GeneralUse;
 using UnityEngine;
@@ -7,6 +8,8 @@ namespace FluidSimulation
     public class FluidDynamics 
     {
         public readonly FluidParticles Particles;   
+        
+        
         private readonly ShaderManager _shaderManager;
 
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
@@ -36,6 +39,9 @@ namespace FluidSimulation
         {
             _shaderManager.Step(deltaTime, Particles, Particles.NumParticles);
         }
+
+        public Span<ProximityAlert> ProximityAlerts() => _shaderManager.GetProximityAlerts();
+        
 
         /// <summary>
         /// The subscribed debug data for the given particle. The data is available after next Step-method call.

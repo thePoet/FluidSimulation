@@ -263,6 +263,51 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1026672220
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1026672221}
+  - component: {fileID: 1026672222}
+  m_Layer: 0
+  m_Name: Dripper
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1026672221
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1026672220}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 902, y: 551, z: -0.09286002}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1026672222
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1026672220}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ab77dee16e694d289fdb7fa6e9d740c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  onlyOne: 0
 --- !u!1 &1334688764
 GameObject:
   m_ObjectHideFlags: 0
@@ -424,6 +469,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   liquidParticlePrefab: {fileID: 6458512588980554973, guid: bf733eaaeee9d48439c89a0f7eddbe33, type: 3}
+  greenLiquidParticlePrefab: {fileID: 6458512588980554973, guid: 4d7121788969340f3bf51dde5d5bf1b4, type: 3}
+  redLiquidParticlePrefab: {fileID: 6458512588980554973, guid: dcea6c6b8fe7444238ac3033cd5a0b39, type: 3}
   gasParticlePrefab: {fileID: 6458512588980554973, guid: 07658e9a2ca554275a154b74025271b1, type: 3}
   solidParticlePrefab: {fileID: 6458512588980554973, guid: 63fcc66fda85b442d903c8d2a0780aef, type: 3}
 --- !u!114 &1692431641
@@ -653,3 +700,4 @@ SceneRoots:
   - {fileID: 1889715700}
   - {fileID: 1334688765}
   - {fileID: 2104047928}
+  - {fileID: 1026672221}

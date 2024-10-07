@@ -48,6 +48,20 @@ struct Fluid
     float DensityPullFactor;
 };
 
+struct ProximityAlert
+{
+    int particleIdx1;
+    int particleIdx2;
+};
+
+struct Variables
+{
+    int numProximityAlerts;
+    int numCellOverflowErrors;
+    int numParticleOutsideAreaErrors;
+    int numInsideSolidWarnings;
+};
+
 // Settings
 int _NumParticles;
 int _MaxNumParticles;
@@ -70,6 +84,8 @@ float _DeltaTime;
 int _SelectedParticle; // For getting debug info
 
 float _Time = 0;
+int _NumFluids;
+
 // Error flags
 
 static const int ERROR_CELL_OVERFLOW = 0;
@@ -88,10 +104,12 @@ RWStructuredBuffer<int> _CellParticleCount; // Length: Number of cells
 RWStructuredBuffer<int> _ParticlesInCells; //Length:  Number of cells * MaxNumParticlesPerCell
 RWStructuredBuffer<int> _ParticleNeighbours; //Length: MaxNumParticles * MaxNumNeighbours
 RWStructuredBuffer<int> _ParticleNeighbourCount; //Length: MaxNumParticles 
-RWStructuredBuffer<int> _Stats; //Length: 10 
+//RWStructuredBuffer<int> _Stats; //Length: 10 
 RWStructuredBuffer<float2> _Debug; //Length: 5 
 RWStructuredBuffer<Fluid> _Fluids; 
 RWStructuredBuffer<float> _ProximityAlertMatrix; 
+RWStructuredBuffer<ProximityAlert> _ProximityAlerts;
+RWStructuredBuffer<Variables> _Variables;
 
 
 // --------------------- UTILITY FUNCTIONS ---------------------
@@ -126,6 +144,13 @@ bool IsFluid(int particleIdx)
 {
     return FluidOf(particleIdx).State != 2;
 }
+
+float ProximityAlertDistance(int particleIdx1, int particleIdx2)
+{
+    int matrixIdx = _Particles[particleIdx1].fluidIdx + _Particles[particleIdx2].fluidIdx * _NumFluids;
+    return _ProximityAlertMatrix[matrixIdx];
+}
+
 
 // ---------------------------------
 
@@ -200,7 +225,7 @@ bool TestSolidCollisions(in int particleIdx, in float2 start, in float2 goal, ou
         if (length(toNeighbour) < _SolidRadius)
         {
             // If we start inside particle, we'll take shortest route out:
-            _Stats[WARNING_INSIDE_SOLID] += 1;
+            _Variables[0].numInsideSolidWarnings++;
             reached = neighbourPos - normalize(toNeighbour) * (_SolidRadius + EPSILON);
             collisionNormal = -toNeighbour;
             collisionHappened = false; //?????
@@ -230,9 +255,18 @@ void InitAndApplyGravity (uint3 id : SV_DispatchThreadID)
     {
         _Time += _DeltaTime;
 
-        // Set error flags to zero
-        for (int i=0; i<10; i++)
-            _Stats[i] = 0;
+        _Variables[0].numProximityAlerts=0;
+        _Variables[0].numCellOverflowErrors=0;
+        _Variables[0].numInsideSolidWarnings=0;
+        _Variables[0].numParticleOutsideAreaErrors=0;
+        
+        for (int i=0; i<500; i++)
+        {
+            _ProximityAlerts[i].particleIdx1 = 0;
+            _ProximityAlerts[i].particleIdx2 = 0;
+        }
+
+        
     }
     
     if (particleIndex >= _NumParticles) return;
@@ -312,7 +346,7 @@ void FillPartitioningCells (uint3 id : SV_DispatchThreadID)
 
     if (cellIndex==-1)
     {
-        _Stats[ERROR_OUTSIDE_AREA] += 1;
+        _Variables[0].numParticleOutsideAreaErrors++;
         return;
     }
   
@@ -320,7 +354,7 @@ void FillPartitioningCells (uint3 id : SV_DispatchThreadID)
     InterlockedAdd(_CellParticleCount[cellIndex], 1, previousCount);
     if (previousCount >= _MaxNumParticlesPerCell)
     {
-        _Stats[ERROR_CELL_OVERFLOW] += 1;
+        _Variables[0].numCellOverflowErrors++;
         return;
     }
 
@@ -351,17 +385,32 @@ void FindNeighbours (uint3 id : SV_DispatchThreadID)
 
                 int otherParticleIndex = _ParticlesInCells[cellIndex * _MaxNumParticlesPerCell + i];
                 if (otherParticleIndex == particleIndex) continue;
-                if (length(_Particles[particleIndex].Position - _Particles[otherParticleIndex].Position) < _InteractionRadius)
+
+                float distance = length(_Particles[particleIndex].Position - _Particles[otherParticleIndex].Position);
+                if (distance < _InteractionRadius)
                 {
                     _ParticleNeighbours[particleIndex * _MaxNumNeighbours + count] = otherParticleIndex;
                     count = count + 1;
                 }
+
+                float alertDistance = ProximityAlertDistance(particleIndex, otherParticleIndex);
+
+           
+                if (alertDistance > 0 && distance < alertDistance)
+                {
+                    if (_Variables[0].numProximityAlerts >= 500)
+                        continue;
+                    int previousNum;
+                    InterlockedAdd(_Variables[0].numProximityAlerts, 1, previousNum);
+                    _ProximityAlerts[previousNum].particleIdx1 = particleIndex;
+                    _ProximityAlerts[previousNum].particleIdx2 =  otherParticleIndex;
+                }
             }
         }
     }
-
     _ParticleNeighbourCount[particleIndex] = count;
 }
+
 
 bool IsInDifferentState(int particle1, int particle2)
 {
@@ -450,7 +499,7 @@ void CalculatePressures (uint3 id : SV_DispatchThreadID)
         float q = QDistance(particleIndex, neighbourIndex);
         if (q<1)
         {
-            // Visual density, does not take mass in to accountb
+            // Visual density, does not take mass in to account
             density += (1-q) * (1-q);
             nearDensity += (1-q) * (1-q) * (1-q);   
         }
@@ -480,8 +529,7 @@ float2 DensityDisplacement(int particle1, int particle2, float pullFactor=1)
    
         float2 d = _DeltaTime * _DeltaTime * (pressure * (1 - q) + nearPressure * (1 - q) * (1 - q)) *
                         normalize(fromTo);
-
-             
+        
         displacement =  0.5 * (FluidOf(particle1).Mass / FluidOf(particle2).Mass) * d;
 
         if (pressure < 0) displacement *= pullFactor;
@@ -498,8 +546,6 @@ void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
     if (i >= _NumParticles) return;
     
     if (IsSolid(i) ) return;
-
-   
     
     for (int j=0; j<_ParticleNeighbourCount[i]; j++)
     {
@@ -518,30 +564,6 @@ void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
         }
     }
 }
-
-/*
-float2 SpringDisplacementFromSolids(int particle, float2 position)
-{
-    float2 displacement = float2(0.0, 0.0);
-    
-    for (int j=0; j<_ParticleNeighbourCount[particle]; j++)
-    {
-        int neighbourIndex = _ParticleNeighbours[particle * _MaxNumNeighbours + j];
-        if (!IsSolid(neighbourIndex) ) continue;
-
-        float2 neighbourPos = _Particles[neighbourIndex].Position;
-
-        float2 toSolid = neighbourPos - position;
-
-        float penetration = length(toSolid) - _SolidRadius*1.3;
-        if (penetration > 0)
-        {
-            displacement += 0.5 * penetration * normalize(-toSolid);
-        }
-    }
-
-    return displacement;
-}*/
 
 
 [numthreads(8,8,1)]
