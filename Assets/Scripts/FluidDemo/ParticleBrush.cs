@@ -51,6 +51,8 @@ namespace FluidDemo
             if (Input.GetKey(KeyCode.Alpha1)) _currentFluidId = FluidId.Water;
             if (Input.GetKey(KeyCode.Alpha2)) _currentFluidId = FluidId.Smoke;
             if (Input.GetKey(KeyCode.Alpha3)) _currentFluidId = FluidId.Rock;
+            if (Input.GetKey(KeyCode.Alpha4)) _currentFluidId = FluidId.GreenLiquid;
+            if (Input.GetKey(KeyCode.Alpha5)) _currentFluidId = FluidId.RedLiquid;
 
 
             _previousMousePosition = MousePosition;

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.PlayerLoop;
 
 namespace FluidSimulation.Internal
 {
@@ -19,14 +20,26 @@ namespace FluidSimulation.Internal
             CalculateDensityDisplacement = 8,
             MoveParticles = 9
         }
+
+        struct Variables
+        {
+            public int NumProximityAlerts;
+            public int NumCellOverflowErrors;
+            public int NumParticleOutsideAreaErrors;
+            public int NumInsideSolidWarnings;
+            
+            public static int Stride => 4 * sizeof(int);
+        };
         
         public int SelectedParticle = -1;
         
         private readonly ComputeShader _computeShader;
         private ShaderBuffer[] _buffers;
         private readonly SimulationSettingsInternal _simulationSettings;
+        private ProximityAlert[] _proximityAlerts;
         
-        public ShaderManager(string shaderFileName, SimulationSettingsInternal simulationSettings, FluidInternal[] fluids, int numPartitioningCells)  
+        public ShaderManager(string shaderFileName, SimulationSettingsInternal simulationSettings,
+            FluidInternal[] fluids, int numPartitioningCells, ProximityAlertSubscription[] alerts)  
         {
             _computeShader = Resources.Load(shaderFileName) as ComputeShader;
             if (_computeShader == null)
@@ -40,6 +53,13 @@ namespace FluidSimulation.Internal
             
             _buffers[6].ComputeBuffer.SetData(fluids);
 
+            var alertMatrix = CreateProximityAlertMatrix(alerts, fluids);
+            _proximityAlerts = new ProximityAlert[500];
+            
+            _buffers[9].ComputeBuffer.SetData( alertMatrix );
+            
+//            _buffers[10].ComputeBuffer.SetData( new int[500] );
+
             foreach (int kernelIndex in AllKernelIndices())
             {
                 foreach (ShaderBuffer buffer in _buffers)
@@ -47,7 +67,8 @@ namespace FluidSimulation.Internal
                     _computeShader.SetBuffer(kernelIndex, buffer.Name, buffer.ComputeBuffer);
                 }
             }
-            SetShaderVariables(simulationSettings);
+
+            SetShaderVariables(simulationSettings, fluids);
         }
         
        
@@ -83,8 +104,20 @@ namespace FluidSimulation.Internal
             particles.ReadFromComputeBuffer(_buffers[0].ComputeBuffer);
             
             CheckErrorFlags();
-   
+
+            var variable = GetVariables();
+        
+
+            Vector2[] data = new Vector2[5];
+            _buffers[8].ComputeBuffer.GetData(data); 
+//            Debug.Log (data[0].ToString());
 //           Debug.Log("Sim step with " + numParticles + " particles : " + 1000f * (Time.realtimeSinceStartup - time) + " ms.");
+        }
+
+        public Span<ProximityAlert> GetProximityAlerts()
+        {
+            _buffers[10].ComputeBuffer.GetData(_proximityAlerts);
+            return _proximityAlerts.AsSpan(0, GetVariables().NumProximityAlerts);
         }
         
         public void Dispose()
@@ -104,7 +137,7 @@ namespace FluidSimulation.Internal
         }
 
 
-        private void SetShaderVariables(SimulationSettingsInternal simulationSettings)
+        private void SetShaderVariables(SimulationSettingsInternal simulationSettings, FluidInternal[] fluids)
         {
             _computeShader.SetInt("_MaxNumParticles", simulationSettings.MaxNumParticles);
             _computeShader.SetInt("_MaxNumNeighbours", simulationSettings.MaxNumNeighbours);
@@ -117,12 +150,14 @@ namespace FluidSimulation.Internal
             _computeShader.SetFloat("_Gravity", simulationSettings.Gravity);
             _computeShader.SetFloat("_Drag", simulationSettings.Drag);
             _computeShader.SetFloat("_SolidRadius", simulationSettings.SolidRadius);
+            _computeShader.SetInt("_NumFluids", fluids.Length);
         }
 
         
-        private ShaderBuffer[] CreateBuffers(SimulationSettingsInternal settings, FluidInternal[] fluids, int numPartitioningCells)
+        private ShaderBuffer[] CreateBuffers(SimulationSettingsInternal settings, FluidInternal[] fluids,
+            int numPartitioningCells)
         {
-            var buffers = new ShaderBuffer[9];
+            var buffers = new ShaderBuffer[11];
             var s = settings;
             int numPart = s.MaxNumParticles;
             int numNeigh = s.MaxNumNeighbours;
@@ -135,22 +170,56 @@ namespace FluidSimulation.Internal
             buffers[3] = new ShaderBuffer("_ParticleNeighbourCount", numPart,                  sizeof(int),          ShaderBuffer.Type.Internal);
             buffers[4] = new ShaderBuffer("_CellParticleCount",      numCells,                 sizeof(int),          ShaderBuffer.Type.Internal);
             buffers[5] = new ShaderBuffer("_ParticlesInCells",       numCells * numPartInCell, sizeof(int),          ShaderBuffer.Type.Internal);
-            buffers[6] = new ShaderBuffer("_Fluids",                 fluids.Length,            FluidInternal.Stride,         ShaderBuffer.Type.Internal);
-            buffers[7] = new ShaderBuffer("_Stats",                  10,                       sizeof(int),          ShaderBuffer.Type.IO);
+            buffers[6] = new ShaderBuffer("_Fluids",                 fluids.Length,            FluidInternal.Stride, ShaderBuffer.Type.Internal);
+            buffers[7] = new ShaderBuffer("_Variables",              1,                        Variables.Stride,     ShaderBuffer.Type.IO);
             buffers[8] = new ShaderBuffer("_Debug",                  10,                       sizeof(float),        ShaderBuffer.Type.IO);
+            buffers[9] = new ShaderBuffer("_ProximityAlertMatrix",   fluids.Length*fluids.Length, sizeof(float),     ShaderBuffer.Type.Internal); 
+            buffers[10] = new ShaderBuffer("_ProximityAlerts",       500,                      sizeof(int)*2,        ShaderBuffer.Type.IO); 
             
             return buffers;
+        }
+
+
+        private float[] CreateProximityAlertMatrix(ProximityAlertSubscription[] alerts, FluidInternal[] fluids)
+        {
+            float[] result = new float[fluids.Length * fluids.Length];
+            Array.Fill(result, -123f);
+   
+            if (alerts == null) return result;
+         
+            foreach (var alert in alerts)
+            {
+                CheckFluidIndex(alert.IndexFluidA);
+                CheckFluidIndex(alert.IndexFluidB);
+
+                int index = alert.IndexFluidA + alert.IndexFluidB * fluids.Length;
+                result[index] = alert.Range;
+            }
+            
+            return result;
+            
+            void CheckFluidIndex(int idx)
+            {
+                if (idx < 0 || idx >= fluids.Length) throw new IndexOutOfRangeException("Fluid index out of range.");
+            }
+
         }
         
         private void CheckErrorFlags()
         {
-            int[] errorFlags = new int[10];
-            _buffers[7].ComputeBuffer.GetData(errorFlags);
+            var v = GetVariables();
             
             string prefix = "FluidsComputeShader Warning: ";
-            if (errorFlags[0] > 0) Debug.LogWarning(prefix + "Too many particles in a cell: " + + errorFlags[0]);
-            if (errorFlags[1] > 0) Debug.LogWarning(prefix + "Particles outside area: " + + errorFlags[1]);
-            if (errorFlags[3] > 0) Debug.LogWarning(prefix + "Fluid particle starts inside solid: " + errorFlags[3]);
+            if (v.NumCellOverflowErrors > 0) Debug.LogWarning(prefix + "Too many particles in a cell: " + + v.NumCellOverflowErrors);
+            if (v.NumParticleOutsideAreaErrors > 0) Debug.LogWarning(prefix + "Particles outside area: " + + v.NumParticleOutsideAreaErrors);
+            if (v.NumInsideSolidWarnings > 0) Debug.LogWarning(prefix + "Fluid particle starts inside solid: " + v.NumInsideSolidWarnings);
+        }
+
+        private Variables GetVariables()
+        {
+            var variables = new Variables[1];
+            _buffers[7].ComputeBuffer.GetData(variables);
+            return variables[0];
         }
         
         private void Execute(Kernel kernel, Vector3Int threadGroups)
@@ -168,8 +237,8 @@ namespace FluidSimulation.Internal
             }
         }
         
-        private Vector3Int threadGroupsForParticles => new Vector3Int(32, 16, 1);
-        private Vector3Int threadGroupsForCells => new Vector3Int(32, 16, 1); //NOTE: This is too many
+        private Vector3Int threadGroupsForParticles => new Vector3Int(32, 16, 1); // TODO: Calculate necessary amount
+        private Vector3Int threadGroupsForCells => new Vector3Int(32, 16, 1); // TODO: Calculate necessary amount, this is too many.
     }
 }
 

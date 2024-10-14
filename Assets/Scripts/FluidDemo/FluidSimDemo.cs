@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using FluidSimulation;
 
@@ -29,20 +30,27 @@ namespace FluidDemo
             if (_particleVisualization == null) Debug.LogError("No visualization found in the scene.");
             if (_levelOutline == null) Debug.LogError("No container found in the scene.");
 
-            _fluidDynamics = new FluidDynamics(Settings, Fluids.List);
+            var alerts = CreateProximityAlertSubscriptions();
 
-            void SetMaxFrameRate(int frameRate)
-            {
-                QualitySettings.vSyncCount = 0;
-                Application.targetFrameRate = frameRate;
-            }
+            _fluidDynamics = new FluidDynamics(Settings, Fluids.List, alerts);
         }
+
+        void Update()
+        {
+            if (!_isPaused)
+            {
+                _fluidDynamics.Step(0.015f);
+                UpdateParticleVisualization();
+            }
+            HandleUserInput();
+            HandleProximityAlerts(_fluidDynamics.ProximityAlerts);
+        }
+
 
         private void OnDisable()
         {
             _fluidDynamics.Dispose();
         }
-
 
         void OnDrawGizmos()
         {
@@ -61,16 +69,8 @@ namespace FluidDemo
             Gizmos.DrawLine(data[0], data[0] + data[1]*100f);
         }
 
-        void Update()
-        {
-            if (!_isPaused)
-            {
-                _fluidDynamics.Step(0.015f);
-                UpdateParticleVisualization();
-            }
-            ProcessUserInput();
-        }
-        
+    
+
         public int SpawnParticle(Vector2 position, Vector2 velocity, FluidId fluidId)
         {
             var particle = new FluidParticle();
@@ -84,15 +84,54 @@ namespace FluidDemo
             return particleId;
         }
 
+        private void HandleProximityAlerts(Span<ProximityAlert> proximityAlerts)
+        {
+            foreach (var alert in proximityAlerts)
+            {
+                int i1 = alert.IndexParticleA;
+                int i2 = alert.IndexParticleB;
+
+                ChangeParticleSubstance(i1, FluidId.Smoke);
+                ChangeParticleSubstance(i2, FluidId.Smoke);
+            }
+                
+        }
+
+        private ProximityAlertSubscription[] CreateProximityAlertSubscriptions()
+        {
+            var pas = new ProximityAlertSubscription
+            {
+                IndexFluidA = Fluids.IndexOf(FluidId.GreenLiquid),
+                IndexFluidB = Fluids.IndexOf(FluidId.RedLiquid),
+                Range = 10f
+            };
+
+            return new[]{pas};
+        }
+
+        
+        private void ChangeParticleSubstance(int particleIdx, FluidId fluidId)
+        {
+            var p = _fluidDynamics.Particles[particleIdx];
+            p.SetFluid(FluidId.Smoke);
+            _fluidDynamics.Particles[particleIdx] = p;
+            
+            _particleVisualization.RemoveParticle(particleIdx);
+            _particleVisualization.AddParticle(particleIdx, fluidId,_fluidDynamics.Particles[particleIdx].Position);
+        }
+
+
         public void SetParticleVelocities(Vector2 position, float radius, Vector2 velocity)
         {
             foreach (var particleIdx in _fluidDynamics.Particles.InsideCircle(position, radius))
             {
-                _fluidDynamics.Particles.Particles[particleIdx].Velocity = velocity;
+                var p = _fluidDynamics.Particles[particleIdx];
+                p.Velocity = velocity;
+                _fluidDynamics.Particles[particleIdx] = p;
             }
         }
 
-        private void ProcessUserInput()
+        private void HandleUserInput()
         {
             if (Input.GetKeyDown(KeyCode.C)) Clear();
             if (Input.GetKeyDown(KeyCode.Q)) Application.Quit();
@@ -103,7 +142,7 @@ namespace FluidDemo
         private void UpdateParticleVisualization()
         {
             float t = Time.realtimeSinceStartup;
-            foreach (var particle in _fluidDynamics.Particles.Particles)
+            foreach (var particle in _fluidDynamics.Particles.All)
             {
                 _particleVisualization.UpdateParticle(particle.Id, particle.Position);
                 _particleVisualization.ColorParticle(particle.Id, Color.blue);
@@ -125,6 +164,13 @@ namespace FluidDemo
                 _fluidDynamics.SubscribeDebugData(particles[0]);
             }
         }
+        
+        private void SetMaxFrameRate(int frameRate)
+        {
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = frameRate;
+        }
+
 
     }
 }

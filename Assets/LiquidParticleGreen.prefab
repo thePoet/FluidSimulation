@@ -74,7 +74,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_Sprite: {fileID: 2747690628134850419, guid: b670ab75dde984907b8570040daa08c5, type: 3}
-  m_Color: {r: 1, g: 0.20392157, b: 1, a: 1}
+  m_Color: {r: 0.20392156, g: 1, b: 0.26254448, a: 0.46666667}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -177,7 +177,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5051592475686794841}
   m_Layer: 9
-  m_Name: LiquidParticleB
+  m_Name: LiquidParticleGreen
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

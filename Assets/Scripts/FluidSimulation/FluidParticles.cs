@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using FluidSimulation.Internal;
 using UnityEngine;
 
@@ -9,7 +10,7 @@ namespace FluidSimulation
     {
         public int MaxNumParticles { get; init; }
         public int NumParticles { get; private set; }
-        
+
         private FluidParticle[] _particles;
         private int _nextId = 0;
         private SpatialPartitioningGrid<int> _spatialPartitioning;
@@ -22,12 +23,16 @@ namespace FluidSimulation
             _spatialPartitioning = partitioning;
         }
         
-        // TODO: Jokin muu tapa?
-        public Span<FluidParticle> Particles => _particles.AsSpan().Slice(0, NumParticles);
         
         
-        public FluidParticle Get(int index) => _particles[index];
-        
+        public FluidParticle this[int index] 
+        {
+            get => _particles[index];
+            set => _particles[index] = value;
+        }
+       
+        public Span<FluidParticle> All => _particles.AsSpan().Slice(0, NumParticles);
+
         public int Add(FluidParticle particle)
         {
             //TODO: kunnolla
