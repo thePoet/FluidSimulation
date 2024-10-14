@@ -3,8 +3,9 @@ TODO:
 
 - Kevyet partikkelit liian kaaottisia törmäyksissä raskaiden kanssa ja raskaat tuntuvat liikkuvan myös liikaa
   törmäyksissä
-- tyyppi arraylle joka on indeksoitu enumilla?
+- kokeile ArrayByEnumia
 
 - Partikkelit kimpoavat väärin alueen laidoista
 - Järkevämpi virheiden ilmoittaminen
 - Lisää stabiiliutta nopeusrajoituksilla ja kitkalla
+    

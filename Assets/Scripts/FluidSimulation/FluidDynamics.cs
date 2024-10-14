@@ -23,7 +23,7 @@ namespace FluidSimulation
             var partitioningGrid = new SpatialPartitioningGrid<int>(
                 new Grid2D(settings.AreaBounds, squareSize: settings.InteractionRadius),
                 settings.MaxNumParticlesInPartitioningCell,
-                i => Particles.Get(i).Position);
+                i => Particles[i].Position);
 
             _shaderManager = new ShaderManager("FluidDynamicsComputeShader", settings, ToInternalFluids(fluids), partitioningGrid.NumSquares, alerts);
             
@@ -40,7 +40,7 @@ namespace FluidSimulation
             _shaderManager.Step(deltaTime, Particles, Particles.NumParticles);
         }
 
-        public Span<ProximityAlert> ProximityAlerts() => _shaderManager.GetProximityAlerts();
+        public Span<ProximityAlert> ProximityAlerts => _shaderManager.GetProximityAlerts();
         
 
         /// <summary>
@@ -127,7 +127,7 @@ namespace FluidSimulation
                 f.State = 2;
                 f.Stiffness = 1f;
                 f.NearStiffness = 1f;
-                f.RestDensity = 1f;
+                f.RestDensity = 5f;
                 f.DensityPullFactor = 0f;
 
                 f.GravityScale = 0f;

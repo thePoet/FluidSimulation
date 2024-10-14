@@ -30,21 +30,22 @@ namespace FluidDemo
             if (_particleVisualization == null) Debug.LogError("No visualization found in the scene.");
             if (_levelOutline == null) Debug.LogError("No container found in the scene.");
 
-            var pas = new ProximityAlertSubscription();
-            pas.IndexFluidA = Fluids.IndexOf(FluidId.GreenLiquid);
-            pas.IndexFluidB = Fluids.IndexOf(FluidId.RedLiquid);
-            pas.Range = 10f;
-            var alerts = new ProximityAlertSubscription[1];
-            alerts[0] = pas;
-            
-            _fluidDynamics = new FluidDynamics(Settings, Fluids.List, alerts);
+            var alerts = CreateProximityAlertSubscriptions();
 
-            void SetMaxFrameRate(int frameRate)
-            {
-                QualitySettings.vSyncCount = 0;
-                Application.targetFrameRate = frameRate;
-            }
+            _fluidDynamics = new FluidDynamics(Settings, Fluids.List, alerts);
         }
+
+        void Update()
+        {
+            if (!_isPaused)
+            {
+                _fluidDynamics.Step(0.015f);
+                UpdateParticleVisualization();
+            }
+            HandleUserInput();
+            HandleProximityAlerts(_fluidDynamics.ProximityAlerts);
+        }
+
 
         private void OnDisable()
         {
@@ -68,21 +69,7 @@ namespace FluidDemo
             Gizmos.DrawLine(data[0], data[0] + data[1]*100f);
         }
 
-        void Update()
-        {
-            if (!_isPaused)
-            {
-                _fluidDynamics.Step(0.015f);
-                UpdateParticleVisualization();
-            }
-            ProcessUserInput();
-
-
-            ProcessProximityAlerts(_fluidDynamics.ProximityAlerts());
-            
-        }
-
-       
+    
 
         public int SpawnParticle(Vector2 position, Vector2 velocity, FluidId fluidId)
         {
@@ -97,7 +84,7 @@ namespace FluidDemo
             return particleId;
         }
 
-        private void ProcessProximityAlerts(Span<ProximityAlert> proximityAlerts)
+        private void HandleProximityAlerts(Span<ProximityAlert> proximityAlerts)
         {
             foreach (var alert in proximityAlerts)
             {
@@ -110,11 +97,27 @@ namespace FluidDemo
                 
         }
 
+        private ProximityAlertSubscription[] CreateProximityAlertSubscriptions()
+        {
+            var pas = new ProximityAlertSubscription
+            {
+                IndexFluidA = Fluids.IndexOf(FluidId.GreenLiquid),
+                IndexFluidB = Fluids.IndexOf(FluidId.RedLiquid),
+                Range = 10f
+            };
+
+            return new[]{pas};
+        }
+
+        
         private void ChangeParticleSubstance(int particleIdx, FluidId fluidId)
         {
-            _fluidDynamics.Particles.Particles[particleIdx].SetFluid(FluidId.Smoke);
+            var p = _fluidDynamics.Particles[particleIdx];
+            p.SetFluid(FluidId.Smoke);
+            _fluidDynamics.Particles[particleIdx] = p;
+            
             _particleVisualization.RemoveParticle(particleIdx);
-            _particleVisualization.AddParticle(particleIdx, fluidId,_fluidDynamics.Particles.Particles[particleIdx].Position);
+            _particleVisualization.AddParticle(particleIdx, fluidId,_fluidDynamics.Particles[particleIdx].Position);
         }
 
 
@@ -122,11 +125,13 @@ namespace FluidDemo
         {
             foreach (var particleIdx in _fluidDynamics.Particles.InsideCircle(position, radius))
             {
-                _fluidDynamics.Particles.Particles[particleIdx].Velocity = velocity;
+                var p = _fluidDynamics.Particles[particleIdx];
+                p.Velocity = velocity;
+                _fluidDynamics.Particles[particleIdx] = p;
             }
         }
 
-        private void ProcessUserInput()
+        private void HandleUserInput()
         {
             if (Input.GetKeyDown(KeyCode.C)) Clear();
             if (Input.GetKeyDown(KeyCode.Q)) Application.Quit();
@@ -137,7 +142,7 @@ namespace FluidDemo
         private void UpdateParticleVisualization()
         {
             float t = Time.realtimeSinceStartup;
-            foreach (var particle in _fluidDynamics.Particles.Particles)
+            foreach (var particle in _fluidDynamics.Particles.All)
             {
                 _particleVisualization.UpdateParticle(particle.Id, particle.Position);
                 _particleVisualization.ColorParticle(particle.Id, Color.blue);
@@ -159,6 +164,13 @@ namespace FluidDemo
                 _fluidDynamics.SubscribeDebugData(particles[0]);
             }
         }
+        
+        private void SetMaxFrameRate(int frameRate)
+        {
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = frameRate;
+        }
+
 
     }
 }

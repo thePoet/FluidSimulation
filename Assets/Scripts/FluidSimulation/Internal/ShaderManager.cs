@@ -106,13 +106,11 @@ namespace FluidSimulation.Internal
             CheckErrorFlags();
 
             var variable = GetVariables();
-            Debug.Log(variable.NumProximityAlerts);
+        
 
             Vector2[] data = new Vector2[5];
             _buffers[8].ComputeBuffer.GetData(data); 
 //            Debug.Log (data[0].ToString());
-            
-   
 //           Debug.Log("Sim step with " + numParticles + " particles : " + 1000f * (Time.realtimeSinceStartup - time) + " ms.");
         }
 

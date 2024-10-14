@@ -394,7 +394,6 @@ void FindNeighbours (uint3 id : SV_DispatchThreadID)
                 }
 
                 float alertDistance = ProximityAlertDistance(particleIndex, otherParticleIndex);
-
            
                 if (alertDistance > 0 && distance < alertDistance)
                 {
@@ -403,7 +402,7 @@ void FindNeighbours (uint3 id : SV_DispatchThreadID)
                     int previousNum;
                     InterlockedAdd(_Variables[0].numProximityAlerts, 1, previousNum);
                     _ProximityAlerts[previousNum].particleIdx1 = particleIndex;
-                    _ProximityAlerts[previousNum].particleIdx2 =  otherParticleIndex;
+                    _ProximityAlerts[previousNum].particleIdx2 = otherParticleIndex;
                 }
             }
         }
