@@ -22,7 +22,7 @@ namespace FluidDemo
             List = new Fluid[numLiquids];
             
             List[(int)FluidId.Water] = new Liquid(Density: 1f, Viscosity: 0.3f);
-            List[(int)FluidId.Smoke] = new Gas(Density: 0.01f,  Viscosity: 0.1f);
+            List[(int)FluidId.Smoke] = new Gas(Density: 0.05f,  Viscosity: 0.1f);
             List[(int)FluidId.Rock]  = new Solid(Density: 2f);
             List[(int)FluidId.GreenLiquid] = new Liquid(Density: 1f, Viscosity: 0.3f);
             List[(int)FluidId.RedLiquid] = new Liquid(Density: 1f, Viscosity: 0.3f);

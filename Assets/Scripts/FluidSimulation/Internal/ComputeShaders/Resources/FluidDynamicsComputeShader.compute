@@ -421,7 +421,7 @@ float2 ViscosityImpulse(int particle1, int particle2)
 {
     float2 impulse = float2(0,0);
     
-    if (!IsSolid(particle1) && !IsSolid(particle2) )
+    if (!IsSolid(particle1) && !IsSolid(particle2))// && !IsInDifferentState(particle1, particle2) )
     {
         int fluidIdx = _Particles[particle1].fluidIdx;
         float sigma = _Fluids[fluidIdx].ViscositySigma;
@@ -528,8 +528,10 @@ float2 DensityDisplacement(int particle1, int particle2, float pullFactor=1)
    
         float2 d = _DeltaTime * _DeltaTime * (pressure * (1 - q) + nearPressure * (1 - q) * (1 - q)) *
                         normalize(fromTo);
+
+        float massFactor = max(FluidOf(particle1).Mass / FluidOf(particle2).Mass, 1);
         
-        displacement =  0.5 * (FluidOf(particle1).Mass / FluidOf(particle2).Mass) * d;
+        displacement =  0.5 * massFactor * d;
 
         if (pressure < 0) displacement *= pullFactor;
         
