@@ -73,7 +73,7 @@ namespace FluidDemo
 
         public int SpawnParticle(Vector2 position, Vector2 velocity, FluidId fluidId)
         {
-            var particle = new FluidParticle();
+            var particle = new Particle();
             particle.Position = position;
             particle.Velocity = velocity;
             particle.SetFluid(fluidId);
@@ -97,9 +97,9 @@ namespace FluidDemo
                 
         }
 
-        private ProximityAlertSubscription[] CreateProximityAlertSubscriptions()
+        private ProximityAlertRequest[] CreateProximityAlertSubscriptions()
         {
-            var pas = new ProximityAlertSubscription
+            var pas = new ProximityAlertRequest
             {
                 IndexFluidA = Fluids.IndexOf(FluidId.GreenLiquid),
                 IndexFluidB = Fluids.IndexOf(FluidId.RedLiquid),

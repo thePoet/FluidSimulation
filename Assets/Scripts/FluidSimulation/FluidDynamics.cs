@@ -5,10 +5,14 @@ using UnityEngine;
 
 namespace FluidSimulation
 {
+    
+    /// <summary>
+    /// Interface for particle based fluid simulation run on GPU. Simulation also provides proximity alerts if particles of given substances
+    /// come close to each other.
+    /// </summary>
     public class FluidDynamics 
     {
-        public readonly FluidParticles Particles;   
-        
+        public readonly Particles Particles;   
         
         private readonly ShaderManager _shaderManager;
 
@@ -16,18 +20,19 @@ namespace FluidSimulation
         
         
         //TODO: parameters could be combined into a single type
-        public FluidDynamics(SimulationSettings simulationSettings, Fluid[] fluids, ProximityAlertSubscription[] alerts = null)
+        public FluidDynamics(SimulationSettings simulationSettings, Substance[] substances, ProximityAlertRequest[] alerts = null)
         {
             var settings = ConvertSimulationSettings(simulationSettings);
             
+            // TODO: from GPU??
             var partitioningGrid = new SpatialPartitioningGrid<int>(
                 new Grid2D(settings.AreaBounds, squareSize: settings.InteractionRadius),
                 settings.MaxNumParticlesInPartitioningCell,
                 i => Particles[i].Position);
 
-            _shaderManager = new ShaderManager("FluidDynamicsComputeShader", settings, ToInternalFluids(fluids), partitioningGrid.NumSquares, alerts);
+            _shaderManager = new ShaderManager("FluidDynamicsComputeShader", settings, ToInternalFluids(substances), partitioningGrid.NumSquares, alerts);
             
-            Particles = new FluidParticles(settings.MaxNumParticles, partitioningGrid);
+            Particles = new Particles(settings.MaxNumParticles, partitioningGrid);
         }
 
         public void Dispose()
@@ -78,7 +83,7 @@ namespace FluidSimulation
             return ssi;
         }
         
-        FluidInternal[] ToInternalFluids(Fluid[] fluids)
+        FluidInternal[] ToInternalFluids(Substance[] fluids)
         {
             var internalFluids = new FluidInternal[fluids.Length];
             for (int i = 0; i < fluids.Length; i++)
@@ -88,13 +93,13 @@ namespace FluidSimulation
             return internalFluids;
         }
         
-        private FluidInternal ConvertFluid(Fluid fluid)
+        private FluidInternal ConvertFluid(Substance substance)
         {
             var f = new FluidInternal();
 
-            f.Mass = fluid.Density;
+            f.Mass = substance.Density;
 
-            if (fluid is Liquid)
+            if (substance is Liquid)
             {
                 f.State = 0;
                 f.Stiffness = 2000f;
@@ -102,13 +107,13 @@ namespace FluidSimulation
                 f.RestDensity = 5f;
                 f.DensityPullFactor = 0.5f;
 
-                f.ViscositySigma = 0.2f * (fluid as Liquid).Viscosity;
-                f.ViscosityBeta = 0.2f * (fluid as Liquid).Viscosity;
+                f.ViscositySigma = 0.2f * (substance as Liquid).Viscosity;
+                f.ViscosityBeta = 0.2f * (substance as Liquid).Viscosity;
 
                 f.GravityScale = 1f;
             }
 
-            if (fluid is Gas)
+            if (substance is Gas)
             {
                 f.State = 1;
                 f.Stiffness = 200f;
@@ -116,13 +121,13 @@ namespace FluidSimulation
                 f.RestDensity = 5f;
                 f.DensityPullFactor = 0.5f;
                 
-                f.ViscositySigma = 0.2f * (fluid as Gas).Viscosity;
-                f.ViscosityBeta = 0.2f * (fluid as Gas).Viscosity;
+                f.ViscositySigma = 0.2f * (substance as Gas).Viscosity;
+                f.ViscosityBeta = 0.2f * (substance as Gas).Viscosity;
 
                 f.GravityScale = -0.05f;
             }
 
-            if (fluid is Solid)
+            if (substance is Solid)
             {
                 f.State = 2;
                 f.Stiffness = 1f;

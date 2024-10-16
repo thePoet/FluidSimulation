@@ -1,39 +1,38 @@
 using System;
-using System.Collections;
 using FluidSimulation.Internal;
 using UnityEngine;
 
 
 namespace FluidSimulation
 {
-    public class FluidParticles
+    public class Particles
     {
         public int MaxNumParticles { get; init; }
         public int NumParticles { get; private set; }
 
-        private FluidParticle[] _particles;
+        private Particle[] _particles;
         private int _nextId = 0;
         private SpatialPartitioningGrid<int> _spatialPartitioning;
 
-        public FluidParticles(int maxNumParticles, SpatialPartitioningGrid<int> partitioning)
+        public Particles(int maxNumParticles, SpatialPartitioningGrid<int> partitioning)
         {
             MaxNumParticles = maxNumParticles;
             NumParticles = 0;
-            _particles = new FluidParticle[maxNumParticles];
+            _particles = new Particle[maxNumParticles];
             _spatialPartitioning = partitioning;
         }
         
         
         
-        public FluidParticle this[int index] 
+        public Particle this[int index] 
         {
             get => _particles[index];
             set => _particles[index] = value;
         }
        
-        public Span<FluidParticle> All => _particles.AsSpan().Slice(0, NumParticles);
+        public Span<Particle> All => _particles.AsSpan().Slice(0, NumParticles);
 
-        public int Add(FluidParticle particle)
+        public int Add(Particle particle)
         {
             //TODO: kunnolla
             particle.Id = _nextId;
@@ -56,6 +55,8 @@ namespace FluidSimulation
         {
             NumParticles = 0;
         }
+        
+        public int[] InsideRectangle(Rect rect) => _spatialPartitioning.RectangleContents(rect);
         
         public int[] InsideCircle(Vector2 position, float radius) => _spatialPartitioning.CircleContents(position, radius);
 

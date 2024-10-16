@@ -2,11 +2,11 @@ using System;
 
 namespace FluidSimulation
 {
-    public abstract record Fluid(Density Density);
+    public abstract record Substance(Density Density);
 
-    public record Liquid(Density Density, Viscosity Viscosity) : Fluid(Density);
-    public record Gas(Density Density, Viscosity Viscosity)    : Fluid(Density);
-    public record Solid(Density Density)                       : Fluid(Density);  // Solid is a non-fluid fluid :)
+    public record Liquid(Density Density, Viscosity Viscosity) : Substance(Density);
+    public record Gas(Density Density, Viscosity Viscosity)    : Substance(Density);
+    public record Solid(Density Density)                       : Substance(Density);  
 
     public record Density 
     {

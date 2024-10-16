@@ -1,11 +1,13 @@
 TODO:
 
+-partikkelien poisto id/index erottelu
 
 - Kevyet partikkelit liian kaaottisia törmäyksissä raskaiden kanssa ja raskaat tuntuvat liikkuvan myös liikaa
   törmäyksissä
 - kokeile ArrayByEnumia
 
 - Partikkelit kimpoavat väärin alueen laidoista
-- Järkevämpi virheiden ilmoittaminen
-- Lisää stabiiliutta nopeusrajoituksilla ja kitkalla
+- Lisää stabiiliutta nopeusrajoituksilla ja kitkalla ?
+
+- spatial partitioning GPU:lle
     

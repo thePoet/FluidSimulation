@@ -39,7 +39,7 @@ namespace FluidSimulation.Internal
         private ProximityAlert[] _proximityAlerts;
         
         public ShaderManager(string shaderFileName, SimulationSettingsInternal simulationSettings,
-            FluidInternal[] fluids, int numPartitioningCells, ProximityAlertSubscription[] alerts)  
+            FluidInternal[] fluids, int numPartitioningCells, ProximityAlertRequest[] alerts)  
         {
             _computeShader = Resources.Load(shaderFileName) as ComputeShader;
             if (_computeShader == null)
@@ -72,7 +72,7 @@ namespace FluidSimulation.Internal
         }
         
        
-        public void Step(float deltaTime, FluidParticles particles, int numParticles)
+        public void Step(float deltaTime, Particles particles, int numParticles)
         {
             float time=Time.realtimeSinceStartup;
             
@@ -164,7 +164,7 @@ namespace FluidSimulation.Internal
             int numCells = numPartitioningCells;
             int numPartInCell = s.MaxNumParticlesInPartitioningCell;
 
-            buffers[0] = new ShaderBuffer("_Particles",              numPart,                  FluidParticle.Stride, ShaderBuffer.Type.IO);
+            buffers[0] = new ShaderBuffer("_Particles",              numPart,                  Particle.Stride, ShaderBuffer.Type.IO);
             buffers[1] = new ShaderBuffer("_TempData",               numPart,                  14 * sizeof(float),   ShaderBuffer.Type.Internal);
             buffers[2] = new ShaderBuffer("_ParticleNeighbours",     numPart * numNeigh,       sizeof(int),          ShaderBuffer.Type.Internal);
             buffers[3] = new ShaderBuffer("_ParticleNeighbourCount", numPart,                  sizeof(int),          ShaderBuffer.Type.Internal);
@@ -180,7 +180,7 @@ namespace FluidSimulation.Internal
         }
 
 
-        private float[] CreateProximityAlertMatrix(ProximityAlertSubscription[] alerts, FluidInternal[] fluids)
+        private float[] CreateProximityAlertMatrix(ProximityAlertRequest[] alerts, FluidInternal[] fluids)
         {
             float[] result = new float[fluids.Length * fluids.Length];
             Array.Fill(result, -123f);
