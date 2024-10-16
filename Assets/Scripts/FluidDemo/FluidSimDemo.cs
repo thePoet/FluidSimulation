@@ -1,16 +1,23 @@
 using System;
 using UnityEngine;
 using FluidSimulation;
+using RikusGameDevToolbox.GeneralUse;
+using TMPro;
 
 namespace FluidDemo
 {
     public class FluidSimDemo : MonoBehaviour
     {
+        public TextMeshPro text;
+        
+        
         private FluidDynamics _fluidDynamics;
         private ParticleVisualization _particleVisualization;
         private LevelOutline _levelOutline;
         private bool _isPaused;
-    
+
+        private MovingAverage _avgUpdateTime;
+        
         private SimulationSettings Settings => new()
         {
             Scale = 6f,
@@ -33,10 +40,13 @@ namespace FluidDemo
             var alerts = CreateProximityAlertSubscriptions();
 
             _fluidDynamics = new FluidDynamics(Settings, Fluids.List, alerts);
+            _avgUpdateTime = new MovingAverage(300);
         }
 
         void Update()
         {
+            float t = Time.realtimeSinceStartup;
+            
             if (!_isPaused)
             {
                 _fluidDynamics.Step(0.015f);
@@ -44,6 +54,13 @@ namespace FluidDemo
             }
             HandleUserInput();
             HandleProximityAlerts(_fluidDynamics.ProximityAlerts);
+            
+            t = Time.realtimeSinceStartup - t;
+            _avgUpdateTime.Add(t);
+            float avgUpdate = _avgUpdateTime.Average()*1000f;
+
+            text.text = "Particles: " + _fluidDynamics.Particles.NumParticles + " - " + avgUpdate.ToString("0.0") +
+                        " ms.";
         }
 
 
@@ -145,8 +162,11 @@ namespace FluidDemo
             foreach (var particle in _fluidDynamics.Particles.All)
             {
                 _particleVisualization.UpdateParticle(particle.Id, particle.Position);
-                _particleVisualization.ColorParticle(particle.Id, Color.blue);
             }
+            
+            t= Time.realtimeSinceStartup-t;
+            
+//            Debug.Log("Updating particle visualization took" + t*1000f + " ms");
         }
 
         private void Clear()
