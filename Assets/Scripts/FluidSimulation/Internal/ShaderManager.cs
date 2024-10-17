@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.PlayerLoop;
+using FluidDemo; // TODO: pois
 
 namespace FluidSimulation.Internal
 {
@@ -39,7 +39,7 @@ namespace FluidSimulation.Internal
         private ProximityAlert[] _proximityAlerts;
         
         public ShaderManager(string shaderFileName, SimulationSettingsInternal simulationSettings,
-            FluidInternal[] fluids, int numPartitioningCells, ProximityAlertRequest[] alerts)  
+            FluidInternal[] fluids, ProximityAlertRequest[] alerts)  
         {
             _computeShader = Resources.Load(shaderFileName) as ComputeShader;
             if (_computeShader == null)
@@ -48,17 +48,14 @@ namespace FluidSimulation.Internal
             }
             
             _simulationSettings = simulationSettings;
-        
-            _buffers = CreateBuffers(simulationSettings, fluids, numPartitioningCells);
             
+            _buffers = CreateBuffers(simulationSettings, fluids, NumPartitioningCells());
             _buffers[6].ComputeBuffer.SetData(fluids);
 
             var alertMatrix = CreateProximityAlertMatrix(alerts, fluids);
             _proximityAlerts = new ProximityAlert[500];
             
             _buffers[9].ComputeBuffer.SetData( alertMatrix );
-            
-//            _buffers[10].ComputeBuffer.SetData( new int[500] );
 
             foreach (int kernelIndex in AllKernelIndices())
             {
@@ -69,19 +66,33 @@ namespace FluidSimulation.Internal
             }
 
             SetShaderVariables(simulationSettings, fluids);
+            
+            // TODO: move this inside shader
+            int NumPartitioningCells()
+            {
+                Rect area = simulationSettings.AreaBounds;
+                float squareSize = simulationSettings.InteractionRadius;
+                int result = Mathf.CeilToInt((area.max.x - area.min.x) / squareSize) *
+                               Mathf.CeilToInt((area.max.y - area.min.y) / squareSize);
+                return result;
+            }
         }
         
        
-        public void Step(float deltaTime, Particles particles, int numParticles)
+        public void Step(float deltaTime, Particle[] particles, int numParticles)
         {
             float time=Time.realtimeSinceStartup;
+
+//            particles.WriteToComputeBuffer(_buffers[0].ComputeBuffer);
+            _buffers[0].ComputeBuffer.SetData(particles);
+            
             
             _computeShader.SetInt("_NumParticles", numParticles);
             _computeShader.SetFloat("_DeltaTime", deltaTime/_simulationSettings.NumSubSteps);
             _computeShader.SetFloat("_MaxDisplacement", _simulationSettings.InteractionRadius * 0.45f);
             _computeShader.SetInt("_SelectedParticle", SelectedParticle);
             
-            particles.WriteToComputeBuffer(_buffers[0].ComputeBuffer);
+        
           
             for (int s = 0; s < _simulationSettings.NumSubSteps; s++)
             {
@@ -101,7 +112,8 @@ namespace FluidSimulation.Internal
                 Execute(Kernel.MoveParticles, threadGroupsForParticles);
             }
 
-            particles.ReadFromComputeBuffer(_buffers[0].ComputeBuffer);
+//            particles.ReadFromComputeBuffer(_buffers[0].ComputeBuffer);
+            _buffers[0].ComputeBuffer.GetData(particles);  
             
             CheckErrorFlags();
 

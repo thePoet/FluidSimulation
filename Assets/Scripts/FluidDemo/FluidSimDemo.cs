@@ -12,6 +12,8 @@ namespace FluidDemo
         
         
         private FluidDynamics _fluidDynamics;
+        private Particles _particles;
+        
         private ParticleVisualization _particleVisualization;
         private LevelOutline _levelOutline;
         private bool _isPaused;
@@ -40,6 +42,14 @@ namespace FluidDemo
             var alerts = CreateProximityAlertSubscriptions();
 
             _fluidDynamics = new FluidDynamics(Settings, Fluids.List, alerts);
+            
+            var partitioningGrid = new SpatialPartitioningGrid<int>(
+                new Grid2D(Settings.AreaBounds, squareSize: 3.5f * Settings.Scale),
+                40,
+                i => _particles[i].Position);
+            
+            _particles = new Particles(Settings.MaxNumParticles, partitioningGrid);
+            
             _avgUpdateTime = new MovingAverage(300);
         }
 
@@ -49,7 +59,8 @@ namespace FluidDemo
             
             if (!_isPaused)
             {
-                _fluidDynamics.Step(0.015f);
+                _fluidDynamics.Step(0.015f, _particles.FluidDynamicsParticles, _particles.NumParticles);
+                _particles.UpdateSpatialPartitioningGrid();
                 UpdateParticleVisualization();
             }
             HandleUserInput();
@@ -59,7 +70,7 @@ namespace FluidDemo
             _avgUpdateTime.Add(t);
             float avgUpdate = _avgUpdateTime.Average()*1000f;
 
-            text.text = "Particles: " + _fluidDynamics.Particles.NumParticles + " - " + avgUpdate.ToString("0.0") +
+            text.text = "Particles: " + _particles.NumParticles + " - " + avgUpdate.ToString("0.0") +
                         " ms.";
         }
 
@@ -95,7 +106,7 @@ namespace FluidDemo
             particle.Velocity = velocity;
             particle.SetFluid(fluidId);
 
-            int particleId = _fluidDynamics.Particles.Add(particle);
+            int particleId = _particles.Add(particle);
             _particleVisualization.AddParticle(particleId, fluidId, position);
 
             return particleId;
@@ -129,22 +140,22 @@ namespace FluidDemo
         
         private void ChangeParticleSubstance(int particleIdx, FluidId fluidId)
         {
-            var p = _fluidDynamics.Particles[particleIdx];
+            var p = _particles[particleIdx];
             p.SetFluid(FluidId.Smoke);
-            _fluidDynamics.Particles[particleIdx] = p;
+            _particles[particleIdx] = p;
             
             _particleVisualization.RemoveParticle(particleIdx);
-            _particleVisualization.AddParticle(particleIdx, fluidId,_fluidDynamics.Particles[particleIdx].Position);
+            _particleVisualization.AddParticle(particleIdx, fluidId,_particles[particleIdx].Position);
         }
 
 
         public void SetParticleVelocities(Vector2 position, float radius, Vector2 velocity)
         {
-            foreach (var particleIdx in _fluidDynamics.Particles.InsideCircle(position, radius))
+            foreach (var particleIdx in _particles.InsideCircle(position, radius))
             {
-                var p = _fluidDynamics.Particles[particleIdx];
+                var p = _particles[particleIdx];
                 p.Velocity = velocity;
-                _fluidDynamics.Particles[particleIdx] = p;
+                _particles[particleIdx] = p;
             }
         }
 
@@ -159,7 +170,7 @@ namespace FluidDemo
         private void UpdateParticleVisualization()
         {
             float t = Time.realtimeSinceStartup;
-            foreach (var particle in _fluidDynamics.Particles.All)
+            foreach (var particle in _particles.Span)
             {
                 _particleVisualization.UpdateParticle(particle.Id, particle.Position);
             }
@@ -171,14 +182,14 @@ namespace FluidDemo
 
         private void Clear()
         {
-            _fluidDynamics.Particles.Clear();
+            _particles.Clear();
             _particleVisualization.Clear();
         }
 
         private void SelectDebugParticle()
         {
             Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            int[] particles = _fluidDynamics.Particles.InsideCircle(mousePos, 15f);
+            int[] particles = _particles.InsideCircle(mousePos, 15f);
             if (particles.Length > 0)
             {
                 _fluidDynamics.SubscribeDebugData(particles[0]);

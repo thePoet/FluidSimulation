@@ -1,7 +1,7 @@
 using System;
 using FluidSimulation.Internal;
-using RikusGameDevToolbox.GeneralUse;
 using UnityEngine;
+using FluidDemo; // TODO: pois
 
 namespace FluidSimulation
 {
@@ -12,7 +12,6 @@ namespace FluidSimulation
     /// </summary>
     public class FluidDynamics 
     {
-        public readonly Particles Particles;   
         
         private readonly ShaderManager _shaderManager;
 
@@ -23,27 +22,30 @@ namespace FluidSimulation
         public FluidDynamics(SimulationSettings simulationSettings, Substance[] substances, ProximityAlertRequest[] alerts = null)
         {
             var settings = ConvertSimulationSettings(simulationSettings);
-            
-            // TODO: from GPU??
-            var partitioningGrid = new SpatialPartitioningGrid<int>(
-                new Grid2D(settings.AreaBounds, squareSize: settings.InteractionRadius),
-                settings.MaxNumParticlesInPartitioningCell,
-                i => Particles[i].Position);
-
-            _shaderManager = new ShaderManager("FluidDynamicsComputeShader", settings, ToInternalFluids(substances), partitioningGrid.NumSquares, alerts);
-            
-            Particles = new Particles(settings.MaxNumParticles, partitioningGrid);
+    
+            _shaderManager = new ShaderManager("FluidDynamicsComputeShader", settings, ToInternalFluids(substances), alerts);
         }
 
         public void Dispose()
         {
             _shaderManager.Dispose();
         }
-
-        public void Step(float deltaTime)
+/*
+        public void Step(float deltaTime, Particles particles)
         {
-            _shaderManager.Step(deltaTime, Particles, Particles.NumParticles);
+            _shaderManager.Step(deltaTime, particles, particles.NumParticles);
+        }*/
+
+        public void Step(float deltaTime, Particle[] particles, int numParticles)
+        {
+            _shaderManager.Step(deltaTime, particles, numParticles);
         }
+        
+/*
+        public void Step(float deltaTime, Span<Particle> particles)
+        {
+            _shaderManager.Step(deltaTime, particles);
+        }*/
 
         public Span<ProximityAlert> ProximityAlerts => _shaderManager.GetProximityAlerts();
         

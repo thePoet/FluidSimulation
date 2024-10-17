@@ -1,9 +1,8 @@
 using System;
-using FluidSimulation.Internal;
 using UnityEngine;
+using FluidSimulation;
 
-
-namespace FluidSimulation
+namespace FluidDemo
 {
     public class Particles
     {
@@ -30,7 +29,9 @@ namespace FluidSimulation
             set => _particles[index] = value;
         }
        
-        public Span<Particle> All => _particles.AsSpan().Slice(0, NumParticles);
+        public Span<Particle> Span => _particles.AsSpan().Slice(0, NumParticles);
+
+        public Particle[] FluidDynamicsParticles => _particles;
 
         public int Add(Particle particle)
         {
@@ -60,6 +61,7 @@ namespace FluidSimulation
         
         public int[] InsideCircle(Vector2 position, float radius) => _spatialPartitioning.CircleContents(position, radius);
 
+        /*
         public void WriteToComputeBuffer(ComputeBuffer buffer)
         {
             buffer.SetData(_particles);
@@ -70,9 +72,9 @@ namespace FluidSimulation
             buffer.GetData(_particles);  
             UpdateSpatialPartitioningGrid();
         }
-        
-        // TODO: Read from compute buffer instead.
-        private void UpdateSpatialPartitioningGrid()
+        */
+
+        public void UpdateSpatialPartitioningGrid()
         {
             _spatialPartitioning.Clear();
             for (int i = 0; i < NumParticles; i++)

@@ -1,5 +1,5 @@
 using UnityEngine;
-
+/*
 public static class LineUtil 
 {
   
@@ -134,4 +134,4 @@ public static class LineUtil
             return Mathf.Abs(a - b) <= tolerance;
         }
     }
-}
+}*/

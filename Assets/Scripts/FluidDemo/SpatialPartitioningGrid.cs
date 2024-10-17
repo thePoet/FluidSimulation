@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using RikusGameDevToolbox.GeneralUse;
 
-namespace FluidSimulation.Internal
+namespace FluidDemo
 {
     public class SpatialPartitioningGrid<T>
     {
