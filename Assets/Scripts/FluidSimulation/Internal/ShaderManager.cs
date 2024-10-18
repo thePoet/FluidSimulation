@@ -87,7 +87,7 @@ namespace FluidSimulation.Internal
             _buffers[0].ComputeBuffer.SetData(particles);
             
             
-            _computeShader.SetInt("_NumParticles", numParticles);
+       //     _computeShader.SetInt("_NumParticles", numParticles);
             _computeShader.SetFloat("_DeltaTime", deltaTime/_simulationSettings.NumSubSteps);
             _computeShader.SetFloat("_MaxDisplacement", _simulationSettings.InteractionRadius * 0.45f);
             _computeShader.SetInt("_SelectedParticle", SelectedParticle);

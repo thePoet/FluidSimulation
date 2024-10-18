@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using FluidSimulation;
 using RikusGameDevToolbox.GeneralUse;
@@ -32,6 +34,7 @@ namespace FluidDemo
 
         private void Awake()
         {
+          
             SetMaxFrameRate(60);
 
             _particleVisualization = FindObjectOfType<ParticleVisualization>();
@@ -105,7 +108,7 @@ namespace FluidDemo
             particle.Position = position;
             particle.Velocity = velocity;
             particle.SetFluid(fluidId);
-
+            particle.Active = true;
             int particleId = _particles.Add(particle);
             _particleVisualization.AddParticle(particleId, fluidId, position);
 

@@ -18,6 +18,19 @@ namespace FluidDemo
             MaxNumParticles = maxNumParticles;
             NumParticles = 0;
             _particles = new Particle[maxNumParticles];
+            for (int i = 0; i < _particles.Length; i++)
+            {
+                _particles[i] = new Particle
+                {
+                    Position = Vector2.zero,
+                    Velocity = Vector2.zero,
+                    FluidIndex = -1,
+                    Id = -1,
+                    Active = false
+                };
+
+              
+            }
             _spatialPartitioning = partitioning;
         }
         
@@ -61,25 +74,13 @@ namespace FluidDemo
         
         public int[] InsideCircle(Vector2 position, float radius) => _spatialPartitioning.CircleContents(position, radius);
 
-        /*
-        public void WriteToComputeBuffer(ComputeBuffer buffer)
-        {
-            buffer.SetData(_particles);
-        }
-
-        public void ReadFromComputeBuffer(ComputeBuffer buffer)
-        {
-            buffer.GetData(_particles);  
-            UpdateSpatialPartitioningGrid();
-        }
-        */
-
+      
         public void UpdateSpatialPartitioningGrid()
         {
             _spatialPartitioning.Clear();
             for (int i = 0; i < NumParticles; i++)
             {
-                _spatialPartitioning.Add(i);
+                if (_particles[i].Active) _spatialPartitioning.Add(i);
             }
         }
 
