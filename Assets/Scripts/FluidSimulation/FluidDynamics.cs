@@ -36,9 +36,9 @@ namespace FluidSimulation
             _shaderManager.Step(deltaTime, particles, particles.NumParticles);
         }*/
 
-        public void Step(float deltaTime, Particle[] particles, int numParticles)
+        public void Step(float deltaTime, FluidSimParticle[] particles)
         {
-            _shaderManager.Step(deltaTime, particles, numParticles);
+            _shaderManager.Step(deltaTime, particles);
         }
         
 /*

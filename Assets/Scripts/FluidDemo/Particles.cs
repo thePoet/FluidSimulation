@@ -9,7 +9,7 @@ namespace FluidDemo
         public int MaxNumParticles { get; init; }
         public int NumParticles { get; private set; }
 
-        private Particle[] _particles;
+        private FluidSimParticle[] _particles;
         private int _nextId = 0;
         private SpatialPartitioningGrid<int> _spatialPartitioning;
 
@@ -17,14 +17,14 @@ namespace FluidDemo
         {
             MaxNumParticles = maxNumParticles;
             NumParticles = 0;
-            _particles = new Particle[maxNumParticles];
+            _particles = new FluidSimParticle[maxNumParticles];
             for (int i = 0; i < _particles.Length; i++)
             {
-                _particles[i] = new Particle
+                _particles[i] = new FluidSimParticle
                 {
                     Position = Vector2.zero,
                     Velocity = Vector2.zero,
-                    FluidIndex = -1,
+                    SubstanceIndex = -1,
                     Id = -1,
                     Active = false
                 };
@@ -36,28 +36,27 @@ namespace FluidDemo
         
         
         
-        public Particle this[int index] 
+        public FluidSimParticle this[int index] 
         {
             get => _particles[index];
             set => _particles[index] = value;
         }
        
-        public Span<Particle> Span => _particles.AsSpan().Slice(0, NumParticles);
+        public Span<FluidSimParticle> Span => _particles.AsSpan().Slice(0, NumParticles);
 
-        public Particle[] FluidDynamicsParticles => _particles;
 
-        public int Add(Particle particle)
+        public int Add(FluidSimParticle fluidSimParticle)
         {
             //TODO: kunnolla
-            particle.Id = _nextId;
+            fluidSimParticle.Id = _nextId;
             _nextId++;
             NumParticles++;
             int index = NumParticles - 1;
-            _particles[index] = particle;
+            _particles[index] = fluidSimParticle;
             
             _spatialPartitioning.Add(index);
             
-            return particle.Id;
+            return fluidSimParticle.Id;
         }
 
         public void Remove(int id)
@@ -68,6 +67,11 @@ namespace FluidDemo
         public void Clear()
         {
             NumParticles = 0;
+        }
+
+        public void SimulateFluids(float timestep, FluidDynamics fluidDynamics)
+        {
+            fluidDynamics.Step(0.015f, _particles);
         }
         
         public int[] InsideRectangle(Rect rect) => _spatialPartitioning.RectangleContents(rect);

@@ -12,7 +12,6 @@ namespace FluidDemo
     {
         public TextMeshPro text;
         
-        
         private FluidDynamics _fluidDynamics;
         private Particles _particles;
         
@@ -46,12 +45,16 @@ namespace FluidDemo
 
             _fluidDynamics = new FluidDynamics(Settings, Fluids.List, alerts);
             
+            
+            // TODO: Move into particles
             var partitioningGrid = new SpatialPartitioningGrid<int>(
                 new Grid2D(Settings.AreaBounds, squareSize: 3.5f * Settings.Scale),
                 40,
                 i => _particles[i].Position);
             
             _particles = new Particles(Settings.MaxNumParticles, partitioningGrid);
+            Particle.Particles = _particles;
+            Particle.ParticleVisualization = _particleVisualization;
             
             _avgUpdateTime = new MovingAverage(300);
         }
@@ -62,7 +65,8 @@ namespace FluidDemo
             
             if (!_isPaused)
             {
-                _fluidDynamics.Step(0.015f, _particles.FluidDynamicsParticles, _particles.NumParticles);
+                _particles.SimulateFluids(timestep: 0.015f, _fluidDynamics);
+                //_fluidDynamics.Step(0.015f, _particles.FluidDynamicsParticles, _particles.NumParticles);
                 _particles.UpdateSpatialPartitioningGrid();
                 UpdateParticleVisualization();
             }
@@ -104,7 +108,7 @@ namespace FluidDemo
 
         public int SpawnParticle(Vector2 position, Vector2 velocity, FluidId fluidId)
         {
-            var particle = new Particle();
+            var particle = new FluidSimParticle();
             particle.Position = position;
             particle.Velocity = velocity;
             particle.SetFluid(fluidId);
@@ -204,6 +208,12 @@ namespace FluidDemo
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = frameRate;
         }
+        
+        
+        
+        // TEMPORARY
+        
+        
 
 
     }

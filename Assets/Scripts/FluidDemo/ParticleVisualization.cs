@@ -20,6 +20,8 @@ namespace FluidDemo
             _particles = new Dictionary<int, GameObject>();
         }
 
+        
+        
         public void AddParticle(int id, FluidId fluidId, Vector2 position)
         {
             if (_particles.ContainsKey(id))
@@ -28,21 +30,10 @@ namespace FluidDemo
                 return;
             }
 
-            var particle = Instantiate(PrefabFor(fluidId), parent: transform, worldPositionStays: false);
+            var particle = Create(fluidId, position);
             particle.name = "Particle " + id.ToString();
             _particles.Add(id, particle);
 
-            particle.transform.position = new Vector3(position.x, position.y, 0f);
-            
-            GameObject PrefabFor(FluidId substance) => substance switch
-            {
-                FluidId.Water => liquidParticlePrefab,
-                FluidId.Smoke => gasParticlePrefab,
-                FluidId.Rock => solidParticlePrefab,
-                FluidId.GreenLiquid => greenLiquidParticlePrefab,
-                FluidId.RedLiquid => redLiquidParticlePrefab,
-                _ => throw new ArgumentOutOfRangeException(nameof(substance), substance, null)
-            };
         }
 
         public void RemoveParticle(int id)
@@ -81,10 +72,25 @@ namespace FluidDemo
 
         }
 
-        public void ColorParticle(int id, Color color)
-//            => _particles[id].GetComponentInChildren<SpriteRenderer>().color = color;
-        {}      
+
+
+        public GameObject Create(FluidId fluidId, Vector2 position)
+        {
+            var particle = Instantiate(PrefabFor(fluidId), parent: transform, worldPositionStays: false);
         
-        public Color RandomColor => new Color(UnityEngine.Random.value, UnityEngine.Random.value, UnityEngine.Random.value);
+            particle.transform.position = new Vector3(position.x, position.y, 0f);
+
+            return particle;
+            
+            GameObject PrefabFor(FluidId substance) => substance switch
+            {
+                FluidId.Water => liquidParticlePrefab,
+                FluidId.Smoke => gasParticlePrefab,
+                FluidId.Rock => solidParticlePrefab,
+                FluidId.GreenLiquid => greenLiquidParticlePrefab,
+                FluidId.RedLiquid => redLiquidParticlePrefab,
+                _ => throw new ArgumentOutOfRangeException(nameof(substance), substance, null)
+            };
+        }
     }
 }

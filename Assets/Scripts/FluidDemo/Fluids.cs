@@ -31,8 +31,8 @@ namespace FluidDemo
         public static int IndexOf(FluidId fluidId) => (int)fluidId;
 
         // Extension methods for FluidParticle so we can get and set it's fluid with FluidId
-        public static FluidId GetFluid(this Particle particle) => (FluidId)particle.FluidIndex;
-        public static void SetFluid(this ref Particle particle, FluidId id) => particle.FluidIndex = IndexOf(id);
+        public static FluidId GetFluid(this FluidSimParticle particle) => (FluidId)particle.SubstanceIndex;
+        public static void SetFluid(this ref FluidSimParticle particle, FluidId id) => particle.SubstanceIndex = IndexOf(id);
 
     }
 }

@@ -79,7 +79,7 @@ namespace FluidSimulation.Internal
         }
         
        
-        public void Step(float deltaTime, Particle[] particles, int numParticles)
+        public void Step(float deltaTime, FluidSimParticle[] particles)
         {
             float time=Time.realtimeSinceStartup;
 
@@ -176,7 +176,7 @@ namespace FluidSimulation.Internal
             int numCells = numPartitioningCells;
             int numPartInCell = s.MaxNumParticlesInPartitioningCell;
 
-            buffers[0] = new ShaderBuffer("_Particles",              numPart,                  Particle.Stride, ShaderBuffer.Type.IO);
+            buffers[0] = new ShaderBuffer("_Particles",              numPart,                  FluidSimParticle.Stride, ShaderBuffer.Type.IO);
             buffers[1] = new ShaderBuffer("_TempData",               numPart,                  14 * sizeof(float),   ShaderBuffer.Type.Internal);
             buffers[2] = new ShaderBuffer("_ParticleNeighbours",     numPart * numNeigh,       sizeof(int),          ShaderBuffer.Type.Internal);
             buffers[3] = new ShaderBuffer("_ParticleNeighbourCount", numPart,                  sizeof(int),          ShaderBuffer.Type.Internal);
