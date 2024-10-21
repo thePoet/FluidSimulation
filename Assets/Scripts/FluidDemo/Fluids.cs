@@ -33,6 +33,7 @@ namespace FluidDemo
         // Extension methods for FluidParticle so we can get and set it's fluid with FluidId
         public static FluidId GetFluid(this FluidSimParticle particle) => (FluidId)particle.SubstanceIndex;
         public static void SetFluid(this ref FluidSimParticle particle, FluidId id) => particle.SubstanceIndex = IndexOf(id);
+    
 
     }
 }

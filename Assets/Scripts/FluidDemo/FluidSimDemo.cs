@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using FluidSimulation;
 using RikusGameDevToolbox.GeneralUse;
@@ -15,7 +13,7 @@ namespace FluidDemo
         private FluidDynamics _fluidDynamics;
         private Particles _particles;
         
-        private ParticleVisualization _particleVisualization;
+        private ParticleVisuals _particleVisuals;
         private LevelOutline _levelOutline;
         private bool _isPaused;
 
@@ -36,9 +34,9 @@ namespace FluidDemo
           
             SetMaxFrameRate(60);
 
-            _particleVisualization = FindObjectOfType<ParticleVisualization>();
+            _particleVisuals = FindObjectOfType<ParticleVisuals>();
             _levelOutline = FindObjectOfType<LevelOutline>();
-            if (_particleVisualization == null) Debug.LogError("No visualization found in the scene.");
+            if (_particleVisuals == null) Debug.LogError("No visualization found in the scene.");
             if (_levelOutline == null) Debug.LogError("No container found in the scene.");
 
             var alerts = CreateProximityAlertSubscriptions();
@@ -49,12 +47,11 @@ namespace FluidDemo
             // TODO: Move into particles
             var partitioningGrid = new SpatialPartitioningGrid<int>(
                 new Grid2D(Settings.AreaBounds, squareSize: 3.5f * Settings.Scale),
-                40,
-                i => _particles[i].Position);
+                40);
             
             _particles = new Particles(Settings.MaxNumParticles, partitioningGrid);
-            Particle.Particles = _particles;
-            Particle.ParticleVisualization = _particleVisualization;
+            Particle.FsParticles = _particles;
+            Particle.ParticleVisuals = _particleVisuals;
             
             _avgUpdateTime = new MovingAverage(300);
         }
@@ -114,7 +111,7 @@ namespace FluidDemo
             particle.SetFluid(fluidId);
             particle.Active = true;
             int particleId = _particles.Add(particle);
-            _particleVisualization.AddParticle(particleId, fluidId, position);
+            _particleVisuals.Add(particleId, fluidId, position);
 
             return particleId;
         }
@@ -151,8 +148,8 @@ namespace FluidDemo
             p.SetFluid(FluidId.Smoke);
             _particles[particleIdx] = p;
             
-            _particleVisualization.RemoveParticle(particleIdx);
-            _particleVisualization.AddParticle(particleIdx, fluidId,_particles[particleIdx].Position);
+            _particleVisuals.Delete(particleIdx);
+            _particleVisuals.Add(particleIdx, fluidId,_particles[particleIdx].Position);
         }
 
 
@@ -179,7 +176,7 @@ namespace FluidDemo
             float t = Time.realtimeSinceStartup;
             foreach (var particle in _particles.Span)
             {
-                _particleVisualization.UpdateParticle(particle.Id, particle.Position);
+                _particleVisuals.UpdateParticle(particle.Id, particle.Position);
             }
             
             t= Time.realtimeSinceStartup-t;
@@ -190,7 +187,7 @@ namespace FluidDemo
         private void Clear()
         {
             _particles.Clear();
-            _particleVisualization.Clear();
+            _particleVisuals.Clear();
         }
 
         private void SelectDebugParticle()
@@ -209,13 +206,7 @@ namespace FluidDemo
             Application.targetFrameRate = frameRate;
         }
         
-        
-        
-        // TEMPORARY
-        
-        
-
-
+  
     }
 }
 

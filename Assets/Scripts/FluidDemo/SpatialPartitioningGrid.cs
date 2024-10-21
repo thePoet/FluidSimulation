@@ -8,39 +8,24 @@ namespace FluidDemo
     public class SpatialPartitioningGrid<T>
     {
         private readonly T[] _entities;
+        private readonly Vector2[] _positions;
         private readonly int[] _numEntitiesInSquare;
         private readonly int _maxNumEntitiesInSquare;
         private readonly Grid2D _grid;
 
-        private readonly Func<T, Vector2> _positionForEntity;
     
-        public SpatialPartitioningGrid(Grid2D grid, int maxNumEntitiesInSquare, Func<T, Vector2> positionForEntity)
+        public SpatialPartitioningGrid(Grid2D grid, int maxNumEntitiesInSquare)
         {
             _grid = grid;
             _maxNumEntitiesInSquare = maxNumEntitiesInSquare;
             _entities = new T[grid.NumberOfSquares * maxNumEntitiesInSquare];
+            _positions = new Vector2[grid.NumberOfSquares * maxNumEntitiesInSquare];
+            
             _numEntitiesInSquare = new int[grid.NumberOfSquares];
-            _positionForEntity = positionForEntity;
 
             Clear();
         }
-
-        /// <summary>
-        /// Return the indices of the entities in the same partitioning square as the given position
-        /// </summary>
-        ///
-    
-        /*public Span<T> GridSquareContents(Vector2 position)
-    {
-        if (!_grid.IsInGrid(position))
-        {
-            Debug.LogWarning("Position is not in the grid " + position );
-            return Span<T>.Empty;
-        }
-        int squareIndex = _grid.SquareIndex(position);
-        return new Span<T>(_entities, squareIndex * _maxNumEntitiesInSquare, _numEntitiesInSquare[squareIndex]);
-    }*/
-
+        
 
         public void Clear()
         {
@@ -61,9 +46,15 @@ namespace FluidDemo
         
             foreach (var squareIdx in _grid.SquareIndicesInRect(rect))
             {
-                foreach (T entity in GridSquareContents(squareIdx))
+                int firstIdx = squareIdx * _maxNumEntitiesInSquare;
+            
+                for (int i=0; i<_numEntitiesInSquare[squareIdx]; i++)
                 {
-                    result.Add(entity);
+                    int idx = firstIdx + i;
+                    if (rect.Contains(_positions[idx]))
+                    {
+                        result.Add(_entities[idx]);
+                    }
                 }
             }
 
@@ -81,37 +72,33 @@ namespace FluidDemo
 
             List<T> result = new List<T>();
         
-            foreach (T entity in RectangleContents(rect))
+            foreach (var squareIdx in _grid.SquareIndicesInRect(rect))
             {
-                if (Vector2.Distance(position, Position(entity)) <= radius)
+                int firstIdx = squareIdx * _maxNumEntitiesInSquare;
+            
+                for (int i=0; i<_numEntitiesInSquare[squareIdx]; i++)
                 {
-                    result.Add(entity);
+                    int idx = firstIdx + i;
+                    if (Vector2.Distance(position, _positions[idx]) <= radius)
+                    {
+                        result.Add(_entities[idx]);
+                    }
                 }
             }
         
             return result.ToArray();
         }
 
-
-        public void Add(Span<T> entities)
+        
+        public void Add(T entity, Vector2 position, bool ignoreIfOutsideGrid=false)
         {
-            for (int i = 0; i < entities.Length; i++)
-            {
-                Add(entities[i]);
-            }
-        }
-  
-    
-    
-        public void Add(T entity, bool ignoreIfOutsideGrid=false)
-        {
-            if (!_grid.IsInGrid(Position(entity)))
+            if (!_grid.IsInGrid(position))
             {
                 if (!ignoreIfOutsideGrid) Debug.LogWarning("Entity is outside the grid");
                 return;
             }
 
-            int cellIndex = _grid.SquareIndex(Position(entity));
+            int cellIndex = _grid.SquareIndex(position);
 
             if (_numEntitiesInSquare[cellIndex] >= _maxNumEntitiesInSquare)
             {
@@ -121,31 +108,22 @@ namespace FluidDemo
 
             int hash = cellIndex * _maxNumEntitiesInSquare + _numEntitiesInSquare[cellIndex];
             _entities[hash] = entity;
+            _positions[hash] = position;
  
             _numEntitiesInSquare[cellIndex]++;
         }
-    
-        public void FillFromRawData(T[] entities, int[] numEntitiesInSquare)
-        {
-            if (entities.Length != _entities.Length || numEntitiesInSquare.Length != _numEntitiesInSquare.Length)
-            {
-                Debug.LogWarning("Array sizes do not match");
-                return;
-            }
         
-            Array.Copy(entities, _entities, _entities.Length);
-            Array.Copy(numEntitiesInSquare, _numEntitiesInSquare, _numEntitiesInSquare.Length);
-        }
-
-        
-        public Span<T> GridSquareContents(int squareIndex)
+        private Span<T> GridSquareContents(int squareIndex)
         {
             return new Span<T>(_entities, squareIndex * _maxNumEntitiesInSquare, _numEntitiesInSquare[squareIndex]);
         }
 
+       
+        
+        
         public int NumSquares => _grid.NumberOfSquares;
     
-        private Vector2 Position(T entity) => _positionForEntity(entity);
+
     
    
     }

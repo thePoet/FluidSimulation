@@ -28,13 +28,9 @@ namespace FluidDemo
                     Id = -1,
                     Active = false
                 };
-
-              
             }
             _spatialPartitioning = partitioning;
         }
-        
-        
         
         public FluidSimParticle this[int index] 
         {
@@ -54,7 +50,7 @@ namespace FluidDemo
             int index = NumParticles - 1;
             _particles[index] = fluidSimParticle;
             
-            _spatialPartitioning.Add(index);
+            _spatialPartitioning.Add(index, fluidSimParticle.Position);
             
             return fluidSimParticle.Id;
         }
@@ -84,9 +80,11 @@ namespace FluidDemo
             _spatialPartitioning.Clear();
             for (int i = 0; i < NumParticles; i++)
             {
-                if (_particles[i].Active) _spatialPartitioning.Add(i);
+                if (_particles[i].Active) _spatialPartitioning.Add(i, _particles[i].Position);
             }
         }
+        
+ 
 
 
     }

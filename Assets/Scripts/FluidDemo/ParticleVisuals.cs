@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace FluidDemo
 {
-    public class ParticleVisualization : MonoBehaviour
+    public class ParticleVisuals : MonoBehaviour
     {
         public GameObject liquidParticlePrefab;
         public GameObject greenLiquidParticlePrefab;
@@ -22,7 +22,7 @@ namespace FluidDemo
 
         
         
-        public void AddParticle(int id, FluidId fluidId, Vector2 position)
+        public void Add(int id, FluidId fluidId, Vector2 position)
         {
             if (_particles.ContainsKey(id))
             {
@@ -36,7 +36,7 @@ namespace FluidDemo
 
         }
 
-        public void RemoveParticle(int id)
+        public void Delete(int id)
         {
             if (!_particles.ContainsKey(id))
             {
@@ -59,6 +59,7 @@ namespace FluidDemo
             _particles.Clear();
         }
 
+      
         public void UpdateParticle(int id, Vector2 position)
         {
             if (!_particles.ContainsKey(id))
@@ -66,13 +67,9 @@ namespace FluidDemo
                 Debug.LogWarning("Particle with id " + id + " does not exists in the visualization.");
                 return;
             }
-
             var particle = _particles.GetValueOrDefault(id);
             particle.transform.position = new Vector3(position.x, position.y, 0f);
-
         }
-
-
 
         public GameObject Create(FluidId fluidId, Vector2 position)
         {
