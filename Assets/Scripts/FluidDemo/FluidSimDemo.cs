@@ -30,12 +30,14 @@ namespace FluidDemo
         };
         
         private const int MaxNumParticlesInPartitioningSquare = 40;
-        
      
         public int[] InsideRectangle(Rect rect) => _partitioningGrid.RectangleContents(rect);
         
         public int[] InsideCircle(Vector2 position, float radius) => _partitioningGrid.CircleContents(position, radius);
 
+        public Vector2[] ParticleDebugData() => _fluidDynamics.DebugData();
+        
+        public void SelectDebugParticle(int particleIdx) => _fluidDynamics.SubscribeDebugData(particleIdx);
      
         
         private void Awake()
@@ -86,22 +88,6 @@ namespace FluidDemo
             _fluidDynamics.Dispose();
         }
 
-        void OnDrawGizmos()
-        {
-            if (_fluidDynamics == null) return;
-            var data = _fluidDynamics.DebugData();
-            if (data == null) return;
-
-            Gizmos.DrawSphere(data[0], 5f);
-            Gizmos.color = Color.green;
-            Gizmos.DrawLine(data[0], data[0] + data[2]*100f);
-            Gizmos.color = Color.blue;
-            Gizmos.DrawLine(data[0], data[0] + data[3]*100f);
-            Gizmos.color = Color.red;
-            Gizmos.DrawLine(data[0], data[0] + data[4]*100f);
-            Gizmos.color = Color.black;
-            Gizmos.DrawLine(data[0], data[0] + data[1]*100f);
-        }
 
     
 
@@ -170,7 +156,6 @@ namespace FluidDemo
             if (Input.GetKeyDown(KeyCode.C)) Clear();
             if (Input.GetKeyDown(KeyCode.Q)) Application.Quit();
             if (Input.GetKeyDown(KeyCode.Space)) _isPaused = !_isPaused;
-            if (Input.GetKeyDown(KeyCode.I)) SelectDebugParticle();
         }
 
         private void UpdateParticleVisualization()
@@ -192,16 +177,7 @@ namespace FluidDemo
             _particleVisuals.Clear();
         }
 
-        private void SelectDebugParticle()
-        {
-            Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            int[] particles = InsideCircle(mousePos, 15f);
-            if (particles.Length > 0)
-            {
-                _fluidDynamics.SubscribeDebugData(particles[0]);
-            }
-        }
-        
+    
   
         
         SpatialPartitioningGrid<int> CreateSpatialPartitioningGrid()

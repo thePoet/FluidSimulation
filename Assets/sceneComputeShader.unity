@@ -432,8 +432,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1692431638}
+  - component: {fileID: 1692431642}
   - component: {fileID: 1692431641}
   - component: {fileID: 1692431640}
+  - component: {fileID: 1692431643}
   m_Layer: 0
   m_Name: LiquidSimulation
   m_TagString: Untagged
@@ -486,6 +488,30 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   text: {fileID: 1889716732}
+--- !u!114 &1692431642
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1692431636}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b82d0b60552c4c77bf3a943c07bafafa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1692431643
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1692431636}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a89044e5803414884bc26a7e0c4e56d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1889715698
 GameObject:
   m_ObjectHideFlags: 0
