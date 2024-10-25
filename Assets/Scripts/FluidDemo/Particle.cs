@@ -1,46 +1,49 @@
-using System.Collections.Generic;
 using UnityEngine;
 using FluidSimulation;
 
 namespace FluidDemo
 {
-    public class Particle
+    public struct Particle
     {
-        public static Particles FsParticles;
-        public static ParticleVisuals ParticleVisuals; // TODO: pois
+        private static ParticleCollection _particleCollection;
+        private static FluidSimParticle[] _fsParticles;
+        private static ParticleVisuals _particleVisuals; // TODO: pois?
 
 
-        public static List<Particle> particles;
         
+        public ParticleId Id { get; init; }
         public int FluidSimParticleIdx;
         public GameObject Visualization;
 
 
         public Vector2 Position
         {
-            get => FsParticles[FluidSimParticleIdx].Position;
+            get => _fsParticles[FluidSimParticleIdx].Position;
             set => SetPosition(value);
         }
 
         public Vector2 Velocity
         {
-            get => FsParticles[FluidSimParticleIdx].Velocity;
+            get => _fsParticles[FluidSimParticleIdx].Velocity;
             set => SetVelocity(value);
         }
         public FluidId FluidId
         {
-            get => FsParticles[FluidSimParticleIdx].GetFluid();
+            get => _fsParticles[FluidSimParticleIdx].GetFluid();
             set => SetFluid(value);
         }
 
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
 
-        static Particle()
+        public static void Initialize(ParticleCollection particleCollection,  ParticleVisuals particleVisuals)
         {
-            particles = new List<Particle>();
+            _particleCollection = particleCollection;
+            _fsParticles = CreateFluidSimParticleArray(particleCollection.MaxNumParticles);
+            _particleVisuals = particleVisuals;
         }
+ 
         
-        public Particle(Vector2 position, FluidId fluidId)
+        public Particle(FluidId fluidId, Vector2 position)
         {
             var fsp = new FluidSimParticle
             {
@@ -51,10 +54,11 @@ namespace FluidDemo
                 Active = true
             };
 
-            FluidSimParticleIdx = FsParticles.Add(fsp);
+            FluidSimParticleIdx = _fsParticles.Add(fsp);
             
-            Visualization = ParticleVisuals.Create(fluidId, position);
-            particles.Add(this);
+            Visualization = _particleVisuals.Create(fluidId, position);
+
+            Id = ParticleId.New(_particleCollection);
         }
 
         public void UpdateVisualPosition()
@@ -69,24 +73,24 @@ namespace FluidDemo
         
         private void SetPosition(Vector2 position)
         {
-            var fsp = FsParticles[FluidSimParticleIdx];
+            var fsp = _fsParticles[FluidSimParticleIdx];
             fsp.Position = position;
-            FsParticles[FluidSimParticleIdx] = fsp;
+            _fsParticles[FluidSimParticleIdx] = fsp;
             UpdateVisualPosition();
         }
         
         private void SetVelocity(Vector2 velocity)
         {
-            var fsp = FsParticles[FluidSimParticleIdx];
+            var fsp = _fsParticles[FluidSimParticleIdx];
             fsp.Velocity = velocity;
-            FsParticles[FluidSimParticleIdx] = fsp;
+            _fsParticles[FluidSimParticleIdx] = fsp;
         }
         
         private void SetFluid(FluidId fluidId)
         {
-            var fsp = FsParticles[FluidSimParticleIdx];
+            var fsp = _fsParticles[FluidSimParticleIdx];
             fsp.SubstanceIndex = Fluids.IndexOf(fluidId);
-            FsParticles[FluidSimParticleIdx] = fsp;
+            _fsParticles[FluidSimParticleIdx] = fsp;
                 
             ChangeSubstanceInVisualization(fluidId);
         }
@@ -94,9 +98,29 @@ namespace FluidDemo
         private void ChangeSubstanceInVisualization(FluidId newFluidId)
         {
             if (Visualization != null) Object.Destroy(Visualization);
-            Visualization = ParticleVisuals.Create(newFluidId, Position);
+            Visualization = _particleVisuals.Create(newFluidId, Position);
         }
-        
+        /*
+        private static FluidSimParticle[] CreateFluidSimParticleArray(int maxNumParticles)
+        {
+            var fsParticles = new FluidSimParticle[maxNumParticles];
+            for (int i = 0; i < fsParticles.Length; i++)
+            {
+                fsParticles[i] = new FluidSimParticle
+                {
+                    Position = Vector2.zero,
+                    Velocity = Vector2.zero,
+                    SubstanceIndex = -1,
+                    Id = -1,
+                    Active = false
+                };
+            }
+
+            return fsParticles;
+        }
+      */
+            
+            
         #endregion
 
 

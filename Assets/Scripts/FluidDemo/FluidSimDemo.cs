@@ -11,7 +11,7 @@ namespace FluidDemo
         public TextMeshPro text;
         
         private FluidDynamics _fluidDynamics;
-        private Particles _particles;
+        private ParticleCollection _particleCollection;
         
         private ParticleVisuals _particleVisuals;
         private LevelOutline _levelOutline;
@@ -49,9 +49,8 @@ namespace FluidDemo
                 new Grid2D(Settings.AreaBounds, squareSize: 3.5f * Settings.Scale),
                 40);
             
-            _particles = new Particles(Settings.MaxNumParticles, partitioningGrid);
-            Particle.FsParticles = _particles;
-            Particle.ParticleVisuals = _particleVisuals;
+            _particleCollection = new ParticleCollection(Settings.MaxNumParticles,new Grid2D(Settings.AreaBounds, squareSize: 3.5f * Settings.Scale), 40);
+            Particle.Initialize(_particleCollection, _particleVisuals);
             
             _avgUpdateTime = new MovingAverage(300);
         }
@@ -62,9 +61,9 @@ namespace FluidDemo
             
             if (!_isPaused)
             {
-                _particles.SimulateFluids(timestep: 0.015f, _fluidDynamics);
+                _particleCollection.SimulateFluids(timestep: 0.015f, _fluidDynamics);
                 //_fluidDynamics.Step(0.015f, _particles.FluidDynamicsParticles, _particles.NumParticles);
-                _particles.UpdateSpatialPartitioningGrid();
+                _particleCollection.UpdateSpatialPartitioningGrid();
                 UpdateParticleVisualization();
             }
             HandleUserInput();
@@ -74,7 +73,7 @@ namespace FluidDemo
             _avgUpdateTime.Add(t);
             float avgUpdate = _avgUpdateTime.Average()*1000f;
 
-            text.text = "Particles: " + _particles.NumParticles + " - " + avgUpdate.ToString("0.0") +
+            text.text = "Particles: " + _particleCollection.NumParticles + " - " + avgUpdate.ToString("0.0") +
                         " ms.";
         }
 
@@ -110,7 +109,7 @@ namespace FluidDemo
             particle.Velocity = velocity;
             particle.SetFluid(fluidId);
             particle.Active = true;
-            int particleId = _particles.Add(particle);
+            int particleId = _particleCollection.Add(particle);
             _particleVisuals.Add(particleId, fluidId, position);
 
             return particleId;
@@ -144,22 +143,22 @@ namespace FluidDemo
         
         private void ChangeParticleSubstance(int particleIdx, FluidId fluidId)
         {
-            var p = _particles[particleIdx];
+            var p = _particleCollection[particleIdx];
             p.SetFluid(FluidId.Smoke);
-            _particles[particleIdx] = p;
+            _particleCollection[particleIdx] = p;
             
             _particleVisuals.Delete(particleIdx);
-            _particleVisuals.Add(particleIdx, fluidId,_particles[particleIdx].Position);
+            _particleVisuals.Add(particleIdx, fluidId,_particleCollection[particleIdx].Position);
         }
 
 
         public void SetParticleVelocities(Vector2 position, float radius, Vector2 velocity)
         {
-            foreach (var particleIdx in _particles.InsideCircle(position, radius))
+            foreach (var particleIdx in _particleCollection.InsideCircle(position, radius))
             {
-                var p = _particles[particleIdx];
+                var p = _particleCollection[particleIdx];
                 p.Velocity = velocity;
-                _particles[particleIdx] = p;
+                _particleCollection[particleIdx] = p;
             }
         }
 
@@ -174,7 +173,7 @@ namespace FluidDemo
         private void UpdateParticleVisualization()
         {
             float t = Time.realtimeSinceStartup;
-            foreach (var particle in _particles.Span)
+            foreach (var particle in _particleCollection.Span)
             {
                 _particleVisuals.UpdateParticle(particle.Id, particle.Position);
             }
@@ -186,14 +185,14 @@ namespace FluidDemo
 
         private void Clear()
         {
-            _particles.Clear();
+            _particleCollection.Clear();
             _particleVisuals.Clear();
         }
 
         private void SelectDebugParticle()
         {
             Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            int[] particles = _particles.InsideCircle(mousePos, 15f);
+            int[] particles = _particleCollection.InsideCircle(mousePos, 15f);
             if (particles.Length > 0)
             {
                 _fluidDynamics.SubscribeDebugData(particles[0]);

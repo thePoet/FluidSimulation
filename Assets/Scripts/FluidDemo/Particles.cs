@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using FluidSimulation;
 
@@ -65,9 +66,11 @@ namespace FluidDemo
             NumParticles = 0;
         }
 
-        public void SimulateFluids(float timestep, FluidDynamics fluidDynamics)
+        // Returns proximity alerts
+        public List<(FluidId, FluidId)> SimulateFluids(float timestep, FluidDynamics fluidDynamics)
         {
             fluidDynamics.Step(0.015f, _particles);
+            return null;
         }
         
         public int[] InsideRectangle(Rect rect) => _spatialPartitioning.RectangleContents(rect);

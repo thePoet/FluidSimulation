@@ -5,7 +5,7 @@ namespace FluidDemo
 {
     public struct ParticleId : IEquatable<ParticleId>
     {
-        public int Id { get; init; }
+        public int Id { get; private init; }
 
         public bool Equals(ParticleId other)
         {
@@ -21,5 +21,11 @@ namespace FluidDemo
         {
             return Id;
         }
+
+        public static ParticleId New(ParticleCollection particleCollection)
+        {
+            return new ParticleId{Id = particleCollection.GetUnusedParticleIdNumber()};
+        }
     }
+
 }

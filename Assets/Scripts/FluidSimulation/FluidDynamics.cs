@@ -30,22 +30,12 @@ namespace FluidSimulation
         {
             _shaderManager.Dispose();
         }
-/*
-        public void Step(float deltaTime, Particles particles)
-        {
-            _shaderManager.Step(deltaTime, particles, particles.NumParticles);
-        }*/
 
         public void Step(float deltaTime, FluidSimParticle[] particles)
         {
             _shaderManager.Step(deltaTime, particles);
         }
         
-/*
-        public void Step(float deltaTime, Span<Particle> particles)
-        {
-            _shaderManager.Step(deltaTime, particles);
-        }*/
 
         public Span<ProximityAlert> ProximityAlerts => _shaderManager.GetProximityAlerts();
         

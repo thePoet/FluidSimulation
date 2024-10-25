@@ -1,6 +1,8 @@
 TODO:
 
--partikkelien poisto id/index erottelu
+-isactiveparticle warningit
+- assemblies
+- stopwatch käyttöön
 
 - Kevyet partikkelit liian kaaottisia törmäyksissä raskaiden kanssa ja raskaat tuntuvat liikkuvan myös liikaa
   törmäyksissä

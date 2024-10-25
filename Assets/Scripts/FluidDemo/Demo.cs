@@ -6,8 +6,9 @@ namespace FluidDemo
 {
     public class Demo : MonoBehaviour
     {
-        NewParticles _particles;
-        
+        ParticleCollection _particleCollection;
+        private ParticleVisuals _particleVisuals;
+
         private SimulationSettings Settings => new()
         {
             Scale = 6f,
@@ -20,8 +21,9 @@ namespace FluidDemo
         
         void Awake()
         {
-         
-            _particles = new NewParticles(30000, new Grid2D(Settings.AreaBounds, squareSize: 3.5f * Settings.Scale));
+            _particleCollection = new ParticleCollection(Settings.MaxNumParticles, new Grid2D(Settings.AreaBounds, squareSize: 3.5f * Settings.Scale), 40);
+            _particleVisuals = FindObjectOfType<ParticleVisuals>();
+            Particle.Initialize(_particleCollection, _particleVisuals);
         }
 
 
