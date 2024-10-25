@@ -12,9 +12,9 @@ namespace FluidDemo
         
         private FluidDynamics _fluidDynamics;
         private Particles _particles;
-        
+        private SpatialPartitioningGrid<int> _partitioningGrid;
         private ParticleVisuals _particleVisuals;
-        private LevelOutline _levelOutline;
+  
         private bool _isPaused;
 
         private MovingAverage _avgUpdateTime;
@@ -28,33 +28,35 @@ namespace FluidDemo
             AreaBounds = new Rect(Vector2.zero, new Vector2(1200f, 600f)),
             SolidRadius = 15f
         };
+        
+        private const int MaxNumParticlesInPartitioningSquare = 40;
+        
+     
+        public int[] InsideRectangle(Rect rect) => _partitioningGrid.RectangleContents(rect);
+        
+        public int[] InsideCircle(Vector2 position, float radius) => _partitioningGrid.CircleContents(position, radius);
 
+     
+        
         private void Awake()
         {
-          
-            SetMaxFrameRate(60);
-
             _particleVisuals = FindObjectOfType<ParticleVisuals>();
-            _levelOutline = FindObjectOfType<LevelOutline>();
             if (_particleVisuals == null) Debug.LogError("No visualization found in the scene.");
-            if (_levelOutline == null) Debug.LogError("No container found in the scene.");
 
             var alerts = CreateProximityAlertSubscriptions();
 
             _fluidDynamics = new FluidDynamics(Settings, Fluids.List, alerts);
+            _partitioningGrid = CreateSpatialPartitioningGrid();
             
             
-            // TODO: Move into particles
-            var partitioningGrid = new SpatialPartitioningGrid<int>(
-                new Grid2D(Settings.AreaBounds, squareSize: 3.5f * Settings.Scale),
-                40);
             
-            _particles = new Particles(Settings.MaxNumParticles, partitioningGrid);
+            _particles = new Particles(Settings.MaxNumParticles, _partitioningGrid);
             Particle.FsParticles = _particles;
             Particle.ParticleVisuals = _particleVisuals;
             
             _avgUpdateTime = new MovingAverage(300);
         }
+
 
         void Update()
         {
@@ -64,7 +66,7 @@ namespace FluidDemo
             {
                 _particles.SimulateFluids(timestep: 0.015f, _fluidDynamics);
                 //_fluidDynamics.Step(0.015f, _particles.FluidDynamicsParticles, _particles.NumParticles);
-                _particles.UpdateSpatialPartitioningGrid();
+                DoSpatialPartitioning(_partitioningGrid, _particles);
                 UpdateParticleVisualization();
             }
             HandleUserInput();
@@ -155,7 +157,7 @@ namespace FluidDemo
 
         public void SetParticleVelocities(Vector2 position, float radius, Vector2 velocity)
         {
-            foreach (var particleIdx in _particles.InsideCircle(position, radius))
+            foreach (var particleIdx in InsideCircle(position, radius))
             {
                 var p = _particles[particleIdx];
                 p.Velocity = velocity;
@@ -193,20 +195,31 @@ namespace FluidDemo
         private void SelectDebugParticle()
         {
             Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            int[] particles = _particles.InsideCircle(mousePos, 15f);
+            int[] particles = InsideCircle(mousePos, 15f);
             if (particles.Length > 0)
             {
                 _fluidDynamics.SubscribeDebugData(particles[0]);
             }
         }
         
-        private void SetMaxFrameRate(int frameRate)
-        {
-            QualitySettings.vSyncCount = 0;
-            Application.targetFrameRate = frameRate;
-        }
-        
   
+        
+        SpatialPartitioningGrid<int> CreateSpatialPartitioningGrid()
+        {
+            float squareSize = 3.5f * Settings.Scale;
+            return new SpatialPartitioningGrid<int>(Settings.AreaBounds, squareSize, MaxNumParticlesInPartitioningSquare);
+        }
+
+        void DoSpatialPartitioning(SpatialPartitioningGrid<int> grid, Particles particles)
+        {
+            grid.Clear();
+            for (int i = 0; i < particles.NumParticles; i++)
+            {
+                grid.Add(i, particles[i].Position);
+            }
+        }
+
+
     }
 }
 

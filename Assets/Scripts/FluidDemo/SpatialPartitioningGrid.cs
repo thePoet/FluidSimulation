@@ -13,15 +13,14 @@ namespace FluidDemo
         private readonly int _maxNumEntitiesInSquare;
         private readonly Grid2D _grid;
 
-    
-        public SpatialPartitioningGrid(Grid2D grid, int maxNumEntitiesInSquare)
+
+        public SpatialPartitioningGrid(Rect area, float squareSize, int maxNumEntitiesInSquare)
         {
-            _grid = grid;
+            _grid = new Grid2D(area, squareSize);
             _maxNumEntitiesInSquare = maxNumEntitiesInSquare;
-            _entities = new T[grid.NumberOfSquares * maxNumEntitiesInSquare];
-            _positions = new Vector2[grid.NumberOfSquares * maxNumEntitiesInSquare];
-            
-            _numEntitiesInSquare = new int[grid.NumberOfSquares];
+            _entities = new T[_grid.NumberOfSquares * maxNumEntitiesInSquare];
+            _positions = new Vector2[_grid.NumberOfSquares * maxNumEntitiesInSquare];
+            _numEntitiesInSquare = new int[_grid.NumberOfSquares];
 
             Clear();
         }

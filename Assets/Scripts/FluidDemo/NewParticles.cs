@@ -8,7 +8,7 @@ namespace FluidDemo
     public class NewParticles
     {
         private Dictionary<ParticleId, Particle> _particles;
-        private Dictionary<int, Particle> _fspIdxToParticle;
+      //  private Dictionary<int, Particle> _fspIdxToParticle;
         private SpatialPartitioningGrid<Particle> _spatialPartitioning;
         
         public NewParticles(int maxNumParticles, Grid2D partitioningGrid)

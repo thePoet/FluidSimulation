@@ -11,7 +11,7 @@ namespace FluidDemo
 
         private FluidSimParticle[] _particles;
         private int _nextId = 0;
-        private SpatialPartitioningGrid<int> _spatialPartitioning;
+
 
         public Particles(int maxNumParticles, SpatialPartitioningGrid<int> partitioning)
         {
@@ -29,7 +29,7 @@ namespace FluidDemo
                     Active = false
                 };
             }
-            _spatialPartitioning = partitioning;
+
         }
         
         public FluidSimParticle this[int index] 
@@ -50,8 +50,6 @@ namespace FluidDemo
             int index = NumParticles - 1;
             _particles[index] = fluidSimParticle;
             
-            _spatialPartitioning.Add(index, fluidSimParticle.Position);
-            
             return fluidSimParticle.Id;
         }
 
@@ -70,20 +68,9 @@ namespace FluidDemo
             fluidDynamics.Step(0.015f, _particles);
         }
         
-        public int[] InsideRectangle(Rect rect) => _spatialPartitioning.RectangleContents(rect);
-        
-        public int[] InsideCircle(Vector2 position, float radius) => _spatialPartitioning.CircleContents(position, radius);
-
+       
       
-        public void UpdateSpatialPartitioningGrid()
-        {
-            _spatialPartitioning.Clear();
-            for (int i = 0; i < NumParticles; i++)
-            {
-                if (_particles[i].Active) _spatialPartitioning.Add(i, _particles[i].Position);
-            }
-        }
-        
+   
  
 
 
