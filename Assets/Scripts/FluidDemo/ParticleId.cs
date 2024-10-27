@@ -5,6 +5,8 @@ namespace FluidDemo
 {
     public struct ParticleId : IEquatable<ParticleId>
     {
+        private static int NextId = 0;
+        
         public int Id { get; init; }
 
         public bool Equals(ParticleId other)
@@ -20,6 +22,11 @@ namespace FluidDemo
         public override int GetHashCode()
         {
             return Id;
+        }
+        
+        public static ParticleId CreateNewId()
+        {
+            return new ParticleId {Id = NextId++};
         }
     }
 }

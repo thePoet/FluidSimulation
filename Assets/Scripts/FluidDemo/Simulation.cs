@@ -11,11 +11,12 @@ namespace FluidDemo
         public TextMeshPro text;
         
         private FluidDynamics _fluidDynamics;
-        private Particles _particles;
-        private SpatialPartitioningGrid<int> _partitioningGrid;
+       // private Particles _particles;
+        private ParticleCollection _particleCollection;
+        private SpatialPartitioningGrid<ParticleId> _partitioningGrid;
         private ParticleVisuals _particleVisuals;
-  
-   
+
+        private FluidSimParticle[] _fspBuffer; 
 
         private MovingAverage _avgUpdateTime;
         
@@ -31,8 +32,8 @@ namespace FluidDemo
         
         private const int MaxNumParticlesInPartitioningSquare = 40;
         
-        public int[] ParticlesInsideRectangle(Rect rect) => _partitioningGrid.RectangleContents(rect);
-        public int[] ParticlesInsideCircle(Vector2 position, float radius) => _partitioningGrid.CircleContents(position, radius);
+        public ParticleId[] ParticlesInsideRectangle(Rect rect) => _partitioningGrid.RectangleContents(rect);
+        public ParticleId[] ParticlesInsideCircle(Vector2 position, float radius) => _partitioningGrid.CircleContents(position, radius);
         public Vector2[] ParticleDebugData() => _fluidDynamics.DebugData();
         public void SelectDebugParticle(int particleIdx) => _fluidDynamics.SubscribeDebugData(particleIdx);
      
@@ -46,13 +47,23 @@ namespace FluidDemo
             var alerts = CreateProximityAlertSubscriptions();
 
             _fluidDynamics = new FluidDynamics(Settings, Fluids.List, alerts);
+            _fspBuffer = new FluidSimParticle[Settings.MaxNumParticles];
+            
+            for (int i = 0; i < Settings.MaxNumParticles; i++)
+            {
+                _fspBuffer[i] = new FluidSimParticle
+                {
+                    Position = Vector2.zero,
+                    Velocity = Vector2.zero,
+                    SubstanceIndex = -1,
+                    Id = -1,
+                    Active = false
+                };
+            }
+            
             _partitioningGrid = CreateSpatialPartitioningGrid();
-            
-            
-            
-            _particles = new Particles(Settings.MaxNumParticles, _partitioningGrid);
-            Particle.FsParticles = _particles;
-            Particle.ParticleVisuals = _particleVisuals;
+          //  _particles = new Particles(Settings.MaxNumParticles, _partitioningGrid);
+            _particleCollection = new ParticleCollection(Settings.MaxNumParticles);
             
             _avgUpdateTime = new MovingAverage(300);
         }
@@ -62,8 +73,8 @@ namespace FluidDemo
         {
             float t = Time.realtimeSinceStartup;
            
-            _particles.SimulateFluids(timestep: 0.015f, _fluidDynamics);
-            DoSpatialPartitioning(_partitioningGrid, _particles);
+            SimulateFluids(0.015f, _fluidDynamics, _particleCollection);
+            DoSpatialPartitioning(_partitioningGrid, _particleCollection);
             UpdateParticleVisualization();
             
             HandleProximityAlerts(_fluidDynamics.ProximityAlerts);
@@ -72,9 +83,11 @@ namespace FluidDemo
             _avgUpdateTime.Add(t);
             float avgUpdate = _avgUpdateTime.Average()*1000f;
 
-            text.text = "Particles: " + _particles.NumParticles + " - " + avgUpdate.ToString("0.0") +
+            text.text = "Particles: " + _particleCollection.Count + " - " + avgUpdate.ToString("0.0") +
                         " ms.";
         }
+
+    
 
 
         private void OnDisable()
@@ -88,41 +101,76 @@ namespace FluidDemo
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
         
 
-        public int SpawnParticle(Vector2 position, Vector2 velocity, FluidId fluidId)
+        public Particle SpawnParticle(Vector2 position, Vector2 velocity, FluidId fluidId)
         {
-            var particle = new FluidSimParticle();
+            var particle = new Particle();
+            particle.Id = ParticleId.CreateNewId();
             particle.Position = position;
             particle.Velocity = velocity;
-            particle.SetFluid(fluidId);
-            particle.Active = true;
-            int particleId = _particles.Add(particle);
-            _particleVisuals.Add(particleId, fluidId, position);
+            particle.FluidId = fluidId;
+            
+//            _particles.Add(particle);
+            _particleCollection.Add(particle);
+            _particleVisuals.Add(particle.Id, fluidId, position);
 
-            return particleId;
+            return particle;
         }
 
       
         public void SetParticleVelocities(Vector2 position, float radius, Vector2 velocity)
         {
-            foreach (var particleIdx in ParticlesInsideCircle(position, radius))
+            foreach (var id in ParticlesInsideCircle(position, radius))
             {
-                var p = _particles[particleIdx];
+                var p = _particleCollection.Get(id);
                 p.Velocity = velocity;
-                _particles[particleIdx] = p;
+                _particleCollection.Update(p);
             }
         }
 
         public void Clear()
         {
-            _particles.Clear();
+            _particleCollection.Clear();
             _particleVisuals.Clear();
         }
 
         #endregion
         #region ------------------------------------------ PRIVATE METHODS ----------------------------------------------
         
-        private void HandleProximityAlerts(Span<ProximityAlert> proximityAlerts)
+        private void SimulateFluids(float deltaTime, FluidDynamics fluidDynamics, ParticleCollection particles)
         {
+            var span = particles.TempGetSpan();
+            for (int i=0; i<Settings.MaxNumParticles; i++)
+            {
+                if (i < span.Length)
+                {
+                    _fspBuffer[i].Active = true;
+                    _fspBuffer[i].Position = span[i].Position;
+                    _fspBuffer[i].Velocity = span[i].Velocity;
+                    _fspBuffer[i].SetFluid(span[i].FluidId);
+                }
+                else
+                {
+                    _fspBuffer[i].Active = false;
+                }
+            }
+           
+            fluidDynamics.Step(deltaTime, _fspBuffer);
+
+
+            for (int i = 0; i < span.Length; i++)
+            {
+                span[i].Position = _fspBuffer[i].Position;
+                span[i].Velocity = _fspBuffer[i].Velocity;
+            }
+
+            particles.TempSaveSpan(span);
+            
+            //_particles.SimulateFluids(timestep: 0.015f, _fluidDynamics);
+        }
+        
+        
+        private void HandleProximityAlerts(Span<ProximityAlert> proximityAlerts)
+        {/*
             foreach (var alert in proximityAlerts)
             {
                 int i1 = alert.IndexParticleA;
@@ -131,7 +179,7 @@ namespace FluidDemo
                 ChangeParticleSubstance(i1, FluidId.Smoke);
                 ChangeParticleSubstance(i2, FluidId.Smoke);
             }
-                
+               */ 
         }
 
         private ProximityAlertRequest[] CreateProximityAlertSubscriptions()
@@ -147,14 +195,14 @@ namespace FluidDemo
         }
 
         
-        private void ChangeParticleSubstance(int particleIdx, FluidId fluidId)
+        private void ChangeParticleSubstance(ParticleId particleId, FluidId fluidId)
         {
-            var p = _particles[particleIdx];
-            p.SetFluid(FluidId.Smoke);
-            _particles[particleIdx] = p;
+            var p = _particleCollection.Get(particleId);
+            p.FluidId=FluidId.Smoke;
+            _particleCollection.Update(p);
             
-            _particleVisuals.Delete(particleIdx);
-            _particleVisuals.Add(particleIdx, fluidId,_particles[particleIdx].Position);
+            _particleVisuals.Delete(particleId);
+            _particleVisuals.Add(particleId, fluidId, _particleCollection.Get(particleId).Position);
         }
 
 
@@ -163,7 +211,7 @@ namespace FluidDemo
 
         private void UpdateParticleVisualization()
         {
-            foreach (var particle in _particles.Span)
+            foreach (var particle in _particleCollection.TempGetSpan())
             {
                 _particleVisuals.UpdateParticle(particle.Id, particle.Position);
             }
@@ -173,18 +221,23 @@ namespace FluidDemo
     
   
         
-        private SpatialPartitioningGrid<int> CreateSpatialPartitioningGrid()
+        private SpatialPartitioningGrid<ParticleId> CreateSpatialPartitioningGrid()
         {
             float squareSize = 3.5f * Settings.Scale;
-            return new SpatialPartitioningGrid<int>(Settings.AreaBounds, squareSize, MaxNumParticlesInPartitioningSquare);
+            return new SpatialPartitioningGrid<ParticleId>(Settings.AreaBounds, squareSize, MaxNumParticlesInPartitioningSquare);
         }
 
-        private void DoSpatialPartitioning(SpatialPartitioningGrid<int> grid, Particles particles)
+        private void DoSpatialPartitioning(SpatialPartitioningGrid<ParticleId> grid, ParticleCollection particles)
         {
             grid.Clear();
-            for (int i = 0; i < particles.NumParticles; i++)
+           /* for (int i = 0; i < particles.NumParticles; i++)
             {
                 grid.Add(i, particles[i].Position);
+            }*/
+           
+            foreach (var particle in particles.TempGetSpan())
+            {
+                grid.Add(particle.Id, particle.Position);
             }
         }
         

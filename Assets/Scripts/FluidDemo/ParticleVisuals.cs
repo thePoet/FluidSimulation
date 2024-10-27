@@ -13,16 +13,16 @@ namespace FluidDemo
         public GameObject gasParticlePrefab;
         public GameObject solidParticlePrefab;
 
-        private Dictionary<int, GameObject> _particles;
+        private Dictionary<ParticleId, GameObject> _particles;
     
         private void Awake()
         {
-            _particles = new Dictionary<int, GameObject>();
+            _particles = new Dictionary<ParticleId, GameObject>();
         }
 
         
         
-        public void Add(int id, FluidId fluidId, Vector2 position)
+        public void Add(ParticleId id, FluidId fluidId, Vector2 position)
         {
             if (_particles.ContainsKey(id))
             {
@@ -36,7 +36,7 @@ namespace FluidDemo
 
         }
 
-        public void Delete(int id)
+        public void Delete(ParticleId id)
         {
             if (!_particles.ContainsKey(id))
             {
@@ -60,7 +60,7 @@ namespace FluidDemo
         }
 
       
-        public void UpdateParticle(int id, Vector2 position)
+        public void UpdateParticle(ParticleId id, Vector2 position)
         {
             if (!_particles.ContainsKey(id))
             {

@@ -17,10 +17,10 @@ namespace FluidDemo
             if (!Input.GetKeyDown(KeyCode.I)) return;
             
             Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            int[] particles = _simulation.ParticlesInsideCircle(mousePos, 15f);
+            ParticleId[] particles = _simulation.ParticlesInsideCircle(mousePos, 15f);
             if (particles.Length > 0)
             {
-                _simulation.SelectDebugParticle(particles[0]);
+            //    _simulation.SelectDebugParticle(particles[0]);
             }
         }
 

@@ -8,46 +8,65 @@ namespace FluidDemo
     public class ParticleCollection
     {
         private Dictionary<ParticleId, Particle> _particles;
-      //  private Dictionary<int, Particle> _fspIdxToParticle;
-        private SpatialPartitioningGrid<Particle> _spatialPartitioning;
+      
+        private Particle[] _array;
+
+        public int Count => _particles.Count;
         
-        public ParticleCollection(int maxNumParticles, Grid2D partitioningGrid)
+        public ParticleCollection(int maxNumParticles)
         {
             _particles = new Dictionary<ParticleId, Particle>();
+            _array = new Particle[maxNumParticles];
         }
+
 
         public Particle Get(ParticleId id)
         {
             return _particles.GetValueOrDefault(id);
         }
-
-        public Particle WithFluidSimParticleIndex(int idx)
+        
+        public void Add(Particle particle)
         {
-            throw new NotImplementedException();
+            _particles.Add(particle.Id, particle);
+        }
+        
+        public void Remove(ParticleId id)
+        {
+            _particles.Remove(id);
         }
 
-        public IEnumerable<Particle> AllParticles()
+        public void Update(Particle particle)
         {
-            foreach (var (id, particle) in _particles)
+            _particles[particle.Id] = particle;
+        }
+
+
+        public void Clear()
+        {
+            _particles.Clear();
+        }
+
+        public Span<Particle> TempGetSpan()
+        {
+            int i = 0;
+            foreach (var particle in _particles.Values)
             {
-                yield return particle;
+                _array[i] = particle;
+                i++;
             }
+            return _array.AsSpan().Slice(0, i);
         }
 
-        public IEnumerable<Particle> FluidParticles()
+        public void TempSaveSpan(Span<Particle> span)
         {
-            throw new NotImplementedException();
-        }
-        
-        public IEnumerable<Particle> SolidParticles()
-        {
-            throw new NotImplementedException();
+            for (int i = 0; i < span.Length; i++)
+            {
+                Update(span[i]);
+            }
+            
         }
 
-        public Particle[] InsideRectangle(Rect rect) => _spatialPartitioning.RectangleContents(rect);
-        
-        public Particle[] InsideCircle(Vector2 position, float radius) => _spatialPartitioning.CircleContents(position, radius);
-
+      
         
     }
 }
