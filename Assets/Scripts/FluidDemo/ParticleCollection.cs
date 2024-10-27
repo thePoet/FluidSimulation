@@ -5,19 +5,14 @@ using UnityEngine;
 
 namespace FluidDemo
 {
-    public class NewParticles
+    public class ParticleCollection
     {
         private Dictionary<ParticleId, Particle> _particles;
       //  private Dictionary<int, Particle> _fspIdxToParticle;
         private SpatialPartitioningGrid<Particle> _spatialPartitioning;
         
-        public NewParticles(int maxNumParticles, Grid2D partitioningGrid)
-        {/*
-            _spatialPartitioning = new SpatialPartitioningGrid<Particle>(
-                partitioningGrid, 40,
-                p => p.Position);
-            
-            */
+        public ParticleCollection(int maxNumParticles, Grid2D partitioningGrid)
+        {
             _particles = new Dictionary<ParticleId, Particle>();
         }
 

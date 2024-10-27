@@ -11,7 +11,7 @@ namespace FluidDemo
 
         void Start()
         {
-            FluidSimDemo fluidSim = GameObject.FindObjectOfType<FluidSimDemo>();
+            Simulation fluidSim = GameObject.FindObjectOfType<Simulation>();
             if (fluidSim == null)
             {
                 Debug.LogError("No FluidSimDemo found");

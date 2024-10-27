@@ -4,11 +4,11 @@ namespace FluidDemo
 {
     public class DebugDataVisualization : MonoBehaviour
     {
-        private FluidSimDemo _fluidSimDemo;
+        private Simulation _simulation;
 
         void Awake()
         {
-            _fluidSimDemo = FindObjectOfType<FluidSimDemo>();    
+            _simulation = FindObjectOfType<Simulation>();    
         }
 
 
@@ -17,17 +17,17 @@ namespace FluidDemo
             if (!Input.GetKeyDown(KeyCode.I)) return;
             
             Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            int[] particles = _fluidSimDemo.InsideCircle(mousePos, 15f);
+            int[] particles = _simulation.ParticlesInsideCircle(mousePos, 15f);
             if (particles.Length > 0)
             {
-                _fluidSimDemo.SelectDebugParticle(particles[0]);
+                _simulation.SelectDebugParticle(particles[0]);
             }
         }
 
         void OnDrawGizmos()
         {
-            if (_fluidSimDemo == null) return;
-            var data = _fluidSimDemo.ParticleDebugData();
+            if (_simulation == null) return;
+            var data = _simulation.ParticleDebugData();
             if (data == null) return;
 
             Gizmos.DrawSphere(data[0], 5f);

@@ -10,14 +10,14 @@ namespace FluidDemo
         public bool oneAtTime = false;
         public float brushRadius = 10f;
         public float maxSpeed = 10f;
-        public FluidSimDemo fluidDynamics;
+        public Simulation fluidDynamics;
         
         private Vector2 _previousMousePosition;
         private FluidId _currentFluidId = FluidId.Water;
         
         private void Start()
         {
-            fluidDynamics = FindObjectOfType<FluidSimDemo>();
+            fluidDynamics = FindObjectOfType<Simulation>();
             if (fluidDynamics == null) Debug.LogError("No TestFluidDynamics found in the scene.");
         }
 

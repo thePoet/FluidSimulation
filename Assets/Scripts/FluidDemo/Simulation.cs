@@ -6,7 +6,7 @@ using TMPro;
 
 namespace FluidDemo
 {
-    public class FluidSimDemo : MonoBehaviour
+    public class Simulation : MonoBehaviour
     {
         public TextMeshPro text;
         
@@ -15,7 +15,7 @@ namespace FluidDemo
         private SpatialPartitioningGrid<int> _partitioningGrid;
         private ParticleVisuals _particleVisuals;
   
-        private bool _isPaused;
+   
 
         private MovingAverage _avgUpdateTime;
         
@@ -30,16 +30,14 @@ namespace FluidDemo
         };
         
         private const int MaxNumParticlesInPartitioningSquare = 40;
-     
-        public int[] InsideRectangle(Rect rect) => _partitioningGrid.RectangleContents(rect);
         
-        public int[] InsideCircle(Vector2 position, float radius) => _partitioningGrid.CircleContents(position, radius);
-
+        public int[] ParticlesInsideRectangle(Rect rect) => _partitioningGrid.RectangleContents(rect);
+        public int[] ParticlesInsideCircle(Vector2 position, float radius) => _partitioningGrid.CircleContents(position, radius);
         public Vector2[] ParticleDebugData() => _fluidDynamics.DebugData();
-        
         public void SelectDebugParticle(int particleIdx) => _fluidDynamics.SubscribeDebugData(particleIdx);
      
-        
+        #region ------------------------------------------ UNITY METHODS ----------------------------------------------
+       
         private void Awake()
         {
             _particleVisuals = FindObjectOfType<ParticleVisuals>();
@@ -63,15 +61,11 @@ namespace FluidDemo
         void Update()
         {
             float t = Time.realtimeSinceStartup;
+           
+            _particles.SimulateFluids(timestep: 0.015f, _fluidDynamics);
+            DoSpatialPartitioning(_partitioningGrid, _particles);
+            UpdateParticleVisualization();
             
-            if (!_isPaused)
-            {
-                _particles.SimulateFluids(timestep: 0.015f, _fluidDynamics);
-                //_fluidDynamics.Step(0.015f, _particles.FluidDynamicsParticles, _particles.NumParticles);
-                DoSpatialPartitioning(_partitioningGrid, _particles);
-                UpdateParticleVisualization();
-            }
-            HandleUserInput();
             HandleProximityAlerts(_fluidDynamics.ProximityAlerts);
             
             t = Time.realtimeSinceStartup - t;
@@ -89,7 +83,10 @@ namespace FluidDemo
         }
 
 
-    
+        #endregion
+
+        #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
+        
 
         public int SpawnParticle(Vector2 position, Vector2 velocity, FluidId fluidId)
         {
@@ -104,6 +101,26 @@ namespace FluidDemo
             return particleId;
         }
 
+      
+        public void SetParticleVelocities(Vector2 position, float radius, Vector2 velocity)
+        {
+            foreach (var particleIdx in ParticlesInsideCircle(position, radius))
+            {
+                var p = _particles[particleIdx];
+                p.Velocity = velocity;
+                _particles[particleIdx] = p;
+            }
+        }
+
+        public void Clear()
+        {
+            _particles.Clear();
+            _particleVisuals.Clear();
+        }
+
+        #endregion
+        #region ------------------------------------------ PRIVATE METHODS ----------------------------------------------
+        
         private void HandleProximityAlerts(Span<ProximityAlert> proximityAlerts)
         {
             foreach (var alert in proximityAlerts)
@@ -141,52 +158,28 @@ namespace FluidDemo
         }
 
 
-        public void SetParticleVelocities(Vector2 position, float radius, Vector2 velocity)
-        {
-            foreach (var particleIdx in InsideCircle(position, radius))
-            {
-                var p = _particles[particleIdx];
-                p.Velocity = velocity;
-                _particles[particleIdx] = p;
-            }
-        }
 
-        private void HandleUserInput()
-        {
-            if (Input.GetKeyDown(KeyCode.C)) Clear();
-            if (Input.GetKeyDown(KeyCode.Q)) Application.Quit();
-            if (Input.GetKeyDown(KeyCode.Space)) _isPaused = !_isPaused;
-        }
+    
 
         private void UpdateParticleVisualization()
         {
-            float t = Time.realtimeSinceStartup;
             foreach (var particle in _particles.Span)
             {
                 _particleVisuals.UpdateParticle(particle.Id, particle.Position);
             }
-            
-            t= Time.realtimeSinceStartup-t;
-            
-//            Debug.Log("Updating particle visualization took" + t*1000f + " ms");
         }
 
-        private void Clear()
-        {
-            _particles.Clear();
-            _particleVisuals.Clear();
-        }
 
     
   
         
-        SpatialPartitioningGrid<int> CreateSpatialPartitioningGrid()
+        private SpatialPartitioningGrid<int> CreateSpatialPartitioningGrid()
         {
             float squareSize = 3.5f * Settings.Scale;
             return new SpatialPartitioningGrid<int>(Settings.AreaBounds, squareSize, MaxNumParticlesInPartitioningSquare);
         }
 
-        void DoSpatialPartitioning(SpatialPartitioningGrid<int> grid, Particles particles)
+        private void DoSpatialPartitioning(SpatialPartitioningGrid<int> grid, Particles particles)
         {
             grid.Clear();
             for (int i = 0; i < particles.NumParticles; i++)
@@ -194,6 +187,8 @@ namespace FluidDemo
                 grid.Add(i, particles[i].Position);
             }
         }
+        
+        #endregion
 
 
     }

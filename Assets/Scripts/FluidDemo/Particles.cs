@@ -12,6 +12,7 @@ namespace FluidDemo
         private FluidSimParticle[] _particles;
         private int _nextId = 0;
 
+        private FluidSimParticle[] _temp;
 
         public Particles(int maxNumParticles, SpatialPartitioningGrid<int> partitioning)
         {
@@ -29,6 +30,8 @@ namespace FluidDemo
                     Active = false
                 };
             }
+            
+            _temp = new FluidSimParticle[maxNumParticles];
 
         }
         
@@ -65,7 +68,8 @@ namespace FluidDemo
 
         public void SimulateFluids(float timestep, FluidDynamics fluidDynamics)
         {
-            fluidDynamics.Step(0.015f, _particles);
+           fluidDynamics.Step(0.015f, _particles);
+  
         }
         
        
