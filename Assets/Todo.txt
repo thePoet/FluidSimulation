@@ -1,6 +1,9 @@
 TODO:
 
--partikkelien poisto id/index erottelu
+- ParticleId Guidista
+
+- using static
+
 
 - Kevyet partikkelit liian kaaottisia törmäyksissä raskaiden kanssa ja raskaat tuntuvat liikkuvan myös liikaa
   törmäyksissä

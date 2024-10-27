@@ -7,66 +7,62 @@ namespace FluidDemo
 {
     public class ParticleCollection
     {
-        private Dictionary<ParticleId, Particle> _particles;
-      
+        private Dictionary<ParticleId, int> _IdToIndex;
+        private Dictionary<int, ParticleId> _IndexToId;
         private Particle[] _array;
 
-        public int Count => _particles.Count;
+        public int Count => _IdToIndex.Count;
         
         public ParticleCollection(int maxNumParticles)
         {
-            _particles = new Dictionary<ParticleId, Particle>();
+            _IdToIndex = new Dictionary<ParticleId, int>();
+            _IndexToId = new Dictionary<int, ParticleId>();
             _array = new Particle[maxNumParticles];
         }
 
 
         public Particle Get(ParticleId id)
         {
-            return _particles.GetValueOrDefault(id);
+            return _array[_IdToIndex[id]];
         }
         
         public void Add(Particle particle)
         {
-            _particles.Add(particle.Id, particle);
+            int index = _IdToIndex.Count;
+            _array[index] = particle;
+            _IdToIndex.Add(particle.Id, index);
+            _IndexToId.Add(index, particle.Id);
         }
-        
+
         public void Remove(ParticleId id)
         {
-            _particles.Remove(id);
+            int index = _IdToIndex[id];
+            int lastIndex = _IdToIndex.Count - 1;
+
+            _IdToIndex.Remove(id);
+            _IndexToId.Remove(index);
+            
+            if (index == lastIndex) return;
+            
+            // Move last element in array to the empty spot
+            ParticleId lastElementId = _IndexToId[lastIndex];
+            _array[index] = _array[lastIndex];
+            _IdToIndex[lastElementId] = index;
+            _IndexToId[index] = lastElementId;
         }
 
         public void Update(Particle particle)
         {
-            _particles[particle.Id] = particle;
+            _array[_IdToIndex[particle.Id]] = particle;
         }
 
+        public void Clear() => _IdToIndex.Clear();
+        
 
-        public void Clear()
+        public Span<Particle> AsSpan()
         {
-            _particles.Clear();
+            return _array.AsSpan().Slice(0, _IdToIndex.Count);
         }
-
-        public Span<Particle> TempGetSpan()
-        {
-            int i = 0;
-            foreach (var particle in _particles.Values)
-            {
-                _array[i] = particle;
-                i++;
-            }
-            return _array.AsSpan().Slice(0, i);
-        }
-
-        public void TempSaveSpan(Span<Particle> span)
-        {
-            for (int i = 0; i < span.Length; i++)
-            {
-                Update(span[i]);
-            }
-            
-        }
-
-      
         
     }
 }

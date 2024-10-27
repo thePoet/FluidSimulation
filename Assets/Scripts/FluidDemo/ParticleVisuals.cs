@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 
@@ -13,65 +12,18 @@ namespace FluidDemo
         public GameObject gasParticlePrefab;
         public GameObject solidParticlePrefab;
 
-        private Dictionary<ParticleId, GameObject> _particles;
-    
-        private void Awake()
-        {
-            _particles = new Dictionary<ParticleId, GameObject>();
-        }
-
         
+        public GameObject Create(Particle particle)
+        {
+            return Create(particle.FluidId, particle.Position);
+        }
         
-        public void Add(ParticleId id, FluidId fluidId, Vector2 position)
+        public void DestroyVisuals(Particle particle)
         {
-            if (_particles.ContainsKey(id))
-            {
-                Debug.LogWarning("Particle with id " + id + " already exists in the visualization.");
-                return;
-            }
-
-            var particle = Create(fluidId, position);
-            particle.name = "Particle " + id.ToString();
-            _particles.Add(id, particle);
-
+            Destroy(particle.Visuals);
         }
-
-        public void Delete(ParticleId id)
-        {
-            if (!_particles.ContainsKey(id))
-            {
-                Debug.LogWarning("Particle with id " + id + " does not exists in the visualization.");
-                return;
-            }
-
-            var particle = _particles.GetValueOrDefault(id);
-            Destroy(particle);
-
-            _particles.Remove(id);
-        }
-
-        public void Clear()
-        {
-            foreach (var item in _particles)
-            {
-                Destroy(item.Value);
-            }
-            _particles.Clear();
-        }
-
-      
-        public void UpdateParticle(ParticleId id, Vector2 position)
-        {
-            if (!_particles.ContainsKey(id))
-            {
-                Debug.LogWarning("Particle with id " + id + " does not exists in the visualization.");
-                return;
-            }
-            var particle = _particles.GetValueOrDefault(id);
-            particle.transform.position = new Vector3(position.x, position.y, 0f);
-        }
-
-        public GameObject Create(FluidId fluidId, Vector2 position)
+        
+        private GameObject Create(FluidId fluidId, Vector2 position)
         {
             var particle = Instantiate(PrefabFor(fluidId), parent: transform, worldPositionStays: false);
         
@@ -89,5 +41,7 @@ namespace FluidDemo
                 _ => throw new ArgumentOutOfRangeException(nameof(substance), substance, null)
             };
         }
+
+
     }
 }

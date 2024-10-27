@@ -3,6 +3,7 @@ using System;
 
 namespace FluidDemo
 {
+    
     public struct ParticleId : IEquatable<ParticleId>
     {
         private static int NextId = 0;
@@ -28,5 +29,7 @@ namespace FluidDemo
         {
             return new ParticleId {Id = NextId++};
         }
+        
+        
     }
 }

@@ -3,6 +3,7 @@ using UnityEngine;
 using FluidSimulation;
 using RikusGameDevToolbox.GeneralUse;
 using TMPro;
+using UnityEditor;
 
 namespace FluidDemo
 {
@@ -11,10 +12,9 @@ namespace FluidDemo
         public TextMeshPro text;
         
         private FluidDynamics _fluidDynamics;
-       // private Particles _particles;
         private ParticleCollection _particleCollection;
         private SpatialPartitioningGrid<ParticleId> _partitioningGrid;
-        private ParticleVisuals _particleVisuals;
+        private ParticleVisuals _Visuals;
 
         private FluidSimParticle[] _fspBuffer; 
 
@@ -41,30 +41,13 @@ namespace FluidDemo
        
         private void Awake()
         {
-            _particleVisuals = FindObjectOfType<ParticleVisuals>();
-            if (_particleVisuals == null) Debug.LogError("No visualization found in the scene.");
-
+            _Visuals = FindObjectOfType<ParticleVisuals>();
+            if (_Visuals == null) Debug.LogError("No visualization found in the scene.");
             var alerts = CreateProximityAlertSubscriptions();
-
             _fluidDynamics = new FluidDynamics(Settings, Fluids.List, alerts);
-            _fspBuffer = new FluidSimParticle[Settings.MaxNumParticles];
-            
-            for (int i = 0; i < Settings.MaxNumParticles; i++)
-            {
-                _fspBuffer[i] = new FluidSimParticle
-                {
-                    Position = Vector2.zero,
-                    Velocity = Vector2.zero,
-                    SubstanceIndex = -1,
-                    Id = -1,
-                    Active = false
-                };
-            }
-            
+            _fspBuffer = CreateFluidSimParticleBuffer(Settings.MaxNumParticles);
             _partitioningGrid = CreateSpatialPartitioningGrid();
-          //  _particles = new Particles(Settings.MaxNumParticles, _partitioningGrid);
             _particleCollection = new ParticleCollection(Settings.MaxNumParticles);
-            
             _avgUpdateTime = new MovingAverage(300);
         }
 
@@ -108,11 +91,9 @@ namespace FluidDemo
             particle.Position = position;
             particle.Velocity = velocity;
             particle.FluidId = fluidId;
-            
-//            _particles.Add(particle);
+            particle.Visuals = _Visuals.Create(particle);
             _particleCollection.Add(particle);
-            _particleVisuals.Add(particle.Id, fluidId, position);
-
+            
             return particle;
         }
 
@@ -130,7 +111,6 @@ namespace FluidDemo
         public void Clear()
         {
             _particleCollection.Clear();
-            _particleVisuals.Clear();
         }
 
         #endregion
@@ -138,34 +118,57 @@ namespace FluidDemo
         
         private void SimulateFluids(float deltaTime, FluidDynamics fluidDynamics, ParticleCollection particles)
         {
-            var span = particles.TempGetSpan();
-            for (int i=0; i<Settings.MaxNumParticles; i++)
-            {
-                if (i < span.Length)
-                {
-                    _fspBuffer[i].Active = true;
-                    _fspBuffer[i].Position = span[i].Position;
-                    _fspBuffer[i].Velocity = span[i].Velocity;
-                    _fspBuffer[i].SetFluid(span[i].FluidId);
-                }
-                else
-                {
-                    _fspBuffer[i].Active = false;
-                }
-            }
-           
+            var span = particles.AsSpan();
+            CopySpanToBuffer(span);
             fluidDynamics.Step(deltaTime, _fspBuffer);
+            CopeBufferToSpan(span);
 
 
-            for (int i = 0; i < span.Length; i++)
+            void CopySpanToBuffer(Span<Particle> span)
             {
-                span[i].Position = _fspBuffer[i].Position;
-                span[i].Velocity = _fspBuffer[i].Velocity;
+                for (int i=0; i<Settings.MaxNumParticles; i++)
+                {
+                    if (i < span.Length)
+                    {
+                        _fspBuffer[i].Active = true;
+                        _fspBuffer[i].Position = span[i].Position;
+                        _fspBuffer[i].Velocity = span[i].Velocity;
+                        _fspBuffer[i].SetFluid(span[i].FluidId);
+                    }
+                    else
+                    {
+                        _fspBuffer[i].Active = false;
+                    }
+                }
             }
 
-            particles.TempSaveSpan(span);
-            
-            //_particles.SimulateFluids(timestep: 0.015f, _fluidDynamics);
+            void CopeBufferToSpan(Span<Particle> span)
+            {
+                for (int i = 0; i < span.Length; i++)
+                {
+                    span[i].Position = _fspBuffer[i].Position;
+                    span[i].Velocity = _fspBuffer[i].Velocity;
+                }
+            }
+        }
+
+        private FluidSimParticle[] CreateFluidSimParticleBuffer(int size)
+        {
+            var buffer = new FluidSimParticle[Settings.MaxNumParticles];
+
+            for (int i = 0; i < size; i++)
+            {
+                buffer[i] = new FluidSimParticle
+                {
+                    Position = Vector2.zero,
+                    Velocity = Vector2.zero,
+                    SubstanceIndex = -1,
+                    Id = -1,
+                    Active = false
+                };
+            }
+
+            return buffer;
         }
         
         
@@ -201,8 +204,8 @@ namespace FluidDemo
             p.FluidId=FluidId.Smoke;
             _particleCollection.Update(p);
             
-            _particleVisuals.Delete(particleId);
-            _particleVisuals.Add(particleId, fluidId, _particleCollection.Get(particleId).Position);
+         //   _particleVisuals.Delete(particleId);
+          //  _particleVisuals.Add(particleId, fluidId, _particleCollection.Get(particleId).Position);
         }
 
 
@@ -211,9 +214,10 @@ namespace FluidDemo
 
         private void UpdateParticleVisualization()
         {
-            foreach (var particle in _particleCollection.TempGetSpan())
+            foreach (var particle in _particleCollection.AsSpan())
             {
-                _particleVisuals.UpdateParticle(particle.Id, particle.Position);
+                if (particle.Visuals is null) continue;
+                particle.Visuals.transform.position = particle.Position;
             }
         }
 
@@ -230,12 +234,7 @@ namespace FluidDemo
         private void DoSpatialPartitioning(SpatialPartitioningGrid<ParticleId> grid, ParticleCollection particles)
         {
             grid.Clear();
-           /* for (int i = 0; i < particles.NumParticles; i++)
-            {
-                grid.Add(i, particles[i].Position);
-            }*/
-           
-            foreach (var particle in particles.TempGetSpan())
+            foreach (var particle in particles.AsSpan())
             {
                 grid.Add(particle.Id, particle.Position);
             }
