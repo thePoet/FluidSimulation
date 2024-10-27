@@ -96,16 +96,22 @@ namespace FluidDemo
             
             return particle;
         }
-
-      
-        public void SetParticleVelocities(Vector2 position, float radius, Vector2 velocity)
+        
+        public Particle GetParticle(ParticleId id)
         {
-            foreach (var id in ParticlesInsideCircle(position, radius))
-            {
-                var p = _particleCollection.Get(id);
-                p.Velocity = velocity;
-                _particleCollection.Update(p);
-            }
+            return _particleCollection.Get(id);
+        }
+
+        public void UpdateParticle(Particle particle)
+        {
+            _particleCollection.Update(particle);
+        }
+        
+        public void DestroyParticle(ParticleId id)
+        {
+            var p = _particleCollection.Get(id);
+            _Visuals.DestroyVisuals(p);
+            _particleCollection.Remove(id);
         }
 
         public void Clear()
@@ -209,9 +215,6 @@ namespace FluidDemo
         }
 
 
-
-    
-
         private void UpdateParticleVisualization()
         {
             foreach (var particle in _particleCollection.AsSpan())
@@ -221,9 +224,6 @@ namespace FluidDemo
             }
         }
 
-
-    
-  
         
         private SpatialPartitioningGrid<ParticleId> CreateSpatialPartitioningGrid()
         {

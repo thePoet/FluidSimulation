@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using RikusGameDevToolbox.GeneralUse;
-using UnityEngine;
 
 namespace FluidDemo
 {
@@ -44,11 +42,14 @@ namespace FluidDemo
             
             if (index == lastIndex) return;
             
-            // Move last element in array to the empty spot
-            ParticleId lastElementId = _IndexToId[lastIndex];
+            // Move last element in array to the empty spot so that the array is contiguous:
             _array[index] = _array[lastIndex];
+
+            //..and adjust the dictionaries accordingly:
+            ParticleId lastElementId = _IndexToId[lastIndex];
             _IdToIndex[lastElementId] = index;
             _IndexToId[index] = lastElementId;
+            _IndexToId.Remove(lastIndex);
         }
 
         public void Update(Particle particle)
