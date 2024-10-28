@@ -1,7 +1,5 @@
 TODO:
 
-- ParticleId Guidista
-
 - Kevyet partikkelit liian kaaottisia törmäyksissä raskaiden kanssa ja raskaat tuntuvat liikkuvan myös liikaa
   törmäyksissä
 - kokeile ArrayByEnumia
@@ -9,5 +7,5 @@ TODO:
 - Partikkelit kimpoavat väärin alueen laidoista
 - Lisää stabiiliutta nopeusrajoituksilla ja kitkalla ?
 
-- spatial partitioning GPU:lle
+(- spatial partitioning GPU:lle)
     
