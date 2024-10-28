@@ -1,4 +1,4 @@
-namespace FluidSimulation
+namespace FluidDemo
 {
     public class PerformanceTest
     {

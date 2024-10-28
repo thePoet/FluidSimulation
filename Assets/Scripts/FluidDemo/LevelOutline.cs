@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace FluidSimulation
+namespace FluidDemo
 {
     [RequireComponent(typeof(LineRenderer))]
     public class LevelOutline : MonoBehaviour

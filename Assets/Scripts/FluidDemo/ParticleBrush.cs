@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 namespace FluidDemo
@@ -10,20 +9,20 @@ namespace FluidDemo
         public bool oneAtTime = false;
         public float brushRadius = 10f;
         public float maxSpeed = 10f;
-        public FluidSimDemo fluidDynamics;
+        public Simulation simulation;
         
         private Vector2 _previousMousePosition;
         private FluidId _currentFluidId = FluidId.Water;
         
         private void Start()
         {
-            fluidDynamics = FindObjectOfType<FluidSimDemo>();
-            if (fluidDynamics == null) Debug.LogError("No TestFluidDynamics found in the scene.");
+            simulation = FindObjectOfType<Simulation>();
+            if (simulation == null) Debug.LogError("No simulation found in the scene.");
         }
 
         void Update()
         {
-            if (fluidDynamics == null) return;
+            if (simulation is null) return;
             
             if (LeftMouseButton)
             {
@@ -36,15 +35,23 @@ namespace FluidDemo
                 }
         
                 for (int i=0; i < amount; i++)
-                {
-                  fluidDynamics.SpawnParticle(MousePosition + RandomOffset, Velocity, _currentFluidId);
+                { 
+                    simulation.SpawnParticle(MousePosition + RandomOffset, Velocity, _currentFluidId);
                 }
             }
 
             if (RightMouseButton)
             {
                 Vector2 deltaMousePosition = MousePosition - _previousMousePosition;
-                fluidDynamics.SetParticleVelocities(MousePosition, 15f, deltaMousePosition/Time.deltaTime);
+                Vector2 velocity = deltaMousePosition/Time.deltaTime;
+        
+                foreach (var id in ParticlesInBrush)
+                {
+                    var particle = simulation.GetParticle(id);
+                    //particle.Velocity = velocity;
+                    //simulation.UpdateParticle(particle);
+                    simulation.DestroyParticle(id);
+                }
             }
   
             
@@ -57,6 +64,11 @@ namespace FluidDemo
 
             _previousMousePosition = MousePosition;
         }
+        
+    
+        
+        private ParticleId[] ParticlesInBrush => simulation.ParticlesInsideCircle(MousePosition, 15f);
+ 
 
         bool LeftMouseButton => Input.GetMouseButton(0);
         bool RightMouseButton => Input.GetMouseButton(1);
