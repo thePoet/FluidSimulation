@@ -68,6 +68,11 @@ namespace FluidDemo
             return _array.AsSpan().Slice(0, _IdToIndex.Count);
         }
         
+        public int SpanIndexOf(ParticleId id)
+        {
+            return _IdToIndex[id];
+        }
+        
         
      
         

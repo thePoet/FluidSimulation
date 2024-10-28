@@ -40,6 +40,8 @@ namespace FluidSimulation.Internal
         private ProximityAlert[] _proximityAlerts;
         private int _maxNumProximityAlerts;
         
+        
+        
         public ShaderManager(string shaderFileName, SimulationSettingsInternal simulationSettings,
             FluidInternal[] fluids, ProximityAlertRequest[] alerts, int maxNumProxAlerts)  
         {
@@ -82,6 +84,7 @@ namespace FluidSimulation.Internal
             }
         }
         
+       
        
         public void Step(float deltaTime, FluidSimParticle[] particles)
         {

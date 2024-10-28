@@ -20,7 +20,7 @@ namespace FluidDemo
             ParticleId[] particles = _simulation.ParticlesInsideCircle(mousePos, 15f);
             if (particles.Length > 0)
             {
-            //    _simulation.SelectDebugParticle(particles[0]);
+                _simulation.SelectDebugParticle(particles[0]);
             }
         }
 

@@ -19,11 +19,15 @@ namespace FluidSimulation
         
         
         //TODO: parameters could be combined into a single type
-        public FluidDynamics(SimulationSettings simulationSettings, Substance[] substances, ProximityAlertRequest[] alerts = null)
+        public FluidDynamics(SimulationSettings simulationSettings, Substance[] substances, 
+            ProximityAlertRequest[] alerts = null, int maxNumProxAlerts=500)
         {
             var settings = ConvertSimulationSettings(simulationSettings);
+
+            if (alerts == null) maxNumProxAlerts = 0;
     
-            _shaderManager = new ShaderManager("FluidDynamicsComputeShader", settings, ToInternalFluids(substances), alerts, 500);
+            _shaderManager = new ShaderManager("FluidDynamicsComputeShader", settings, 
+                ToInternalFluids(substances), alerts, maxNumProxAlerts);
         }
 
         public void Dispose()

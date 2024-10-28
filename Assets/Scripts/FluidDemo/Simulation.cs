@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 using FluidSimulation;
 using RikusGameDevToolbox.GeneralUse;
@@ -36,7 +35,7 @@ namespace FluidDemo
         public ParticleId[] ParticlesInsideRectangle(Rect rect) => _partitioningGrid.RectangleContents(rect);
         public ParticleId[] ParticlesInsideCircle(Vector2 position, float radius) => _partitioningGrid.CircleContents(position, radius);
         public Vector2[] ParticleDebugData() => _fluidDynamics.DebugData();
-        public void SelectDebugParticle(int particleIdx) => _fluidDynamics.SubscribeDebugData(particleIdx);
+        public void SelectDebugParticle(ParticleId id) => _fluidDynamics.SubscribeDebugData(_particles.SpanIndexOf(id));
      
         #region ------------------------------------------ UNITY METHODS ----------------------------------------------
        
@@ -45,7 +44,7 @@ namespace FluidDemo
             _visuals = FindObjectOfType<ParticleVisuals>();
             if (_visuals == null) Debug.LogError("No visualization found in the scene.");
             var alerts = CreateProximityAlertSubscriptions();
-            _fluidDynamics = new FluidDynamics(Settings, Fluids.List, alerts);
+            _fluidDynamics = new FluidDynamics(Settings, Fluids.List, alerts, 500);
             _fspBuffer = CreateFluidSimParticleBuffer(Settings.MaxNumParticles);
             _partitioningGrid = CreateSpatialPartitioningGrid();
             _particles = new ParticleCollection(Settings.MaxNumParticles);
@@ -196,7 +195,7 @@ namespace FluidDemo
             return new[]{pas};
         }
         
-        private (ParticleId, ParticleId)[] ProximityAlerts()
+        private (ParticleId, ParticleId)[] GetProximityAlerts()
         {
             int numAlerts = _fluidDynamics.ProximityAlerts.Length;
             var result = new (ParticleId, ParticleId)[numAlerts];
@@ -213,7 +212,7 @@ namespace FluidDemo
 
         private void DoChemicalReactions()
         {
-            foreach (var (pId1, pId2) in ProximityAlerts())
+            foreach (var (pId1, pId2) in GetProximityAlerts())
             {
                 var p1 = GetParticle(pId1);
                 var p2 = GetParticle(pId2);
