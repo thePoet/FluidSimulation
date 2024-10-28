@@ -44,7 +44,7 @@ namespace FluidDemo
             _visuals = FindObjectOfType<ParticleVisuals>();
             if (_visuals == null) Debug.LogError("No visualization found in the scene.");
             var alerts = CreateProximityAlertSubscriptions();
-            _fluidDynamics = new FluidDynamics(Settings, Fluids.List, alerts, 500);
+            _fluidDynamics = new FluidDynamics(Settings, Substances.List, alerts, 500);
             _fspBuffer = CreateFluidSimParticleBuffer(Settings.MaxNumParticles);
             _partitioningGrid = CreateSpatialPartitioningGrid();
             _particles = new ParticleCollection(Settings.MaxNumParticles);
@@ -79,13 +79,13 @@ namespace FluidDemo
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
         
 
-        public Particle SpawnParticle(Vector2 position, Vector2 velocity, FluidId fluidId)
+        public Particle SpawnParticle(Vector2 position, Vector2 velocity, SubstanceId substanceId)
         {
             var particle = new Particle();
-            particle.Id = ParticleId.CreateNewId();
+            particle.Id = ParticleId.CreateUnique();
             particle.Position = position;
             particle.Velocity = velocity;
-            particle.FluidId = fluidId;
+            particle.SubstanceId = substanceId;
             particle.Visuals = _visuals.Create(particle);
             _particles.Add(particle);
             
@@ -107,7 +107,7 @@ namespace FluidDemo
 
             _particles.Update(particle);
             
-            bool IsFluidChanged() =>_particles.Get(particle.Id).FluidId != particle.FluidId;
+            bool IsFluidChanged() =>_particles.Get(particle.Id).SubstanceId != particle.SubstanceId;
         }
         
         public void DestroyParticle(ParticleId id)
@@ -144,7 +144,7 @@ namespace FluidDemo
                         _fspBuffer[i].Active = true;
                         _fspBuffer[i].Position = span[i].Position;
                         _fspBuffer[i].Velocity = span[i].Velocity;
-                        _fspBuffer[i].SetFluid(span[i].FluidId);
+                        _fspBuffer[i].SetFluid(span[i].SubstanceId);
                     }
                     else
                     {
@@ -174,7 +174,6 @@ namespace FluidDemo
                     Position = Vector2.zero,
                     Velocity = Vector2.zero,
                     SubstanceIndex = -1,
-                    Id = -1,
                     Active = false
                 };
             }
@@ -187,8 +186,8 @@ namespace FluidDemo
         {
             var pas = new ProximityAlertRequest
             {
-                IndexFluidA = Fluids.IndexOf(FluidId.GreenLiquid),
-                IndexFluidB = Fluids.IndexOf(FluidId.RedLiquid),
+                IndexFluidA = Substances.IndexOf(SubstanceId.GreenLiquid),
+                IndexFluidB = Substances.IndexOf(SubstanceId.RedLiquid),
                 Range = 10f
             };
 
@@ -217,10 +216,10 @@ namespace FluidDemo
                 var p1 = GetParticle(pId1);
                 var p2 = GetParticle(pId2);
                 
-                if (p1.FluidId == FluidId.GreenLiquid && p2.FluidId == FluidId.RedLiquid)
+                if (p1.SubstanceId == SubstanceId.GreenLiquid && p2.SubstanceId == SubstanceId.RedLiquid)
                 {
-                   p1.FluidId = FluidId.Smoke;
-                   p2.FluidId = FluidId.Water;
+                   p1.SubstanceId = SubstanceId.Smoke;
+                   p2.SubstanceId = SubstanceId.Water;
                    UpdateParticle(p1);
                    UpdateParticle(p2);
                 }

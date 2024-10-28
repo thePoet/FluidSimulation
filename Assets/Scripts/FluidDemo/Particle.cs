@@ -7,7 +7,7 @@ namespace FluidDemo
         public ParticleId Id;
         public Vector2 Position;
         public Vector2 Velocity;
-        public FluidId FluidId;
+        public SubstanceId SubstanceId;
         public GameObject Visuals;
     }
 }

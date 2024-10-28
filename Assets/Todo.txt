@@ -2,9 +2,6 @@ TODO:
 
 - ParticleId Guidista
 
-- using static
-
-
 - Kevyet partikkelit liian kaaottisia törmäyksissä raskaiden kanssa ja raskaat tuntuvat liikkuvan myös liikaa
   törmäyksissä
 - kokeile ArrayByEnumia

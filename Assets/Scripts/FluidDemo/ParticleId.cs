@@ -2,33 +2,15 @@ using System;
 
 namespace FluidDemo
 {
-    
-    public struct ParticleId : IEquatable<ParticleId>
+    public readonly struct ParticleId : IEquatable<ParticleId>
     {
-        private static int NextId = 0;
-        
-        public int Id { get; init; }
+        public static ParticleId CreateUnique() => new ParticleId {Id = Guid.NewGuid()};
 
-        public bool Equals(ParticleId other)
-        {
-            return Id == other.Id;
-        }
+        public Guid Id { get; init; }
 
-        public override bool Equals(object obj)
-        {
-            return obj is ParticleId other && Equals(other);
-        }
-
-        public override int GetHashCode()
-        {
-            return Id;
-        }
-        
-        public static ParticleId CreateNewId()
-        {
-            return new ParticleId {Id = NextId++};
-        }
-        
-        
+        public bool Equals(ParticleId other) => Id.Equals(other.Id);
+        public override bool Equals(object obj) => obj is ParticleId other && Equals(other);
+        public override int GetHashCode()  => Id.GetHashCode();
     }
 }
+    

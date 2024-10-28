@@ -4,7 +4,6 @@ namespace FluidSimulation
 {
     public struct FluidSimParticle
     {
-        public int Id;
         public Vector2 Position;
         public Vector2 Velocity;
         public int SubstanceIndex;  //This is the idx of the fluid in the array that is provided for FluidDynamics constructor.
@@ -18,7 +17,7 @@ namespace FluidSimulation
         }
 
 
-        public const int Stride = 4 * sizeof(float) + 2 * sizeof(int) + sizeof(float);
+        public const int Stride = 4 * sizeof(float) + 2 * sizeof(int);
 
     }
     

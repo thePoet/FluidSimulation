@@ -1,7 +1,7 @@
 using UnityEngine;
 using Random = UnityEngine.Random;
 using TMPro;
-using static FluidDemo.FluidId;
+using static FluidDemo.SubstanceId;
 
 namespace FluidDemo
 {
@@ -15,7 +15,7 @@ namespace FluidDemo
         public TextMeshPro text;
         
         private Vector2 _previousMousePosition;
-        private FluidId _currentFluidId = FluidId.Water;
+        private SubstanceId _currentSubstanceId = SubstanceId.Water;
         private int _currentMode;
         
         private void Start()
@@ -79,7 +79,7 @@ namespace FluidDemo
         {
             int amount = particlesPerFrame;
 
-            if (oneAtTime || _currentFluidId == FluidId.Rock )
+            if (oneAtTime || _currentSubstanceId == SubstanceId.Rock )
             {
                 amount = 1;
                 if (!Input.GetMouseButtonDown(0)) return true;
@@ -87,7 +87,7 @@ namespace FluidDemo
         
             for (int i=0; i < amount; i++)
             { 
-                simulation.SpawnParticle(MousePosition + RandomOffset, Velocity, _currentFluidId);
+                simulation.SpawnParticle(MousePosition + RandomOffset, Velocity, _currentSubstanceId);
             }
 
             return false;
@@ -120,7 +120,7 @@ namespace FluidDemo
         void SelectMode(int modeNumber)
         {
             _currentMode = modeNumber;
-            if (_currentMode is >= 1 and <= 5) _currentFluidId = (FluidId)(_currentMode-1);
+            if (_currentMode is >= 1 and <= 5) _currentSubstanceId = (SubstanceId)(_currentMode-1);
             text.text = ModeSelectionText();
         }
 

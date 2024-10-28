@@ -1,6 +1,6 @@
 namespace FluidDemo
 {
-    public enum FluidId
+    public enum SubstanceId
     {
         Water,
         Smoke,

@@ -17,7 +17,6 @@
 
 struct Particle
 {
-    int id;
     float2 Position;
     float2 Velocity;
     int fluidIdx;

@@ -15,7 +15,7 @@ namespace FluidDemo
         
         public GameObject Create(Particle particle)
         {
-            return Create(particle.FluidId, particle.Position);
+            return Create(particle.SubstanceId, particle.Position);
         }
         
         public void DestroyVisuals(Particle particle)
@@ -23,21 +23,21 @@ namespace FluidDemo
             Destroy(particle.Visuals);
         }
         
-        private GameObject Create(FluidId fluidId, Vector2 position)
+        private GameObject Create(SubstanceId substanceId, Vector2 position)
         {
-            var particle = Instantiate(PrefabFor(fluidId), parent: transform, worldPositionStays: false);
+            var particle = Instantiate(PrefabFor(substanceId), parent: transform, worldPositionStays: false);
         
             particle.transform.position = new Vector3(position.x, position.y, 0f);
 
             return particle;
             
-            GameObject PrefabFor(FluidId substance) => substance switch
+            GameObject PrefabFor(SubstanceId substance) => substance switch
             {
-                FluidId.Water => liquidParticlePrefab,
-                FluidId.Smoke => gasParticlePrefab,
-                FluidId.Rock => solidParticlePrefab,
-                FluidId.GreenLiquid => greenLiquidParticlePrefab,
-                FluidId.RedLiquid => redLiquidParticlePrefab,
+                SubstanceId.Water => liquidParticlePrefab,
+                SubstanceId.Smoke => gasParticlePrefab,
+                SubstanceId.Rock => solidParticlePrefab,
+                SubstanceId.GreenLiquid => greenLiquidParticlePrefab,
+                SubstanceId.RedLiquid => redLiquidParticlePrefab,
                 _ => throw new ArgumentOutOfRangeException(nameof(substance), substance, null)
             };
         }

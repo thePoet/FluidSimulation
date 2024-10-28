@@ -21,7 +21,7 @@ namespace FluidDemo
         // Update is called once per frame
         void SpawnParticle()
         {
-            _fluidDemo.SpawnParticle(transform.position, Vector2.zero, FluidId.Water);
+            _fluidDemo.SpawnParticle(transform.position, Vector2.zero, SubstanceId.Water);
         }
     }
 
