@@ -61,6 +61,7 @@ struct Variables
     int numCellOverflowErrors;
     int numParticleOutsideAreaErrors;
     int numInsideSolidWarnings;
+    int proximityAlertsMaxedOut;
 };
 
 // Settings
@@ -68,6 +69,7 @@ struct Variables
 int _MaxNumParticles;
 int _MaxNumNeighbours;
 int _MaxNumParticlesPerCell;
+int _MaxNumProximityAlerts;
 
 float _InteractionRadius;
 float _Gravity;
@@ -87,12 +89,6 @@ int _SelectedParticle; // For getting debug info
 float _Time = 0;
 int _NumFluids;
 
-// Error flags
-
-static const int ERROR_CELL_OVERFLOW = 0;
-static const int ERROR_OUTSIDE_AREA = 1;
-static const int ERROR_MAX_DENSITY_DISPLACEMENT = 2;
-static const int WARNING_INSIDE_SOLID = 3;
 static const float EPSILON = 0.00001;
 
 
@@ -266,14 +262,13 @@ void InitAndApplyGravity (uint3 id : SV_DispatchThreadID)
         _Variables[0].numCellOverflowErrors=0;
         _Variables[0].numInsideSolidWarnings=0;
         _Variables[0].numParticleOutsideAreaErrors=0;
+        _Variables[0].proximityAlertsMaxedOut=0;
         
-        for (int i=0; i<500; i++)
+        for (int i=0; i<_MaxNumProximityAlerts; i++)
         {
             _ProximityAlerts[i].particleIdx1 = 0;
             _ProximityAlerts[i].particleIdx2 = 0;
         }
-
-        
     }
 
     if (!IsActiveParticle(particleIndex)) return;
@@ -407,8 +402,11 @@ void FindNeighbours (uint3 id : SV_DispatchThreadID)
            
                 if (alertDistance > 0 && distance < alertDistance)
                 {
-                    if (_Variables[0].numProximityAlerts >= 500)
+                    if (_Variables[0].numProximityAlerts >= _MaxNumProximityAlerts)
+                    {
+                        _Variables[0].proximityAlertsMaxedOut = 1;
                         continue;
+                    }
                     int previousNum;
                     InterlockedAdd(_Variables[0].numProximityAlerts, 1, previousNum);
                     _ProximityAlerts[previousNum].particleIdx1 = particleIndex;

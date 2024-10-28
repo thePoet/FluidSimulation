@@ -23,7 +23,7 @@ namespace FluidSimulation
         {
             var settings = ConvertSimulationSettings(simulationSettings);
     
-            _shaderManager = new ShaderManager("FluidDynamicsComputeShader", settings, ToInternalFluids(substances), alerts);
+            _shaderManager = new ShaderManager("FluidDynamicsComputeShader", settings, ToInternalFluids(substances), alerts, 500);
         }
 
         public void Dispose()

@@ -120,11 +120,10 @@ namespace FluidDemo
 
         public void Clear()
         {
+            DestroyAllVisuals();
             _particles.Clear();
         }
 
-
-        
 
         #endregion
         #region ------------------------------------------ PRIVATE METHODS ----------------------------------------------
@@ -239,6 +238,13 @@ namespace FluidDemo
             }
         }
 
+        private void DestroyAllVisuals()
+        {
+            foreach (var particle in _particles.AsSpan())
+            {
+                _visuals.DestroyVisuals(particle);
+            }
+        }
         
         private SpatialPartitioningGrid<ParticleId> CreateSpatialPartitioningGrid()
         {

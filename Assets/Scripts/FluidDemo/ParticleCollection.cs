@@ -57,7 +57,11 @@ namespace FluidDemo
             _array[_IdToIndex[particle.Id]] = particle;
         }
 
-        public void Clear() => _IdToIndex.Clear();
+        public void Clear()
+        {
+            _IdToIndex.Clear();
+            _IndexToId.Clear();
+        }
         
         public Span<Particle> AsSpan()
         {
