@@ -1,5 +1,4 @@
 using System;
-using FluidSimulation.Internal;
 using UnityEngine;
 
 
@@ -89,9 +88,9 @@ namespace FluidSimulation
             return ssi;
         }
         
-        FluidInternal[] ToInternalFluids(Substance[] fluids)
+        Fluid[] ToInternalFluids(Substance[] fluids)
         {
-            var internalFluids = new FluidInternal[fluids.Length];
+            var internalFluids = new Fluid[fluids.Length];
             for (int i = 0; i < fluids.Length; i++)
             {
                 internalFluids[i] = ConvertFluid(fluids[i]);
@@ -99,9 +98,9 @@ namespace FluidSimulation
             return internalFluids;
         }
         
-        private FluidInternal ConvertFluid(Substance substance)
+        private Fluid ConvertFluid(Substance substance)
         {
-            var f = new FluidInternal();
+            var f = new Fluid();
 
             f.Mass = substance.Density;
 

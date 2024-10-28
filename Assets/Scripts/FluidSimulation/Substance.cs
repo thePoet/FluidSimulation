@@ -8,6 +8,9 @@ namespace FluidSimulation
     public record Gas(Density Density, Viscosity Viscosity)    : Substance(Density);
     public record Solid(Density Density)                       : Substance(Density);  
 
+    /// <summary>
+    /// Density of a substance. Must be between 0f and 10f.
+    /// </summary>
     public record Density 
     {
         public float Value { get; }
@@ -22,6 +25,9 @@ namespace FluidSimulation
         public static implicit operator Density(float value) => new(value);
     }
     
+    /// <summary>
+    /// Viscosity of gas or solid. Must be between 0f and 1f.
+    /// </summary>
     public record Viscosity
     {
         public float Value { get; }

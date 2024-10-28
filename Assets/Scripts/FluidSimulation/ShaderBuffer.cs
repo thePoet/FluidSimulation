@@ -1,8 +1,8 @@
 using UnityEngine;
 
-namespace FluidSimulation.Internal
+namespace FluidSimulation
 {
-    public class ShaderBuffer
+    internal class ShaderBuffer
     {
         public enum Type
         {

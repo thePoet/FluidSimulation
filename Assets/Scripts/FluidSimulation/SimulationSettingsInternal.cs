@@ -1,8 +1,8 @@
 using UnityEngine;
     
-namespace FluidSimulation.Internal
+namespace FluidSimulation
 {
-    public struct SimulationSettingsInternal
+    internal struct SimulationSettingsInternal
     {
         public float InteractionRadius;
         public float Gravity;
