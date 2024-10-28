@@ -3,15 +3,7 @@ using RikusGameDevToolbox.GeneralUse;
 
 namespace FluidDemo
 {    
-    public enum FluidId
-    {
-        Water,
-        Smoke,
-        Rock,
-        GreenLiquid,
-        RedLiquid
-    }
-
+    
     public static class Fluids
     {
         public static readonly Substance[] List;
