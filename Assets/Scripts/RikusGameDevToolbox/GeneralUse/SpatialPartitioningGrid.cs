@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using RikusGameDevToolbox.GeneralUse;
 
-namespace FluidDemo
+namespace RikusGameDevToolbox.GeneralUse
 {
     public class SpatialPartitioningGrid<T>
     {

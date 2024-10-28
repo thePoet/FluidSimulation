@@ -7,5 +7,4 @@ TODO:
 - Partikkelit kimpoavat väärin alueen laidoista
 - Lisää stabiiliutta nopeusrajoituksilla ja kitkalla ?
 
-(- spatial partitioning GPU:lle)
-    
+- kokeile korkeaa kitkaa kaasuihin
