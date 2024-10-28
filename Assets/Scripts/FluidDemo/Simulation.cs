@@ -1,9 +1,10 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using FluidSimulation;
 using RikusGameDevToolbox.GeneralUse;
 using TMPro;
-using UnityEditor;
+
 
 namespace FluidDemo
 {
@@ -12,9 +13,9 @@ namespace FluidDemo
         public TextMeshPro text;
         
         private FluidDynamics _fluidDynamics;
-        private ParticleCollection _particleCollection;
+        private ParticleCollection _particles;
         private SpatialPartitioningGrid<ParticleId> _partitioningGrid;
-        private ParticleVisuals _Visuals;
+        private ParticleVisuals _visuals;
 
         private FluidSimParticle[] _fspBuffer; 
 
@@ -41,13 +42,13 @@ namespace FluidDemo
        
         private void Awake()
         {
-            _Visuals = FindObjectOfType<ParticleVisuals>();
-            if (_Visuals == null) Debug.LogError("No visualization found in the scene.");
+            _visuals = FindObjectOfType<ParticleVisuals>();
+            if (_visuals == null) Debug.LogError("No visualization found in the scene.");
             var alerts = CreateProximityAlertSubscriptions();
             _fluidDynamics = new FluidDynamics(Settings, Fluids.List, alerts);
             _fspBuffer = CreateFluidSimParticleBuffer(Settings.MaxNumParticles);
             _partitioningGrid = CreateSpatialPartitioningGrid();
-            _particleCollection = new ParticleCollection(Settings.MaxNumParticles);
+            _particles = new ParticleCollection(Settings.MaxNumParticles);
             _avgUpdateTime = new MovingAverage(300);
         }
 
@@ -56,28 +57,23 @@ namespace FluidDemo
         {
             float t = Time.realtimeSinceStartup;
            
-            SimulateFluids(0.015f, _fluidDynamics, _particleCollection);
-            DoSpatialPartitioning(_partitioningGrid, _particleCollection);
-            UpdateParticleVisualization();
-            
-            HandleProximityAlerts(_fluidDynamics.ProximityAlerts);
+            SimulateFluids(0.015f, _fluidDynamics, _particles);
+            DoSpatialPartitioning(_partitioningGrid, _particles);
+            DoChemicalReactions();
+            MoveParticleVisuals();
             
             t = Time.realtimeSinceStartup - t;
             _avgUpdateTime.Add(t);
             float avgUpdate = _avgUpdateTime.Average()*1000f;
 
-            text.text = "Particles: " + _particleCollection.Count + " - " + avgUpdate.ToString("0.0") +
+            text.text = "Particles: " + _particles.Count + " - " + avgUpdate.ToString("0.0") +
                         " ms.";
         }
-
-    
-
 
         private void OnDisable()
         {
             _fluidDynamics.Dispose();
         }
-
 
         #endregion
 
@@ -91,33 +87,44 @@ namespace FluidDemo
             particle.Position = position;
             particle.Velocity = velocity;
             particle.FluidId = fluidId;
-            particle.Visuals = _Visuals.Create(particle);
-            _particleCollection.Add(particle);
+            particle.Visuals = _visuals.Create(particle);
+            _particles.Add(particle);
             
             return particle;
         }
         
         public Particle GetParticle(ParticleId id)
         {
-            return _particleCollection.Get(id);
+            return _particles.Get(id);
         }
 
         public void UpdateParticle(Particle particle)
         {
-            _particleCollection.Update(particle);
+            if (IsFluidChanged())
+            {
+                _visuals.DestroyVisuals(particle);
+                particle.Visuals = _visuals.Create(particle);
+            }
+
+            _particles.Update(particle);
+            
+            bool IsFluidChanged() =>_particles.Get(particle.Id).FluidId != particle.FluidId;
         }
         
         public void DestroyParticle(ParticleId id)
         {
-            var p = _particleCollection.Get(id);
-            _Visuals.DestroyVisuals(p);
-            _particleCollection.Remove(id);
+            var p = _particles.Get(id);
+            _visuals.DestroyVisuals(p);
+            _particles.Remove(id);
         }
 
         public void Clear()
         {
-            _particleCollection.Clear();
+            _particles.Clear();
         }
+
+
+        
 
         #endregion
         #region ------------------------------------------ PRIVATE METHODS ----------------------------------------------
@@ -177,19 +184,6 @@ namespace FluidDemo
             return buffer;
         }
         
-        
-        private void HandleProximityAlerts(Span<ProximityAlert> proximityAlerts)
-        {/*
-            foreach (var alert in proximityAlerts)
-            {
-                int i1 = alert.IndexParticleA;
-                int i2 = alert.IndexParticleB;
-
-                ChangeParticleSubstance(i1, FluidId.Smoke);
-                ChangeParticleSubstance(i2, FluidId.Smoke);
-            }
-               */ 
-        }
 
         private ProximityAlertRequest[] CreateProximityAlertSubscriptions()
         {
@@ -202,22 +196,43 @@ namespace FluidDemo
 
             return new[]{pas};
         }
-
         
-        private void ChangeParticleSubstance(ParticleId particleId, FluidId fluidId)
+        private (ParticleId, ParticleId)[] ProximityAlerts()
         {
-            var p = _particleCollection.Get(particleId);
-            p.FluidId=FluidId.Smoke;
-            _particleCollection.Update(p);
+            int numAlerts = _fluidDynamics.ProximityAlerts.Length;
+            var result = new (ParticleId, ParticleId)[numAlerts];
+            var span = _particles.AsSpan();
             
-         //   _particleVisuals.Delete(particleId);
-          //  _particleVisuals.Add(particleId, fluidId, _particleCollection.Get(particleId).Position);
+            for (int i=0; i<numAlerts; i++)
+            {
+                var alert = _fluidDynamics.ProximityAlerts[i];
+                result[i] = (span[alert.IndexParticleA].Id, span[alert.IndexParticleB].Id);
+            }
+        
+            return result;
         }
 
-
-        private void UpdateParticleVisualization()
+        private void DoChemicalReactions()
         {
-            foreach (var particle in _particleCollection.AsSpan())
+            foreach (var (pId1, pId2) in ProximityAlerts())
+            {
+                var p1 = GetParticle(pId1);
+                var p2 = GetParticle(pId2);
+                
+                if (p1.FluidId == FluidId.GreenLiquid && p2.FluidId == FluidId.RedLiquid)
+                {
+                   p1.FluidId = FluidId.Smoke;
+                   p2.FluidId = FluidId.Water;
+                   UpdateParticle(p1);
+                   UpdateParticle(p2);
+                }
+            }
+        }
+        
+
+        private void MoveParticleVisuals()
+        {
+            foreach (var particle in _particles.AsSpan())
             {
                 if (particle.Visuals is null) continue;
                 particle.Visuals.transform.position = particle.Position;

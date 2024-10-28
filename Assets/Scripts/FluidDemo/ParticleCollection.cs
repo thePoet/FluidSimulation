@@ -59,11 +59,14 @@ namespace FluidDemo
 
         public void Clear() => _IdToIndex.Clear();
         
-
         public Span<Particle> AsSpan()
         {
             return _array.AsSpan().Slice(0, _IdToIndex.Count);
         }
+        
+        
+     
+        
         
     }
 }
