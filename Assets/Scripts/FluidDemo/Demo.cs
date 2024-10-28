@@ -1,6 +1,4 @@
-using FluidSimulation;
 using UnityEngine;
-using RikusGameDevToolbox.GeneralUse;
 
 namespace FluidDemo
 {
