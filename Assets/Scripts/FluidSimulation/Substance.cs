@@ -4,8 +4,9 @@ namespace FluidSimulation
 {
     public abstract record Substance(Density Density);
 
-    public record Liquid(Density Density, Viscosity Viscosity) : Substance(Density);
-    public record Gas(Density Density, Viscosity Viscosity)    : Substance(Density);
+    public abstract record Fluid(Density Density, Viscosity Viscosity) : Substance(Density);
+    public record Liquid(Density Density, Viscosity Viscosity) : Fluid(Density, Viscosity);
+    public record Gas(Density Density, Viscosity Viscosity)    : Fluid(Density, Viscosity);
     public record Solid(Density Density)                       : Substance(Density);  
 
     /// <summary>

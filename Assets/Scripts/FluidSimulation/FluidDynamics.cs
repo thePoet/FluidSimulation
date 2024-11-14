@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 
@@ -13,6 +14,7 @@ namespace FluidSimulation
     {
         
         private readonly ShaderManager _shaderManager;
+    
 
         #region ------------------------------------------ PUBLIC METHODS -----------------------------------------------
         
@@ -24,34 +26,35 @@ namespace FluidSimulation
             var settings = ConvertSimulationSettings(simulationSettings);
 
             if (alerts == null) maxNumProxAlerts = 0;
+
+            if (ContainsDuplicates(alerts))
+            {
+                throw new ArgumentException("Proximity alert requests contain duplicates.");
+            }
     
             _shaderManager = new ShaderManager("FluidDynamicsComputeShader", settings, 
                 ToInternalFluids(substances), alerts, maxNumProxAlerts);
+
+
         }
+
+
+
 
         public void Dispose()
         {
             _shaderManager.Dispose();
         }
-/*
-        public void Step(float deltaTime, Particles particles)
-        {
-            _shaderManager.Step(deltaTime, particles, particles.NumParticles);
-        }*/
-
+        
         public void Step(float deltaTime, FluidSimParticle[] particles)
         {
             _shaderManager.Step(deltaTime, particles);
         }
         
-/*
-        public void Step(float deltaTime, Span<Particle> particles)
-        {
-            _shaderManager.Step(deltaTime, particles);
-        }*/
 
         public Span<ProximityAlert> ProximityAlerts => _shaderManager.GetProximityAlerts();
-        
+
+
 
         /// <summary>
         /// The subscribed debug data for the given particle. The data is available after next Step-method call.
@@ -82,15 +85,15 @@ namespace FluidSimulation
             ssi.MaxNumParticles = simulationSettings.MaxNumParticles;
             ssi.IsViscosityEnabled = simulationSettings.IsViscosityEnabled;
             ssi.NumSubSteps = 3;
-            ssi.MaxNumParticlesInPartitioningCell = 40;
+            ssi.MaxNumParticlesInPartitioningCell = 100;
             ssi.MaxNumNeighbours = 50;
             ssi.SolidRadius = ss.SolidRadius;
             return ssi;
         }
         
-        Fluid[] ToInternalFluids(Substance[] fluids)
+        FluidInternal[] ToInternalFluids(Substance[] fluids)
         {
-            var internalFluids = new Fluid[fluids.Length];
+            var internalFluids = new FluidInternal[fluids.Length];
             for (int i = 0; i < fluids.Length; i++)
             {
                 internalFluids[i] = ConvertFluid(fluids[i]);
@@ -98,9 +101,9 @@ namespace FluidSimulation
             return internalFluids;
         }
         
-        private Fluid ConvertFluid(Substance substance)
+        private FluidInternal ConvertFluid(Substance substance)
         {
-            var f = new Fluid();
+            var f = new FluidInternal();
 
             f.Mass = substance.Density;
 
@@ -146,6 +149,22 @@ namespace FluidSimulation
                 
             return f;
         }
+        
+        
+        private bool ContainsDuplicates(ProximityAlertRequest[] alerts)
+        {
+            var set = new HashSet<(int, int)>();
+            foreach (var alert in alerts)
+            {
+                var pair = (alert.IndexFluidA, alert.IndexFluidB);
+                var reversePair = (alert.IndexFluidB, alert.IndexFluidA);
+                if (!set.Add(pair)) return true;
+                if (!set.Add(reversePair)) return true;
+            }
+            return false;
+        }
+
+
         
         #endregion
 

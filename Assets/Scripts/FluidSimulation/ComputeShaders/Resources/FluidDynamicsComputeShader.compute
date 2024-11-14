@@ -52,6 +52,7 @@ struct ProximityAlert
 {
     int particleIdx1;
     int particleIdx2;
+    int requestIndex;
 };
 
 struct Variables
@@ -104,6 +105,7 @@ RWStructuredBuffer<int> _ParticleNeighbourCount; //Length: MaxNumParticles
 RWStructuredBuffer<float2> _Debug; //Length: 5 
 RWStructuredBuffer<Fluid> _Fluids; 
 RWStructuredBuffer<float> _ProximityAlertMatrix; 
+RWStructuredBuffer<int> _ProximityAlertIndexLookup;
 RWStructuredBuffer<ProximityAlert> _ProximityAlerts;
 RWStructuredBuffer<Variables> _Variables;
 
@@ -147,6 +149,11 @@ float ProximityAlertDistance(int particleIdx1, int particleIdx2)
     return _ProximityAlertMatrix[matrixIdx];
 }
 
+int ProximityAlertRequestIndex(int particleIdx1, int particleIdx2)
+{
+    int matrixIdx = _Particles[particleIdx1].fluidIdx + _Particles[particleIdx2].fluidIdx * _NumFluids;
+    return _ProximityAlertIndexLookup[matrixIdx];
+}
 
 
 
@@ -400,15 +407,22 @@ void FindNeighbours (uint3 id : SV_DispatchThreadID)
            
                 if (alertDistance > 0 && distance < alertDistance)
                 {
-                    if (_Variables[0].numProximityAlerts >= _MaxNumProximityAlerts)
-                    {
-                        _Variables[0].proximityAlertsMaxedOut = 1;
-                        continue;
-                    }
                     int previousNum;
                     InterlockedAdd(_Variables[0].numProximityAlerts, 1, previousNum);
+
+                    if (previousNum >= _MaxNumProximityAlerts-1)
+                    {
+                        _Variables[0].proximityAlertsMaxedOut =  1;
+                        _Variables[0].numProximityAlerts = _MaxNumProximityAlerts;
+                        continue;
+                    }
+
+
+
+                    
                     _ProximityAlerts[previousNum].particleIdx1 = pIdx;
                     _ProximityAlerts[previousNum].particleIdx2 = otherParticleIndex;
+                    _ProximityAlerts[previousNum].requestIndex = ProximityAlertRequestIndex(pIdx, otherParticleIndex); 
                 }
             }
         }

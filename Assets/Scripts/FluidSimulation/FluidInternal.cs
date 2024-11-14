@@ -1,6 +1,6 @@
 namespace FluidSimulation
 {
-    internal struct Fluid
+    internal struct FluidInternal
     {
         public const int Stride = sizeof(int) + 8 * sizeof(float);
 

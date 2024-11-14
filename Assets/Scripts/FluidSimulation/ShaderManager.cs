@@ -38,11 +38,11 @@ namespace FluidSimulation
         private readonly SimulationSettingsInternal _simulationSettings;
         private ProximityAlert[] _proximityAlerts;
         private int _maxNumProximityAlerts;
-        
+       
         
         
         internal ShaderManager(string shaderFileName, SimulationSettingsInternal simulationSettings,
-            Fluid[] fluids, ProximityAlertRequest[] alerts, int maxNumProxAlerts)  
+            FluidInternal[] fluids, ProximityAlertRequest[] alerts, int maxNumProxAlerts)  
         {
             _maxNumProximityAlerts = maxNumProxAlerts;
             _computeShader = Resources.Load(shaderFileName) as ComputeShader;
@@ -57,10 +57,11 @@ namespace FluidSimulation
             _buffers[6].ComputeBuffer.SetData(fluids);
 
          
-            var alertMatrix = CreateProximityAlertMatrix(alerts, fluids);
             _proximityAlerts = new ProximityAlert[_maxNumProximityAlerts];
+        
             
-            _buffers[9].ComputeBuffer.SetData( alertMatrix );
+            _buffers[9].ComputeBuffer.SetData( CreateProximityAlertMatrix(alerts, fluids) );
+            _buffers[10].ComputeBuffer.SetData( CreateProxAlertRequestIndexLookup(alerts, fluids) );
 
             foreach (int kernelIndex in AllKernelIndices())
             {
@@ -88,10 +89,8 @@ namespace FluidSimulation
         public void Step(float deltaTime, FluidSimParticle[] particles)
         {
             float time = Time.realtimeSinceStartup;
-
-//            particles.WriteToComputeBuffer(_buffers[0].ComputeBuffer);
-            _buffers[0].ComputeBuffer.SetData(particles);
             
+            _buffers[0].ComputeBuffer.SetData(particles);
             
        //     _computeShader.SetInt("_NumParticles", numParticles);
             _computeShader.SetFloat("_DeltaTime", deltaTime/_simulationSettings.NumSubSteps);
@@ -130,7 +129,7 @@ namespace FluidSimulation
 
         public Span<ProximityAlert> GetProximityAlerts()
         {
-            _buffers[10].ComputeBuffer.GetData(_proximityAlerts);
+            _buffers[11].ComputeBuffer.GetData(_proximityAlerts);
             return _proximityAlerts.AsSpan(0, GetVariables().NumProximityAlerts);
         }
         
@@ -151,7 +150,7 @@ namespace FluidSimulation
         }
 
 
-        private void SetShaderVariables(SimulationSettingsInternal simulationSettings, Fluid[] fluids)
+        private void SetShaderVariables(SimulationSettingsInternal simulationSettings, FluidInternal[] fluids)
         {
             _computeShader.SetInt("_MaxNumParticles", simulationSettings.MaxNumParticles);
             _computeShader.SetInt("_MaxNumNeighbours", simulationSettings.MaxNumNeighbours);
@@ -169,10 +168,10 @@ namespace FluidSimulation
         }
 
         
-        private ShaderBuffer[] CreateBuffers(SimulationSettingsInternal settings, Fluid[] fluids,
+        private ShaderBuffer[] CreateBuffers(SimulationSettingsInternal settings, FluidInternal[] fluids,
             int numPartitioningCells)
         {
-            var buffers = new ShaderBuffer[11];
+            var buffers = new ShaderBuffer[12];
             var s = settings;
             int numPart = s.MaxNumParticles;
             int numNeigh = s.MaxNumNeighbours;
@@ -185,17 +184,18 @@ namespace FluidSimulation
             buffers[3] = new ShaderBuffer("_ParticleNeighbourCount", numPart,                  sizeof(int),          ShaderBuffer.Type.Internal);
             buffers[4] = new ShaderBuffer("_CellParticleCount",      numCells,                 sizeof(int),          ShaderBuffer.Type.Internal);
             buffers[5] = new ShaderBuffer("_ParticlesInCells",       numCells * numPartInCell, sizeof(int),          ShaderBuffer.Type.Internal);
-            buffers[6] = new ShaderBuffer("_Fluids",                 fluids.Length,            Fluid.Stride, ShaderBuffer.Type.Internal);
+            buffers[6] = new ShaderBuffer("_Fluids",                 fluids.Length,            FluidInternal.Stride, ShaderBuffer.Type.Internal);
             buffers[7] = new ShaderBuffer("_Variables",              1,                        Variables.Stride,     ShaderBuffer.Type.IO);
             buffers[8] = new ShaderBuffer("_Debug",                  10,                       sizeof(float),        ShaderBuffer.Type.IO);
-            buffers[9] = new ShaderBuffer("_ProximityAlertMatrix",   fluids.Length*fluids.Length, sizeof(float),     ShaderBuffer.Type.Internal); 
-            buffers[10] = new ShaderBuffer("_ProximityAlerts",       _maxNumProximityAlerts,    sizeof(int)*2,        ShaderBuffer.Type.IO); 
-            
+            buffers[9] = new ShaderBuffer("_ProximityAlertMatrix",   fluids.Length*fluids.Length, sizeof(float),     ShaderBuffer.Type.Internal);
+            buffers[10] = new ShaderBuffer("_ProximityAlertIndexLookup",   fluids.Length*fluids.Length, sizeof(int),     ShaderBuffer.Type.Internal);
+            buffers[11] = new ShaderBuffer("_ProximityAlerts",       Mathf.Max(1,_maxNumProximityAlerts), ProximityAlert.Stride, ShaderBuffer.Type.IO);
+
             return buffers;
         }
 
 
-        private float[] CreateProximityAlertMatrix(ProximityAlertRequest[] alerts, Fluid[] fluids)
+        private float[] CreateProximityAlertMatrix(ProximityAlertRequest[] alerts, FluidInternal[] fluids)
         {
             float[] result = new float[fluids.Length * fluids.Length];
             Array.Fill(result, -123f);
@@ -218,6 +218,20 @@ namespace FluidSimulation
                 if (idx < 0 || idx >= fluids.Length) throw new IndexOutOfRangeException("Fluid index out of range.");
             }
 
+        }
+        
+        private int[] CreateProxAlertRequestIndexLookup(ProximityAlertRequest[] alerts, FluidInternal[] fluids)
+        {
+            int[] lookup = new int[fluids.Length * fluids.Length];
+            Array.Fill(lookup, -1);
+            
+            for (int alertIdx=0; alertIdx<alerts.Length; alertIdx++)
+            {
+                int lookupIdx = alerts[alertIdx].IndexFluidA + alerts[alertIdx].IndexFluidB * fluids.Length;
+                lookup[lookupIdx] = alertIdx;
+            }
+
+            return lookup;
         }
         
         private void CheckErrorFlags()
