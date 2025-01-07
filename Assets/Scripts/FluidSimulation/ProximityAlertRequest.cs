@@ -1,3 +1,6 @@
+
+
+
 namespace FluidSimulation
 {
     //
@@ -6,8 +9,8 @@ namespace FluidSimulation
     /// </summary>
     public struct ProximityAlertRequest
     {
-        public int IndexFluidA;
-        public int IndexFluidB;
+        public int IndexSubstanceA;
+        public int IndexSubstanceB;
         public float Range;
     }
 }

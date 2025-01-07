@@ -10,6 +10,7 @@ namespace FluidDemo
         public GameObject greenLiquidParticlePrefab;
         public GameObject redLiquidParticlePrefab;
         public GameObject gasParticlePrefab;
+        public GameObject heavygasParticlePrefab;
         public GameObject solidParticlePrefab;
 
         
@@ -35,6 +36,7 @@ namespace FluidDemo
             {
                 SubstanceId.Water => liquidParticlePrefab,
                 SubstanceId.Smoke => gasParticlePrefab,
+                SubstanceId.HeavyGas => heavygasParticlePrefab,
                 SubstanceId.Rock => solidParticlePrefab,
                 SubstanceId.GreenLiquid => greenLiquidParticlePrefab,
                 SubstanceId.RedLiquid => redLiquidParticlePrefab,

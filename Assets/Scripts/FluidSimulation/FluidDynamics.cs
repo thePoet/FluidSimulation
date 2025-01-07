@@ -85,8 +85,13 @@ namespace FluidSimulation
             ssi.MaxNumParticles = simulationSettings.MaxNumParticles;
             ssi.IsViscosityEnabled = simulationSettings.IsViscosityEnabled;
             ssi.NumSubSteps = 3;
-            ssi.MaxNumParticlesInPartitioningCell = 100;
-            ssi.MaxNumNeighbours = 50;
+            // Cell is a square with side of interaction radius
+            float typicalNumParticlesInCell = 3.5f * 3.5f;
+            float safetyFactor = 10f; // Due to fluid particles packing on solid boundaries
+            
+            ssi.MaxNumParticlesInPartitioningCell = (int)(typicalNumParticlesInCell * safetyFactor);
+            float safetyFactor2 = 1.2f;
+            ssi.MaxNumNeighbours = (int)(Mathf.PI * ssi.MaxNumParticlesInPartitioningCell * safetyFactor2);
             ssi.SolidRadius = ss.SolidRadius;
             return ssi;
         }
@@ -127,12 +132,12 @@ namespace FluidSimulation
                 f.Stiffness = 200f;
                 f.NearStiffness = 400f;
                 f.RestDensity = 5f;
-                f.DensityPullFactor = 0.5f;
+                f.DensityPullFactor = 0.1f;
                 
                 f.ViscositySigma = 0.2f * (substance as Gas).Viscosity;
                 f.ViscosityBeta = 0.2f * (substance as Gas).Viscosity;
 
-                f.GravityScale = -0.05f;
+                f.GravityScale = -0.05f * substance.Density;
             }
 
             if (substance is Solid)
@@ -156,8 +161,8 @@ namespace FluidSimulation
             var set = new HashSet<(int, int)>();
             foreach (var alert in alerts)
             {
-                var pair = (alert.IndexFluidA, alert.IndexFluidB);
-                var reversePair = (alert.IndexFluidB, alert.IndexFluidA);
+                var pair = (IndexFluidA: alert.IndexSubstanceA, IndexFluidB: alert.IndexSubstanceB);
+                var reversePair = (IndexFluidB: alert.IndexSubstanceB, IndexFluidA: alert.IndexSubstanceA);
                 if (!set.Add(pair)) return true;
                 if (!set.Add(reversePair)) return true;
             }

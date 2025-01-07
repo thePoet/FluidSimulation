@@ -186,8 +186,8 @@ namespace FluidDemo
         {
             var pas = new ProximityAlertRequest
             {
-                IndexFluidA = Substances.IndexOf(SubstanceId.GreenLiquid),
-                IndexFluidB = Substances.IndexOf(SubstanceId.RedLiquid),
+                IndexSubstanceA = Substances.IndexOf(SubstanceId.GreenLiquid),
+                IndexSubstanceB = Substances.IndexOf(SubstanceId.RedLiquid),
                 Range = 10f
             };
 

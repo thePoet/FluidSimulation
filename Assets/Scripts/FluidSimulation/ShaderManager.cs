@@ -204,10 +204,10 @@ namespace FluidSimulation
          
             foreach (var alert in alerts)
             {
-                CheckFluidIndex(alert.IndexFluidA);
-                CheckFluidIndex(alert.IndexFluidB);
+                CheckFluidIndex(alert.IndexSubstanceA);
+                CheckFluidIndex(alert.IndexSubstanceB);
 
-                int index = alert.IndexFluidA + alert.IndexFluidB * fluids.Length;
+                int index = alert.IndexSubstanceA + alert.IndexSubstanceB * fluids.Length;
                 result[index] = alert.Range;
             }
             
@@ -227,7 +227,7 @@ namespace FluidSimulation
             
             for (int alertIdx=0; alertIdx<alerts.Length; alertIdx++)
             {
-                int lookupIdx = alerts[alertIdx].IndexFluidA + alerts[alertIdx].IndexFluidB * fluids.Length;
+                int lookupIdx = alerts[alertIdx].IndexSubstanceA + alerts[alertIdx].IndexSubstanceB * fluids.Length;
                 lookup[lookupIdx] = alertIdx;
             }
 

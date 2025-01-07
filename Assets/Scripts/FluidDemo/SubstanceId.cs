@@ -4,6 +4,7 @@ namespace FluidDemo
     {
         Water,
         Smoke,
+        HeavyGas,
         Rock,
         GreenLiquid,
         RedLiquid
