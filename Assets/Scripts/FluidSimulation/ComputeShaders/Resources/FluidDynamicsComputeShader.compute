@@ -1,5 +1,5 @@
 // Compute shader for particle based fluid dynamics.
-// Based on paper by Simon Clavet, Philippe Beaudoin, and Pierre Poulin
+// Based loosely on paper by Simon Clavet, Philippe Beaudoin, and Pierre Poulin
 // https://www.academia.edu/452554/Particle-Based_Viscoelastic_Fluid_Simulation
 #include "FluidDynamicsCommon.hlsl"
 
@@ -391,6 +391,7 @@ void FindNeighbours (uint3 id : SV_DispatchThreadID)
 
             for (int i=0; i<_CellParticleCount[cellIndex]; i++)
             {
+                //TODO: sound a warning here
                 if (i==_MaxNumParticlesPerCell) break;
 
                 int otherParticleIndex = _ParticlesInCells[cellIndex * _MaxNumParticlesPerCell + i];
@@ -467,7 +468,7 @@ float2 ViscosityImpulse(int particle1, int particle2)
     if (IsGas(particle1) && IsLiquid(particle2))
     {
         // TODO: filter out particles that are too far away and weight by distance
-        impulse += _DeltaTime * float2(0, -100);
+        impulse += _DeltaTime * float2(0, -60);
     }
 
     return impulse;
@@ -512,6 +513,14 @@ void ApplyVelocity (uint3 id : SV_DispatchThreadID)
     _TempData[pIdx].DisplacementVelocity = _Particles[pIdx].Velocity * _DeltaTime;
 }
 
+
+bool IsDensityDisplacementApplying(int particle1, int particle2)
+{
+    return !IsSolid(particle1) && !IsSolid(particle2) &&
+        !( IsLiquid(particle1) && IsGas(particle2) );
+      //  !IsInDifferentState(particle1, particle2);
+}
+
 [numthreads(8,8,1)]
 void CalculatePressures (uint3 id : SV_DispatchThreadID)
 {
@@ -533,7 +542,7 @@ void CalculatePressures (uint3 id : SV_DispatchThreadID)
     {
         int neighbourIndex = _ParticleNeighbours[pIdx * _MaxNumNeighbours + i];
 
-        if (IsSolid(neighbourIndex) || IsInDifferentState(pIdx, neighbourIndex)) continue;
+        if (!IsDensityDisplacementApplying(pIdx, neighbourIndex)) continue;
         float q = QDistance(pIdx, neighbourIndex);
         if (q<1)
         {
@@ -592,8 +601,8 @@ void CalculateDensityDisplacement (uint3 id : SV_DispatchThreadID)
     {
         int neighbourIdx = _ParticleNeighbours[pIdx * _MaxNumNeighbours + j];
 
-        //if (IsFluid(neighbourIdx) )
-        if (!IsInDifferentState(pIdx, neighbourIdx))
+       
+        if (IsDensityDisplacementApplying(pIdx, neighbourIdx))
         {
             float pullFactor = FluidOf(pIdx).DensityPullFactor;
             if (_Particles[pIdx].fluidIdx != _Particles[neighbourIdx].fluidIdx)

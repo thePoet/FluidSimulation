@@ -646,6 +646,7 @@ MonoBehaviour:
   greenLiquidParticlePrefab: {fileID: 6458512588980554973, guid: 4d7121788969340f3bf51dde5d5bf1b4, type: 3}
   redLiquidParticlePrefab: {fileID: 6458512588980554973, guid: dcea6c6b8fe7444238ac3033cd5a0b39, type: 3}
   gasParticlePrefab: {fileID: 6458512588980554973, guid: 07658e9a2ca554275a154b74025271b1, type: 3}
+  heavygasParticlePrefab: {fileID: 6458512588980554973, guid: f26bad0c91f5b486d9dc5cf0d0ba0ee0, type: 3}
   solidParticlePrefab: {fileID: 6458512588980554973, guid: 63fcc66fda85b442d903c8d2a0780aef, type: 3}
 --- !u!114 &1692431641
 MonoBehaviour:

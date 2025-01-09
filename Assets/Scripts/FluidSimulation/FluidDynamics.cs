@@ -129,15 +129,16 @@ namespace FluidSimulation
             if (substance is Gas)
             {
                 f.State = 1;
-                f.Stiffness = 200f;
-                f.NearStiffness = 400f;
-                f.RestDensity = 5f;
+                f.Stiffness = 400f;
+                f.NearStiffness = 800f;
+                f.RestDensity = 1f;
                 f.DensityPullFactor = 0.1f;
                 
                 f.ViscositySigma = 0.2f * (substance as Gas).Viscosity;
                 f.ViscosityBeta = 0.2f * (substance as Gas).Viscosity;
 
-                f.GravityScale = -0.05f * substance.Density;
+                f.GravityScale = (substance.Density - 1f) * 0.5f;
+                // -0.05f * substance.Density;
             }
 
             if (substance is Solid)

@@ -218,7 +218,7 @@ namespace FluidDemo
                 
                 if (p1.SubstanceId == SubstanceId.GreenLiquid && p2.SubstanceId == SubstanceId.RedLiquid)
                 {
-                   p1.SubstanceId = SubstanceId.Smoke;
+                   p1.SubstanceId = SubstanceId.Air;
                    p2.SubstanceId = SubstanceId.Water;
                    UpdateParticle(p1);
                    UpdateParticle(p2);

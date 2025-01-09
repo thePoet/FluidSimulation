@@ -55,7 +55,7 @@ namespace FluidDemo
             if (Input.GetKey(KeyCode.Alpha6)) SelectMode(6);
             if (Input.GetKey(KeyCode.Alpha7)) SelectMode(7);
             if (Input.GetKey(KeyCode.Alpha8)) SelectMode(8);
-            if (Input.GetKey(KeyCode.Alpha8)) SelectMode(9);
+            if (Input.GetKey(KeyCode.Alpha9)) SelectMode(9);
 
 
             _previousMousePosition = MousePosition;
@@ -106,7 +106,7 @@ namespace FluidDemo
             if (pib.Length==0) return;
             int n = Random.Range(0, pib.Length - 1);
             var pos = simulation.GetParticle(pib[n]).Position;
-            simulation.SpawnParticle(pos, Vector2.zero, SubstanceId.Smoke);
+            simulation.SpawnParticle(pos, Vector2.zero, SubstanceId.Air);
             simulation.DestroyParticle(pib[n]);
         }
 
@@ -115,8 +115,8 @@ namespace FluidDemo
             string[] texts = new string[]
             {
                 "Water",
+                "Air",
                 "Smoke",
-                "Heavy Gas",
                 "Rock",
                 "Green Liquid",
                 "Red Liquid",

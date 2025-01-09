@@ -3,8 +3,8 @@ namespace FluidDemo
     public enum SubstanceId
     {
         Water,
+        Air,
         Smoke,
-        HeavyGas,
         Rock,
         GreenLiquid,
         RedLiquid
