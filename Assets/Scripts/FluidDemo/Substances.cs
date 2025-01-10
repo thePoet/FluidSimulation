@@ -15,7 +15,7 @@ namespace FluidDemo
             
             List[(int)SubstanceId.Water] = new Liquid(Density: 1f, Viscosity: 0.3f);
             List[(int)SubstanceId.Air] = new Gas(Density: 1f,  Viscosity: 0.1f);
-            List[(int)SubstanceId.Smoke] = new Gas(Density: 0.5f,  Viscosity: 0.1f);
+            List[(int)SubstanceId.Smoke] = new Gas(Density: 0.2f,  Viscosity: 0.1f);
             List[(int)SubstanceId.Rock]  = new Solid(Density: 2f);
             List[(int)SubstanceId.GreenLiquid] = new Liquid(Density: 1f, Viscosity: 0.3f);
             List[(int)SubstanceId.RedLiquid] = new Liquid(Density: 1f, Viscosity: 0.3f);
