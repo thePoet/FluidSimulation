@@ -118,7 +118,7 @@ namespace FluidSimulation
                 f.Stiffness = 2000f;
                 f.NearStiffness = 4000f;
                 f.RestDensity = 5f;
-                f.DensityPullFactor = 0.5f;
+                f.DensityPullFactor = (substance as Liquid).Clumping;
 
                 f.ViscositySigma = 0.2f * (substance as Liquid).Viscosity;
                 f.ViscosityBeta = 0.2f * (substance as Liquid).Viscosity;
@@ -129,10 +129,10 @@ namespace FluidSimulation
             if (substance is Gas)
             {
                 f.State = 1;
-                f.Stiffness = 400f;
-                f.NearStiffness = 800f;
-                f.RestDensity = 1f;
-                f.DensityPullFactor = 0.1f;
+                f.Stiffness = 1000f;
+                f.NearStiffness = 2000f;
+                f.RestDensity = 2f;
+                f.DensityPullFactor = (substance as Gas).Clumping;
                 
                 f.ViscositySigma = 0.2f * (substance as Gas).Viscosity;
                 f.ViscosityBeta = 0.2f * (substance as Gas).Viscosity;

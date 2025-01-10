@@ -441,15 +441,14 @@ bool IsInDifferentState(int particle1, int particle2)
 float2 ViscosityImpulse(int particle1, int particle2)
 {
     float2 impulse = float2(0,0);
+
+    float q = QDistance(particle1, particle2);
     
     if (!IsSolid(particle1) && !IsSolid(particle2))// && !IsInDifferentState(particle1, particle2) )
     {
         int fluidIdx = _Particles[particle1].fluidIdx;
         float sigma = _Fluids[fluidIdx].ViscositySigma; // Why only other fluid's viscosity?
         float beta = _Fluids[fluidIdx].ViscosityBeta;
-
-
-        float q = QDistance(particle1, particle2);
 
         if (q>0.000001 && q < 1)
         {
@@ -467,10 +466,10 @@ float2 ViscosityImpulse(int particle1, int particle2)
     // Byoancy-hack
     if (IsGas(particle1) && IsLiquid(particle2))
     {
-        float2 toLiquid = _Particles[particle2].Position - _Particles[particle1].Position;
-        if (toLiquid.y < 0 && length(toLiquid) < _InteractionRadius/2)
+       // float2 toLiquid = _Particles[particle2].Position - _Particles[particle1].Position;
+        if (_Particles[particle2].Position.y > _Particles[particle1].Position.y && q < 0.5)
         {
-            impulse -= _DeltaTime * float2(0, 500);
+            impulse += _DeltaTime * float2(0, -500); //TODO: Why minus here?
         }
     }
 

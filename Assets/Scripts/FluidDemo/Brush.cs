@@ -43,7 +43,7 @@ namespace FluidDemo
             }
             if (LeftMouseButton && _currentMode == 9)
             {
-                Gassify();
+                Smokify();
             }
 
             
@@ -100,13 +100,13 @@ namespace FluidDemo
             return false;
         }
         
-        private void Gassify()
+        private void Smokify()
         {
             var pib = ParticlesInBrush;
             if (pib.Length==0) return;
             int n = Random.Range(0, pib.Length - 1);
             var pos = simulation.GetParticle(pib[n]).Position;
-            simulation.SpawnParticle(pos, Vector2.zero, SubstanceId.Air);
+            simulation.SpawnParticle(pos, Vector2.zero, SubstanceId.Smoke);
             simulation.DestroyParticle(pib[n]);
         }
 
@@ -122,7 +122,7 @@ namespace FluidDemo
                 "Red Liquid",
                 "Push",
                 "Delete",
-                "Turn to gas"
+                "Turn to smoke"
             };
 
             string result = "";

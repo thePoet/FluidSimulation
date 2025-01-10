@@ -4,9 +4,9 @@ namespace FluidSimulation
 {
     public abstract record Substance(Density Density);
 
-    public abstract record Fluid(Density Density, Viscosity Viscosity) : Substance(Density);
-    public record Liquid(Density Density, Viscosity Viscosity) : Fluid(Density, Viscosity);
-    public record Gas(Density Density, Viscosity Viscosity)    : Fluid(Density, Viscosity);
+    public abstract record Fluid(Density Density, Viscosity Viscosity, Clumping Clumping) : Substance(Density);
+    public record Liquid(Density Density, Viscosity Viscosity, Clumping Clumping) : Fluid(Density, Viscosity, Clumping);
+    public record Gas(Density Density, Viscosity Viscosity, Clumping Clumping)    : Fluid(Density, Viscosity, Clumping);
     public record Solid(Density Density)                       : Substance(Density);  
 
     /// <summary>
@@ -43,7 +43,23 @@ namespace FluidSimulation
         public static implicit operator Viscosity(float value) => new(value);
     }
 
+    /// <summary>
+    /// Clumbing factor of fluid. Describes how strongly the fluid particles clumb together and resembles surface tensions.
+    /// Must be between 0f and 1f.
+    /// </summary>
+    public record Clumping
+    {
+        public float Value { get; }
 
+        public Clumping(float value)
+        {
+            if (value is < 0f or > 1f) throw new ArgumentException("Clumping value must be between 0f and 1f");
+            Value = value;
+        }
+
+        public static implicit operator float(Clumping c) => c.Value;
+        public static implicit operator Clumping(float value) => new(value);
+    }
 
 }
 
