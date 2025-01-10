@@ -186,8 +186,8 @@ namespace FluidDemo
         {
             var pas = new ProximityAlertRequest
             {
-                IndexFluidA = Substances.IndexOf(SubstanceId.GreenLiquid),
-                IndexFluidB = Substances.IndexOf(SubstanceId.RedLiquid),
+                IndexSubstanceA = Substances.IndexOf(SubstanceId.GreenLiquid),
+                IndexSubstanceB = Substances.IndexOf(SubstanceId.RedLiquid),
                 Range = 10f
             };
 
@@ -218,7 +218,7 @@ namespace FluidDemo
                 
                 if (p1.SubstanceId == SubstanceId.GreenLiquid && p2.SubstanceId == SubstanceId.RedLiquid)
                 {
-                   p1.SubstanceId = SubstanceId.Smoke;
+                   p1.SubstanceId = SubstanceId.Air;
                    p2.SubstanceId = SubstanceId.Water;
                    UpdateParticle(p1);
                    UpdateParticle(p2);

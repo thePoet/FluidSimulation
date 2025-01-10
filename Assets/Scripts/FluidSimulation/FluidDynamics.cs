@@ -85,8 +85,13 @@ namespace FluidSimulation
             ssi.MaxNumParticles = simulationSettings.MaxNumParticles;
             ssi.IsViscosityEnabled = simulationSettings.IsViscosityEnabled;
             ssi.NumSubSteps = 3;
-            ssi.MaxNumParticlesInPartitioningCell = 100;
-            ssi.MaxNumNeighbours = 50;
+            // Cell is a square with side of interaction radius
+            float typicalNumParticlesInCell = 3.5f * 3.5f;
+            float safetyFactor = 10f; // Due to fluid particles packing on solid boundaries
+            
+            ssi.MaxNumParticlesInPartitioningCell = (int)(typicalNumParticlesInCell * safetyFactor);
+            float safetyFactor2 = 1.2f;
+            ssi.MaxNumNeighbours = (int)(Mathf.PI * ssi.MaxNumParticlesInPartitioningCell * safetyFactor2);
             ssi.SolidRadius = ss.SolidRadius;
             return ssi;
         }
@@ -113,7 +118,7 @@ namespace FluidSimulation
                 f.Stiffness = 2000f;
                 f.NearStiffness = 4000f;
                 f.RestDensity = 5f;
-                f.DensityPullFactor = 0.5f;
+                f.DensityPullFactor = (substance as Liquid).Clumping;
 
                 f.ViscositySigma = 0.2f * (substance as Liquid).Viscosity;
                 f.ViscosityBeta = 0.2f * (substance as Liquid).Viscosity;
@@ -124,15 +129,16 @@ namespace FluidSimulation
             if (substance is Gas)
             {
                 f.State = 1;
-                f.Stiffness = 200f;
-                f.NearStiffness = 400f;
-                f.RestDensity = 5f;
-                f.DensityPullFactor = 0.5f;
+                f.Stiffness = 1000f;
+                f.NearStiffness = 2000f;
+                f.RestDensity = 2f;
+                f.DensityPullFactor = (substance as Gas).Clumping;
                 
                 f.ViscositySigma = 0.2f * (substance as Gas).Viscosity;
                 f.ViscosityBeta = 0.2f * (substance as Gas).Viscosity;
 
-                f.GravityScale = -0.05f;
+                f.GravityScale = (substance.Density - 1f) * 0.5f;
+                // -0.05f * substance.Density;
             }
 
             if (substance is Solid)
@@ -156,8 +162,8 @@ namespace FluidSimulation
             var set = new HashSet<(int, int)>();
             foreach (var alert in alerts)
             {
-                var pair = (alert.IndexFluidA, alert.IndexFluidB);
-                var reversePair = (alert.IndexFluidB, alert.IndexFluidA);
+                var pair = (IndexFluidA: alert.IndexSubstanceA, IndexFluidB: alert.IndexSubstanceB);
+                var reversePair = (IndexFluidB: alert.IndexSubstanceB, IndexFluidA: alert.IndexSubstanceA);
                 if (!set.Add(pair)) return true;
                 if (!set.Add(reversePair)) return true;
             }

@@ -29,18 +29,23 @@ namespace FluidDemo
         {
             if (simulation is null) return;
             
-            if (LeftMouseButton && _currentMode <= 5)
+            if (LeftMouseButton && _currentMode <= 6)
             {
                 CreateParticles();
             }
-            if (LeftMouseButton && _currentMode == 6)
+            if (LeftMouseButton && _currentMode == 7)
             {
                 PushParticles();
             }
-            if (LeftMouseButton && _currentMode == 7)
+            if (LeftMouseButton && _currentMode == 8)
             {
                 DeleteParticles();
             }
+            if (LeftMouseButton && _currentMode == 9)
+            {
+                Smokify();
+            }
+
             
             if (Input.GetKey(KeyCode.Alpha1)) SelectMode(1);
             if (Input.GetKey(KeyCode.Alpha2)) SelectMode(2);
@@ -49,6 +54,8 @@ namespace FluidDemo
             if (Input.GetKey(KeyCode.Alpha5)) SelectMode(5);
             if (Input.GetKey(KeyCode.Alpha6)) SelectMode(6);
             if (Input.GetKey(KeyCode.Alpha7)) SelectMode(7);
+            if (Input.GetKey(KeyCode.Alpha8)) SelectMode(8);
+            if (Input.GetKey(KeyCode.Alpha9)) SelectMode(9);
 
 
             _previousMousePosition = MousePosition;
@@ -92,18 +99,30 @@ namespace FluidDemo
 
             return false;
         }
+        
+        private void Smokify()
+        {
+            var pib = ParticlesInBrush;
+            if (pib.Length==0) return;
+            int n = Random.Range(0, pib.Length - 1);
+            var pos = simulation.GetParticle(pib[n]).Position;
+            simulation.SpawnParticle(pos, Vector2.zero, SubstanceId.Smoke);
+            simulation.DestroyParticle(pib[n]);
+        }
 
         private string ModeSelectionText()
         {
             string[] texts = new string[]
             {
                 "Water",
-                "Gas",
+                "Air",
+                "Smoke",
                 "Rock",
                 "Green Liquid",
                 "Red Liquid",
                 "Push",
-                "Delete"
+                "Delete",
+                "Turn to smoke"
             };
 
             string result = "";
@@ -120,7 +139,7 @@ namespace FluidDemo
         void SelectMode(int modeNumber)
         {
             _currentMode = modeNumber;
-            if (_currentMode is >= 1 and <= 5) _currentSubstanceId = (SubstanceId)(_currentMode-1);
+            if (_currentMode is >= 1 and <= 6) _currentSubstanceId = (SubstanceId)(_currentMode-1);
             text.text = ModeSelectionText();
         }
 
